@@ -7,6 +7,7 @@ version = project.mod_version
 group = project.maven_group
 
 repositories {
+	maven { url "https://maven.terraformersmc.com/releases" }
 }
 
 dependencies {
@@ -14,6 +15,7 @@ dependencies {
 	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	modImplementation "com.terraformersmc:modmenu:7.2.2"
 }
 
 processResources {

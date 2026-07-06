@@ -18,6 +18,7 @@ import net.minecraft.util.Mth;
 import com.mojang.blaze3d.platform.NativeImage;
 import java.io.InputStream;
 
+import com.niuqu.chatbubble.mixin.MinecraftServerAccessor;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -40,8 +41,8 @@ public class ChatBubbleScreen extends Screen {
     private static final int BAR_H = 38;
 
     private static final int ICON_S = 16;
-    private static final ResourceLocation TEX_GEAR = new ResourceLocation("e33chat", "textures/gui/settings");
-    private static final ResourceLocation TEX_SEND = new ResourceLocation("e33chat", "textures/gui/send");
+    private static final ResourceLocation TEX_GEAR = new ResourceLocation("e33chat","textures/gui/settings");
+    private static final ResourceLocation TEX_SEND = new ResourceLocation("e33chat","textures/gui/send");
     private static boolean iconsLoaded;
 
     private static final int COLOR_NAME = 0xFFCCCCCC;
@@ -128,8 +129,8 @@ public class ChatBubbleScreen extends Screen {
             iconsLoaded = true;
         }
 
-        worldName = getWorldName();
-        ChatMessageStore.setCurrentWorld(worldName);
+        worldName = getWorldDisplayName();
+        ChatMessageStore.setCurrentWorld(getWorldKey());
 
         int editW = Math.min(180, panelW - 80);
         int editX = panelX + (panelW - editW) / 2;
@@ -143,7 +144,15 @@ public class ChatBubbleScreen extends Screen {
         setInitialFocus(input);
     }
 
-    private String getWorldName() {
+    private String getWorldKey() {
+        if (minecraft.getSingleplayerServer() != null)
+            return "sp:" + ((MinecraftServerAccessor) minecraft.getSingleplayerServer()).getStorageSource().getLevelId();
+        if (minecraft.getCurrentServer() != null)
+            return "mp:" + minecraft.getCurrentServer().ip;
+        return "unknown";
+    }
+
+    private String getWorldDisplayName() {
         if (minecraft.getSingleplayerServer() != null)
             return minecraft.getSingleplayerServer().getWorldData().getLevelName();
         if (minecraft.getCurrentServer() != null)

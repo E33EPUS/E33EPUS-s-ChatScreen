@@ -8,7 +8,7 @@
 		"E33EPUS"
 	],
 	"license": "MIT",
-	"icon": "assets/e33chat/icon.png",
+	"icon": "icon.png",
 	"environment": "client",
 	"entrypoints": {
 		"client": [
@@ -23,6 +23,15 @@
 		"fabricloader": ">=0.15.0",
 		"minecraft": "~1.20.1",
 		"java": ">=17",
-		"fabric-api": "*"
+		"fabric-api": "*",
+		"modmenu": "*"
+	},
+	"custom": {
+		"modmenu": {
+			"name": "E33EPUS's ChatScreen",
+			"links": {
+				"modmenu.github_releases": "https://github.com/E33EPUS/E33EPUS-s-ChatScreen"
+			}
+		}
 	}
 }

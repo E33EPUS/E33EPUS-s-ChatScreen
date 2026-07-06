@@ -152,13 +152,29 @@ public class ChatMessageStore {
     }
 
     public static void setCurrentWorld(String name) {
+        System.out.println("[e33chat] setCurrentWorld('" + name + "') oldKey='" + currentWorldKey
+            + "' size=" + messages.size());
         if (name != null && !name.equals(currentWorldKey)) {
+            System.out.println("[e33chat] setCurrentWorld: clearing messages (world changed)");
             messages.clear();
             unreadCount = 0;
             latestPreview = null;
             previewTicks = 0;
         }
         currentWorldKey = name;
+    }
+
+    public static void resetForNewWorld() {
+        System.out.println("[e33chat] resetForNewWorld() called, messages before=" + messages.size()
+            + " currentWorldKey=" + currentWorldKey);
+        messages.clear();
+        unreadCount = 0;
+        latestPreview = null;
+        previewTicks = 0;
+        pendingReplyContent = null;
+        pendingReplySender = null;
+        currentWorldKey = null;
+        System.out.println("[e33chat] resetForNewWorld() done, currentWorldKey reset to null");
     }
 
     private static File getTitlesFile() {

@@ -95,9 +95,12 @@ public class ChatBubbleHudOverlay {
         try {
             abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
         } catch (Exception e) {
-            // Texture lost (F3+T resource reload), reload it
             loadIconTexture();
-            abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
+            try {
+                abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
+            } catch (Exception e2) {
+                return;
+            }
         }
         RenderSystem.setShaderTexture(0, abstractTex.getId());
         RenderSystem.setShader(GameRenderer::getPositionTexShader);

@@ -5,7 +5,8 @@
 	"client": [
 		"ChatComponentMixin",
 		"ChatListenerMixin",
-		"CommandSuggestionsMixin"
+		"CommandSuggestionsMixin",
+		"MinecraftServerAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1
