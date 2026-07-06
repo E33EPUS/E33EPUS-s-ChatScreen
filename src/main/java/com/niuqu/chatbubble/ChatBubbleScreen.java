@@ -55,6 +55,7 @@ public class ChatBubbleScreen extends Screen {
 
     private EditBox input;
     private CommandSuggestions commandSuggestions;
+    private static int inputY;
     private final String initialText;
     private int scrollOffset;
     private int maxScroll;
@@ -106,6 +107,7 @@ public class ChatBubbleScreen extends Screen {
 
         // Input box between gear (left) and send (right) icons
         int ibY = barTop + (BAR_H - 20) / 2;
+        inputY = ibY;
         int inputX = panelX + PAD + ICON_S + 8;
         int inputW = panelX + panelW - PAD - ICON_S - 8 - inputX;
 
@@ -759,6 +761,8 @@ public class ChatBubbleScreen extends Screen {
         closing = true;
         animStart = net.minecraft.Util.getMillis();
     }
+
+    public static int getInputY() { return inputY; }
 
     @Override
     public boolean isPauseScreen() { return false; }

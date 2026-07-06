@@ -8,3 +8,4 @@ out/
 classes/
 temp_refmap/
 *.log
+crash_tmp/
