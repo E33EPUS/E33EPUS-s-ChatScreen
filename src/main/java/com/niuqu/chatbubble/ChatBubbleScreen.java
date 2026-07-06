@@ -129,6 +129,7 @@ public class ChatBubbleScreen extends Screen {
         }
 
         worldName = getWorldName();
+        ChatMessageStore.setCurrentWorld(worldName);
 
         int editW = Math.min(180, panelW - 80);
         int editX = panelX + (panelW - editW) / 2;

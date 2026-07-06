@@ -10,8 +10,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(CommandSuggestions.class)
+@Mixin(value = CommandSuggestions.class, priority = 500)
 public class CommandSuggestionsMixin {
+
+    private static boolean loggedSuggestionsY;
 
     @Inject(method = "renderUsage", at = @At("HEAD"), cancellable = true, require = 0)
     private void onRenderUsage(GuiGraphics g, CallbackInfo ci) {
@@ -25,8 +27,14 @@ public class CommandSuggestionsMixin {
             target = "Lnet/minecraft/client/gui/components/CommandSuggestions$SuggestionsList;<init>(Lnet/minecraft/client/gui/components/CommandSuggestions;IIILjava/util/List;Z)V"),
         index = 2)
     private int fixSuggestionsY(int y) {
-        if (Minecraft.getInstance().screen instanceof ChatBubbleScreen)
-            return ChatBubbleScreen.getInputY() - 3;
+        if (Minecraft.getInstance().screen instanceof ChatBubbleScreen) {
+            int fixed = ChatBubbleScreen.getInputY() + 3;
+            if (!loggedSuggestionsY) {
+                System.out.println("[e33chat] CommandSuggestions Y " + y + " -> " + fixed + " (inputY=" + ChatBubbleScreen.getInputY() + ")");
+                loggedSuggestionsY = true;
+            }
+            return fixed;
+        }
         return y;
     }
 }

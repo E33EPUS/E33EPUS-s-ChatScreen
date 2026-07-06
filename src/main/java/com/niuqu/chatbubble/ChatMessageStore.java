@@ -1,13 +1,17 @@
 package com.niuqu.chatbubble;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+
 
 public class ChatMessageStore {
     private static final int MAX = 100;
@@ -19,6 +23,10 @@ public class ChatMessageStore {
     private static String latestPreview;
     private static int previewTicks;
 
+    private static String currentWorldKey;
+    private static final Map<String, String> worldTitles = new HashMap<>();
+    private static final Gson GSON = new Gson();
+    private static boolean titlesLoaded;
     public record ChatMessage(
         UUID senderUUID,
         Component senderName,
@@ -126,12 +134,53 @@ public class ChatMessageStore {
     }
 
     public static String getCustomTitle() {
-        String v = ChatBubbleConfig.CUSTOM_TITLE.get();
+        if (currentWorldKey == null) return null;
+        loadWorldTitles();
+        String v = worldTitles.get(currentWorldKey);
         return (v != null && !v.isEmpty()) ? v : null;
     }
 
     public static void setCustomTitle(String title) {
+        if (currentWorldKey == null) return;
+        loadWorldTitles();
         String v = (title != null && !title.isEmpty()) ? title : "";
-        ChatBubbleConfig.CUSTOM_TITLE.set(v);
+        if (v.isEmpty())
+            worldTitles.remove(currentWorldKey);
+        else
+            worldTitles.put(currentWorldKey, v);
+        saveWorldTitles();
+    }
+
+    public static void setCurrentWorld(String name) {
+        if (name != null && !name.equals(currentWorldKey)) {
+            messages.clear();
+            unreadCount = 0;
+            latestPreview = null;
+            previewTicks = 0;
+        }
+        currentWorldKey = name;
+    }
+
+    private static File getTitlesFile() {
+        return new File(Minecraft.getInstance().gameDirectory, "e33chat/titles.json");
+    }
+
+    private static void loadWorldTitles() {
+        if (titlesLoaded) return;
+        titlesLoaded = true;
+        File f = getTitlesFile();
+        if (!f.exists()) return;
+        try (Reader r = new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8)) {
+            Map<String, String> data = GSON.fromJson(r, new TypeToken<Map<String, String>>(){}.getType());
+            if (data != null) worldTitles.putAll(data);
+        } catch (Exception ignored) {}
+    }
+
+    private static void saveWorldTitles() {
+        File f = getTitlesFile();
+        f.getParentFile().mkdirs();
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
+            GSON.toJson(worldTitles, w);
+        } catch (Exception ignored) {}
     }
 }

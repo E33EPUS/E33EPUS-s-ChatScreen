@@ -85,7 +85,7 @@ repositories {
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -105,6 +105,7 @@ tasks.named('processResources', ProcessResources).configure {
 }
 
 tasks.named('jar', Jar).configure {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
         attributes([
                 'Specification-Title'     : mod_id,
@@ -138,6 +139,14 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
 
+// 把 AP 生成的 refmap 复制到 resources（compileJava 时 AP 生成到 tmp）
+tasks.register('copyRefmap', Copy) {
+    from "${buildDir}/tmp/compileJava"
+    into "${buildDir}/resources/main"
+    include 'mixins.e33chat.refmap.json'
+}
+compileJava.finalizedBy 'copyRefmap'
+
 // 在 dev 环境生成 MANIFEST.MF，让 MixinPlatformAgentDefault 发现 mixin 配置
 tasks.register('writeDevManifest') {
     doLast {
@@ -150,3 +159,4 @@ tasks.register('writeDevManifest') {
     }
 }
 processResources.finalizedBy 'writeDevManifest'
+jar.dependsOn copyRefmap
