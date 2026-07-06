@@ -29,3 +29,5 @@ Forge 1.20.1 Client-side only
 - Send images, emojis, and videos
 - Private chat channels
 
+# Lisence
+MIT
