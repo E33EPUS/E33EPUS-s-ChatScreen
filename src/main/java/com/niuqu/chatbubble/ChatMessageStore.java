@@ -18,7 +18,6 @@ public class ChatMessageStore {
     private static String pendingReplySender;
     private static String latestPreview;
     private static int previewTicks;
-    private static String customTitle;
 
     public record ChatMessage(
         UUID senderUUID,
@@ -126,9 +125,13 @@ public class ChatMessageStore {
         return messages.size();
     }
 
-    public static String getCustomTitle() { return customTitle; }
+    public static String getCustomTitle() {
+        String v = ChatBubbleConfig.CUSTOM_TITLE.get();
+        return (v != null && !v.isEmpty()) ? v : null;
+    }
 
     public static void setCustomTitle(String title) {
-        customTitle = (title != null && !title.isEmpty()) ? title : null;
+        String v = (title != null && !title.isEmpty()) ? title : "";
+        ChatBubbleConfig.CUSTOM_TITLE.set(v);
     }
 }

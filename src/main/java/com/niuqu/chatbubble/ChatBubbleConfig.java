@@ -12,6 +12,7 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.ConfigValue<String> OTHER_BUBBLE_COLOR;
     public static final ForgeConfigSpec.ConfigValue<String> OWN_TEXT_COLOR;
     public static final ForgeConfigSpec.ConfigValue<String> OTHER_TEXT_COLOR;
+    public static final ForgeConfigSpec.ConfigValue<String> CUSTOM_TITLE;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -52,6 +53,13 @@ public class ChatBubbleConfig {
         OTHER_TEXT_COLOR = builder
             .comment("别人的文字颜色 (十六进制 RRGGBB)")
             .define("other_color", "#FFFFFF");
+
+        builder.pop();
+        builder.push("ui");
+
+        CUSTOM_TITLE = builder
+            .comment("自定义聊天栏标题（留空则显示存档名）")
+            .define("custom_title", "");
 
         builder.pop();
 

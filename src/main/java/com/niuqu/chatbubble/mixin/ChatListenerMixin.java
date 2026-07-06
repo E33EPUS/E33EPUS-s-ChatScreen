@@ -16,16 +16,21 @@ import java.util.UUID;
 @Mixin(ChatListener.class)
 public class ChatListenerMixin {
 
-    @Inject(method = "handlePlayerChatMessage", at = @At("HEAD"))
+    @Inject(method = "handlePlayerChatMessage", at = @At("HEAD"), cancellable = true)
     private void onPlayerChat(PlayerChatMessage message, GameProfile gameProfile,
                               ChatType.Bound bound, CallbackInfo ci) {
-        ChatMessageStore.addMessage(message.decoratedContent(),
-            gameProfile.getId(), Component.literal(gameProfile.getName()), false);
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        if (player == null || !gameProfile.getId().equals(player.getUUID())) {
+            ChatMessageStore.addMessage(message.decoratedContent(),
+                gameProfile.getId(), Component.literal(gameProfile.getName()), false);
+        }
+        ci.cancel(); // 阻止消息进入原版 ChatComponent
     }
 
-    @Inject(method = "handleSystemMessage", at = @At("HEAD"))
+    @Inject(method = "handleSystemMessage", at = @At("HEAD"), cancellable = true)
     private void onSystemChat(Component message, boolean overlay, CallbackInfo ci) {
         ChatMessageStore.addMessage(message, new UUID(0, 0),
             Component.translatable("e33chat.sender.system"), true);
+        ci.cancel();
     }
 }

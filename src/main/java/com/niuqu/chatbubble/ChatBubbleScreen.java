@@ -726,6 +726,13 @@ public class ChatBubbleScreen extends Screen {
         else
             minecraft.player.connection.sendChat(text);
         minecraft.gui.getChat().addRecentChat(text);
+
+        // 直接添加到 store，不依赖服务器回显（多模组环境回显可能被拦截）
+        ChatMessageStore.addMessage(Component.literal(text),
+            minecraft.player.getUUID(),
+            Component.literal(minecraft.player.getName().getString()),
+            false);
+
         input.setValue("");
         scrollToBottom = true;
     }
