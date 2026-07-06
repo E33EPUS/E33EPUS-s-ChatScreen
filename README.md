@@ -4,7 +4,7 @@
 
 A simple mod that replaces the vanilla chat screen for Minecraft
 
-**Forge 1.20.1 | Client-side only | v0.1.0-beta**
+**Forge 1.20.1 Client-side only**
 
 ## Features
 
