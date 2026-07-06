@@ -7,7 +7,7 @@ A simple mod that replaces the vanilla chat screen for Minecraft
 Forge 1.20.1 Client-side only
 
 # Features
-- Chat bubbles with player avatars and skins 
+- Chat bubbles with player head
 - QQ-style time separators (time only shown when the minute changes)
 - Right-click menu: copy message / quote reply
 - HUD overlay: chat icon + keybind + red dot + message preview
