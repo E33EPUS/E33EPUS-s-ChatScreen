@@ -12,8 +12,6 @@ public class ChatBubbleHudOverlay {
     private static final int RED_DOT_R = 4;
     public static final ResourceLocation TEX_CHAT_ICON =
         ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/chat_icon");
-    public static boolean iconLoaded;
-
     public static void render(GuiGraphics g) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options == null) return;
@@ -43,10 +41,11 @@ public class ChatBubbleHudOverlay {
             g.drawString(mc.font, display, px, py, 0xFFFFFFFF, false);
         }
 
-        // Chat bubble icon
-        if (!iconLoaded) {
+        // Chat bubble icon (reloads on F3+T etc.)
+        try {
+            mc.getTextureManager().getTexture(TEX_CHAT_ICON);
+        } catch (Exception e) {
             loadIconTexture();
-            iconLoaded = true;
         }
         drawIcon(g, x, iconY);
 

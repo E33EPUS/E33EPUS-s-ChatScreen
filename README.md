@@ -22,7 +22,7 @@ A simple mod that replaces the vanilla chat screen for Minecraft
 ## Installation
 
 1. Install Minecraft Forge 1.20.1
-2. Download [e33chat-0.1.0-beta.jar](https://github.com/E33EPUS/E33EPUS-s-ChatScreen/releases)
+2. Download [e33chat-0.1.3-beta.jar](https://github.com/E33EPUS/E33EPUS-s-ChatScreen/releases)
 3. Place it in `.minecraft/mods/`
 
 ## Usage
