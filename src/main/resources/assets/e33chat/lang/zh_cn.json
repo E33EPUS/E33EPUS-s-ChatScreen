@@ -1,0 +1,16 @@
+{
+  "e33chat.screen.title": "聊天",
+  "e33chat.title.fallback": "聊天栏",
+  "e33chat.config.title": "ChatBubble 设置",
+  "e33chat.config.enabled": "启用模组",
+  "e33chat.config.red_dot": "红点提示",
+  "e33chat.config.animation": "动画",
+  "e33chat.config.own_bubble_color": "自己的气泡色",
+  "e33chat.config.other_bubble_color": "别人的气泡色",
+  "e33chat.config.own_text_color": "自己的文字色",
+  "e33chat.config.other_text_color": "别人的文字色",
+  "e33chat.context.copy": "复制",
+  "e33chat.context.quote": "引用",
+  "e33chat.toast.copied": "已复制",
+  "e33chat.sender.system": "系统"
+}

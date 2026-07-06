@@ -1,0 +1,16 @@
+{
+  "e33chat.screen.title": "Chat",
+  "e33chat.title.fallback": "Chat",
+  "e33chat.config.title": "ChatBubble Settings",
+  "e33chat.config.enabled": "Enable Mod",
+  "e33chat.config.red_dot": "Red Dot",
+  "e33chat.config.animation": "Animation",
+  "e33chat.config.own_bubble_color": "Own Bubble Color",
+  "e33chat.config.other_bubble_color": "Others' Bubble Color",
+  "e33chat.config.own_text_color": "Own Text Color",
+  "e33chat.config.other_text_color": "Others' Text Color",
+  "e33chat.context.copy": "Copy",
+  "e33chat.context.quote": "Quote",
+  "e33chat.toast.copied": "Copied",
+  "e33chat.sender.system": "System"
+}
