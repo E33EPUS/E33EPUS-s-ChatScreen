@@ -4,7 +4,7 @@
 
 A simple mod that replaces the vanilla chat screen for Minecraft
 
-Forge 1.20.1 Client-side only
+Client-side only
 
 # Features
 - Chat bubbles with player head
