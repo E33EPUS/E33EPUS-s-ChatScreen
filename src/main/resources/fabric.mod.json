@@ -1,0 +1,28 @@
+{
+	"schemaVersion": 1,
+	"id": "e33chat",
+	"version": "${version}",
+	"name": "E33EPUS's ChatScreen",
+	"description": "A simple mod that replaces the vanilla chat screen for Minecraft",
+	"authors": [
+		"E33EPUS"
+	],
+	"license": "MIT",
+	"icon": "assets/e33chat/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.niuqu.chatbubble.client.E33chatClient"
+		]
+	},
+	"mixins": [
+		"e33chat.mixins.json",
+		"e33chat.client.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.15.0",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	}
+}
