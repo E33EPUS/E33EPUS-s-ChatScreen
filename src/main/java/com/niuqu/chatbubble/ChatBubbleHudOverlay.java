@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.ResourceLocation;
 
 public class ChatBubbleHudOverlay {
@@ -12,6 +13,8 @@ public class ChatBubbleHudOverlay {
     private static final int RED_DOT_R = 4;
     public static final ResourceLocation TEX_CHAT_ICON =
         ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/chat_icon");
+    public static boolean iconLoaded;
+
     public static void render(GuiGraphics g) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options == null) return;
@@ -41,11 +44,10 @@ public class ChatBubbleHudOverlay {
             g.drawString(mc.font, display, px, py, 0xFFFFFFFF, false);
         }
 
-        // Chat bubble icon (reloads on F3+T etc.)
-        try {
-            mc.getTextureManager().getTexture(TEX_CHAT_ICON);
-        } catch (Exception e) {
+        // Chat bubble icon
+        if (!iconLoaded) {
             loadIconTexture();
+            iconLoaded = true;
         }
         drawIcon(g, x, iconY);
 
@@ -89,7 +91,14 @@ public class ChatBubbleHudOverlay {
 
     private static void drawIcon(GuiGraphics g, int x, int y) {
         var mc = Minecraft.getInstance();
-        var abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
+        AbstractTexture abstractTex;
+        try {
+            abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
+        } catch (Exception e) {
+            // Texture lost (F3+T resource reload), reload it
+            loadIconTexture();
+            abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
+        }
         RenderSystem.setShaderTexture(0, abstractTex.getId());
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.enableBlend();
