@@ -1,6 +1,7 @@
 package com.niuqu.chatbubble.mixin;
 
 import com.niuqu.chatbubble.ChatBubbleConfig;
+import com.niuqu.chatbubble.ChatMessageStore;
 import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ChatComponent;
@@ -11,18 +12,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.UUID;
+
 @Mixin(value = ChatComponent.class, priority = 500)
 public class ChatComponentMixin {
-
-    private static boolean loggedRender, loggedAddMsg, loggedAddMsgFull;
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void onRender(GuiGraphics guiGraphics, int tickCount, int mouseX,
                           int mouseY, CallbackInfo ci) {
-        if (!loggedRender) {
-            System.out.println("[e33chat] ChatComponent.render 拦截生效");
-            loggedRender = true;
-        }
         if (ChatBubbleConfig.ENABLED.get()) {
             ci.cancel();
         }
@@ -31,11 +28,9 @@ public class ChatComponentMixin {
     @Inject(method = "addMessage(Lnet/minecraft/network/chat/Component;)V",
             at = @At("HEAD"), cancellable = true)
     private void onAddMessage(Component message, CallbackInfo ci) {
-        if (!loggedAddMsg) {
-            System.out.println("[e33chat] ChatComponent.addMessage 拦截生效");
-            loggedAddMsg = true;
-        }
         if (ChatBubbleConfig.ENABLED.get()) {
+            ChatMessageStore.addMessage(message, new UUID(0, 0),
+                Component.translatable("e33chat.sender.system"), true);
             ci.cancel();
         }
     }
@@ -44,11 +39,9 @@ public class ChatComponentMixin {
             at = @At("HEAD"), cancellable = true)
     private void onAddMessageFull(Component message, MessageSignature signature,
                                    GuiMessageTag tag, CallbackInfo ci) {
-        if (!loggedAddMsgFull) {
-            System.out.println("[e33chat] ChatComponent.addMessage(3参) 拦截生效");
-            loggedAddMsgFull = true;
-        }
         if (ChatBubbleConfig.ENABLED.get()) {
+            ChatMessageStore.addMessage(message, new UUID(0, 0),
+                Component.translatable("e33chat.sender.system"), true);
             ci.cancel();
         }
     }

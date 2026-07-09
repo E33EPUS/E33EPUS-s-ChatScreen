@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -20,8 +21,11 @@ public class ChatMessageStore {
     private static boolean screenOpen = false;
     private static String pendingReplyContent;
     private static String pendingReplySender;
-    private static String latestPreview;
-    private static int previewTicks;
+    private static final List<PreviewEntry> previews = new ArrayList<>();
+    private static final int PREVIEW_TICKS = 100;
+    private static String strongHintText;
+    private static int strongHintTicks;
+    public static final int STRONG_HINT_DURATION = 60;
 
     private static String currentWorldKey;
     private static final Map<String, String> worldTitles = new HashMap<>();
@@ -38,7 +42,17 @@ public class ChatMessageStore {
         String replySender
     ) {}
 
+    public static class PreviewEntry {
+        public final String text;
+        public int ticks;
+        public PreviewEntry(String text, int ticks) {
+            this.text = text;
+            this.ticks = ticks;
+        }
+    }
+
     public static void addMessage(Component content, UUID senderUUID, Component senderName, boolean isSystem) {
+        content = addUnderlineToClicks(content);
         String playerName = net.minecraft.client.Minecraft.getInstance().player != null
             ? net.minecraft.client.Minecraft.getInstance().player.getName().getString() : "";
         boolean own = senderName != null && senderName.getString().equals(playerName);
@@ -68,12 +82,32 @@ public class ChatMessageStore {
 
         if (!screenOpen) {
             unreadCount++;
-            String sender = senderName != null ? senderName.getString() : "";
-            if (sender.isEmpty() && isSystem) sender = Component.translatable("e33chat.sender.system").getString();
-            String preview = sender.isEmpty() ? content.getString() : sender + ": " + content.getString();
-            latestPreview = preview;
-            previewTicks = 100;
+            boolean systemToHint = isSystem && ChatBubbleConfig.STRONG_HINT_ENABLED.get();
+            if (ChatBubbleConfig.PREVIEW_ENABLED.get() && !systemToHint) {
+                String sender = senderName != null ? senderName.getString() : "";
+                if (sender.isEmpty() && isSystem) sender = Component.translatable("e33chat.sender.system").getString();
+                String preview = sender.isEmpty() ? content.getString() : sender + ": " + content.getString();
+                previews.add(new PreviewEntry(preview, PREVIEW_TICKS));
+                while (previews.size() > ChatBubbleConfig.PREVIEW_LINES.get())
+                    previews.remove(0);
+            }
+            if (systemToHint) {
+                strongHintText = content.getString();
+                strongHintTicks = STRONG_HINT_DURATION;
+            }
         }
+    }
+
+    private static Component addUnderlineToClicks(Component original) {
+        MutableComponent result = Component.empty();
+        original.visit((style, text) -> {
+            Style newStyle = style.getClickEvent() != null
+                ? style.withUnderlined(true)
+                : style;
+            result.append(Component.literal(text).withStyle(newStyle));
+            return Optional.<Object>empty();
+        }, Style.EMPTY);
+        return result;
     }
 
     public static List<ChatMessage> getMessages() {
@@ -123,11 +157,23 @@ public class ChatMessageStore {
         pendingReplySender = sender;
     }
 
-    public static String getLatestPreview() { return previewTicks > 0 ? latestPreview : null; }
+    public static List<PreviewEntry> getPreviews() {
+        return previews.isEmpty() ? null : previews;
+    }
 
-    public static int getPreviewTicks() { return previewTicks; }
+    public static void tickPreview() {
+        var it = previews.iterator();
+        while (it.hasNext()) {
+            PreviewEntry e = it.next();
+            if (--e.ticks <= 0) it.remove();
+        }
+    }
 
-    public static void tickPreview() { if (previewTicks > 0) previewTicks--; }
+    public static String getStrongHintText() { return strongHintTicks > 0 ? strongHintText : null; }
+
+    public static int getStrongHintTicks() { return strongHintTicks; }
+
+    public static void tickStrongHint() { if (strongHintTicks > 0) strongHintTicks--; }
 
     public static int size() {
         return messages.size();
@@ -152,13 +198,11 @@ public class ChatMessageStore {
     }
 
     public static void setCurrentWorld(String name) {
-        if (name != null && !name.equals(currentWorldKey)) {
-            messages.clear();
-            unreadCount = 0;
-            latestPreview = null;
-            previewTicks = 0;
-        }
+        if (java.util.Objects.equals(name, currentWorldKey)) return;
         currentWorldKey = name;
+        messages.clear();
+        unreadCount = 0;
+        previews.clear();
     }
 
     private static File getTitlesFile() {

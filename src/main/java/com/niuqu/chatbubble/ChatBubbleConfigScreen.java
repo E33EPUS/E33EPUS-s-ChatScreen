@@ -41,6 +41,26 @@ public class ChatBubbleConfigScreen extends Screen {
                 (btn, val) -> ChatBubbleConfig.ANIMATION_ENABLED.set(val)));
         y += ROW_H;
 
+        addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.STRONG_HINT_ENABLED.get())
+            .create(INPUT_X, y, INPUT_W, 20, Component.translatable("e33chat.config.strong_hint"),
+                (btn, val) -> ChatBubbleConfig.STRONG_HINT_ENABLED.set(val)));
+        y += ROW_H;
+
+        addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.PREVIEW_ENABLED.get())
+            .create(INPUT_X, y, INPUT_W, 20, Component.translatable("e33chat.config.preview_enabled"),
+                (btn, val) -> ChatBubbleConfig.PREVIEW_ENABLED.set(val)));
+        y += ROW_H;
+
+        addRenderableWidget(CycleButton.<Integer>builder(v -> Component.literal(String.valueOf(v)))
+            .withValues(1, 2, 3)
+            .withInitialValue(ChatBubbleConfig.PREVIEW_LINES.get())
+            .create(INPUT_X, y, INPUT_W, 20, Component.translatable("e33chat.config.preview_lines"),
+                (btn, val) -> ChatBubbleConfig.PREVIEW_LINES.set(val)));
+        y += ROW_H;
+
+        EditBox widthBox = mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set);
+        addRenderableWidget(widthBox); y += ROW_H;
+
         EditBox ownBubbleBox = mkHexBox(y, ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), ChatBubbleConfig.OWN_BUBBLE_COLOR::set);
         addRenderableWidget(ownBubbleBox); y += ROW_H;
 
@@ -73,6 +93,20 @@ public class ChatBubbleConfigScreen extends Screen {
         return box;
     }
 
+    private EditBox mkIntBox(int y, String initial, int min, int max, java.util.function.Consumer<Integer> onChange) {
+        EditBox box = new EditBox(font, INPUT_X, y, INPUT_W, 20, Component.literal(""));
+        box.setValue(initial);
+        box.setMaxLength(3);
+        box.setResponder(s -> {
+            if (!s.matches("\\d*")) return;
+            try {
+                int v = Integer.parseInt(s);
+                if (v >= min && v <= max) onChange.accept(v);
+            } catch (NumberFormatException ignored) {}
+        });
+        return box;
+    }
+
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         renderBackground(g);
@@ -80,13 +114,15 @@ public class ChatBubbleConfigScreen extends Screen {
 
         int y = START_Y + 6;
         String[] labels = {"e33chat.config.enabled", "e33chat.config.red_dot", "e33chat.config.animation",
+            "e33chat.config.strong_hint",
+            "e33chat.config.preview_enabled", "e33chat.config.preview_lines", "e33chat.config.preview_width",
             "e33chat.config.own_bubble_color", "e33chat.config.other_bubble_color", "e33chat.config.own_text_color", "e33chat.config.other_text_color"};
         for (String label : labels) {
             g.drawString(font, Component.translatable(label), LABEL_X, y, 0xFFAAAAAA, false);
             y += ROW_H;
         }
 
-        int py = START_Y + ROW_H * 3 + 4;
+        int py = START_Y + ROW_H * 7 + 4;
         drawPreview(g, py, ChatBubbleConfig.OWN_BUBBLE_COLOR.get()); py += ROW_H;
         drawPreview(g, py, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get()); py += ROW_H;
         drawPreview(g, py, ChatBubbleConfig.OWN_TEXT_COLOR.get()); py += ROW_H;

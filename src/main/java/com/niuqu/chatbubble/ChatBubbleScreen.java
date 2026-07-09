@@ -75,6 +75,9 @@ public class ChatBubbleScreen extends Screen {
     // Bubble hit tracking
     private final List<int[]> bubbleRects = new ArrayList<>();
 
+    // Clickable text span tracking (for ClickEvent support)
+    private final List<ClickableSpan> clickableSpans = new ArrayList<>();
+
     // Reply / quote
     private int replyTargetIndex = -1;
 
@@ -129,7 +132,6 @@ public class ChatBubbleScreen extends Screen {
         }
 
         worldName = getWorldName();
-        ChatMessageStore.setCurrentWorld(worldName);
 
         int editW = Math.min(180, panelW - 80);
         int editX = panelX + (panelW - editW) / 2;
@@ -255,6 +257,18 @@ public class ChatBubbleScreen extends Screen {
                     contextY = (int) mouseY;
                     return true;
                 }
+            }
+        }
+        if (button == 0) {
+            net.minecraft.network.chat.Style style = getHoveredStyle(mouseX, mouseY);
+            if (style != null && style.getClickEvent() != null) {
+                net.minecraft.network.chat.ClickEvent click = style.getClickEvent();
+                if (click.getAction() == net.minecraft.network.chat.ClickEvent.Action.SUGGEST_COMMAND) {
+                    input.setValue(click.getValue());
+                    return true;
+                }
+                handleComponentClicked(style);
+                return true;
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -406,6 +420,7 @@ public class ChatBubbleScreen extends Screen {
 
     private void renderMessages(GuiGraphics g, int mouseX, int mouseY) {
         bubbleRects.clear();
+        clickableSpans.clear();
         List<ChatMessageStore.ChatMessage> messages = ChatMessageStore.getMessages();
         if (messages.isEmpty()) return;
 
@@ -488,7 +503,7 @@ public class ChatBubbleScreen extends Screen {
             int yy = baseY + 2;
             for (var line : lines) {
                 int lw = font.width(line);
-                g.drawString(font, line, panelX + (panelW - lw) / 2, yy, 0xFF888888, false);
+                renderLineWithClicks(g, line, panelX + (panelW - lw) / 2, yy, 0xFF888888);
                 yy += font.lineHeight;
             }
             return;
@@ -553,13 +568,56 @@ public class ChatBubbleScreen extends Screen {
         g.fill(bubbleX, bubbleY, bubbleX + bubbleW, bubbleY + bubbleH, bg);
 
         for (int li = 0; li < lines.size(); li++)
-            g.drawString(font, lines.get(li), bubbleX + BUBBLE_PAD_X,
-                bubbleY + BUBBLE_PAD_Y + li * font.lineHeight, fg, false);
+            renderLineWithClicks(g, lines.get(li), bubbleX + BUBBLE_PAD_X,
+                bubbleY + BUBBLE_PAD_Y + li * font.lineHeight, fg);
 
         ResourceLocation skin = getSkin(msg.senderUUID());
         PlayerFaceRenderer.draw(g, skin, avatarX, avatarY, AVATAR);
 
         bubbleRects.add(new int[]{bubbleX, bubbleY, bubbleW, bubbleH, index});
+    }
+
+    private void renderLineWithClicks(GuiGraphics g, FormattedCharSequence line,
+                                       int x, int y, int color) {
+        g.drawString(font, line, x, y, color, false);
+
+        final int[] pos = {0};
+        final int[] spanStart = {-1};
+        final net.minecraft.network.chat.Style[] spanStyle = {null};
+
+        line.accept((index, style, codePoint) -> {
+            int charW = font.width(String.valueOf((char) codePoint));
+            if (style.getClickEvent() != null) {
+                if (spanStart[0] < 0) {
+                    spanStart[0] = pos[0]; spanStyle[0] = style;
+                } else if (!style.equals(spanStyle[0])) {
+                    clickableSpans.add(new ClickableSpan(x + spanStart[0], y,
+                        pos[0] - spanStart[0], font.lineHeight, spanStyle[0]));
+                    spanStart[0] = pos[0]; spanStyle[0] = style;
+                }
+            } else {
+                if (spanStart[0] >= 0) {
+                    clickableSpans.add(new ClickableSpan(x + spanStart[0], y,
+                        pos[0] - spanStart[0], font.lineHeight, spanStyle[0]));
+                    spanStart[0] = -1; spanStyle[0] = null;
+                }
+            }
+            pos[0] += charW;
+            return true;
+        });
+        if (spanStart[0] >= 0) {
+            clickableSpans.add(new ClickableSpan(x + spanStart[0], y,
+                pos[0] - spanStart[0], font.lineHeight, spanStyle[0]));
+        }
+    }
+
+    private net.minecraft.network.chat.Style getHoveredStyle(double mouseX, double mouseY) {
+        for (ClickableSpan s : clickableSpans) {
+            if (mouseX >= s.x && mouseX <= s.x + s.w
+                && mouseY >= s.y && mouseY <= s.y + s.h)
+                return s.style;
+        }
+        return null;
     }
 
     private void renderContextMenu(GuiGraphics g, int mouseX, int mouseY) {
@@ -774,4 +832,12 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public boolean isPauseScreen() { return false; }
+
+    private static class ClickableSpan {
+        final int x, y, w, h;
+        final net.minecraft.network.chat.Style style;
+        ClickableSpan(int x, int y, int w, int h, net.minecraft.network.chat.Style style) {
+            this.x = x; this.y = y; this.w = w; this.h = h; this.style = style;
+        }
+    }
 }

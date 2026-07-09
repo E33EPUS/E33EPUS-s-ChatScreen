@@ -46,11 +46,23 @@ public class ChatBubbleMod {
         try {
             var f = ChatScreen.class.getDeclaredField("initial");
             f.setAccessible(true);
-            Object val = f.get(chatScreen);
-            return val != null ? (String) val : "";
+            String val = (String) f.get(chatScreen);
+            System.out.println("[e33chat] initial='" + val + "'");
+            return val != null ? val : "";
         } catch (Exception e) {
-            return "";
+            System.out.println("[e33chat] 'initial' field not found, scanning: " + e);
         }
+        for (var f : ChatScreen.class.getDeclaredFields()) {
+            if (f.getType() == String.class) {
+                f.setAccessible(true);
+                try {
+                    String val = (String) f.get(chatScreen);
+                    System.out.println("[e33chat] String field '" + f.getName() + "' = '" + val + "'");
+                    if (val != null && !val.isEmpty()) return val;
+                } catch (Exception ignored) {}
+            }
+        }
+        return "";
     }
 
     @SubscribeEvent
@@ -62,7 +74,20 @@ public class ChatBubbleMod {
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        Minecraft mc = Minecraft.getInstance();
+        String key;
+        if (mc.level == null || mc.player == null) {
+            key = null;
+        } else if (mc.getSingleplayerServer() != null) {
+            key = "SP:" + mc.getSingleplayerServer().getWorldData().getLevelName();
+        } else if (mc.getCurrentServer() != null) {
+            key = "MP:" + mc.getCurrentServer().name;
+        } else {
+            key = "world";
+        }
+        ChatMessageStore.setCurrentWorld(key);
         ChatMessageStore.tickPreview();
+        ChatMessageStore.tickStrongHint();
     }
 
     @SubscribeEvent
