@@ -18,7 +18,6 @@ import net.minecraft.util.Mth;
 import com.mojang.blaze3d.platform.NativeImage;
 import java.io.InputStream;
 
-import com.niuqu.chatbubble.mixin.MinecraftServerAccessor;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -130,7 +129,6 @@ public class ChatBubbleScreen extends Screen {
         }
 
         worldName = getWorldDisplayName();
-        ChatMessageStore.setCurrentWorld(getWorldKey());
 
         int editW = Math.min(180, panelW - 80);
         int editX = panelX + (panelW - editW) / 2;
@@ -142,14 +140,6 @@ public class ChatBubbleScreen extends Screen {
         addRenderableWidget(titleEditor);
 
         setInitialFocus(input);
-    }
-
-    private String getWorldKey() {
-        if (minecraft.getSingleplayerServer() != null)
-            return "sp:" + ((MinecraftServerAccessor) minecraft.getSingleplayerServer()).getStorageSource().getLevelId();
-        if (minecraft.getCurrentServer() != null)
-            return "mp:" + minecraft.getCurrentServer().ip;
-        return "unknown";
     }
 
     private String getWorldDisplayName() {

@@ -152,16 +152,12 @@ public class ChatMessageStore {
     }
 
     public static void setCurrentWorld(String name) {
-        System.out.println("[e33chat] setCurrentWorld('" + name + "') oldKey='" + currentWorldKey
-            + "' size=" + messages.size());
-        if (name != null && !name.equals(currentWorldKey)) {
-            System.out.println("[e33chat] setCurrentWorld: clearing messages (world changed)");
-            messages.clear();
-            unreadCount = 0;
-            latestPreview = null;
-            previewTicks = 0;
-        }
+        if (java.util.Objects.equals(name, currentWorldKey)) return;
         currentWorldKey = name;
+        messages.clear();
+        unreadCount = 0;
+        latestPreview = null;
+        previewTicks = 0;
     }
 
     public static void resetForNewWorld() {
