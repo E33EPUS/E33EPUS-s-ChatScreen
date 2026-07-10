@@ -4,30 +4,24 @@
 
 A simple mod that replaces the vanilla chat screen for Minecraft
 
-Client-side only
+Client + Server
 
 # Features
 - Chat bubbles with player head
-- QQ-style time separators (time only shown when the minute changes)
+- QQ-style time separators
 - Right-click menu: copy message / quote reply
-- HUD overlay: chat icon + keybind + red dot + message preview
+- Left-click player head to mention（@）
+- Hud: New chat icon
 - Editable title bar (click ✎)
 - Slide-in / slide-out animation
 - Command suggestions support
 - Chat history (arrow keys)
-- Configurable bubble colors, text colors, red dot, and animation toggle
-
-# Usage
-- Open chat:Press chat key (default T) or click the HUD bubble icon
-- Send message:Type and press Enter or click send icon
-- Copy message:Right-click a bubble → Copy
-- Quote reply:Right-click a bubble → Quote
-- Edit title:Click ✎ next to the title
-- Settings:Click gear icon or Mods list → Config
+- Configurable bubble / text colors, animation toggle and so on
 
 # Plan
 - Send images, emojis, and videos
 - Private chat channels
+- 1.21.1 support
 
 # Lisence
 MIT
