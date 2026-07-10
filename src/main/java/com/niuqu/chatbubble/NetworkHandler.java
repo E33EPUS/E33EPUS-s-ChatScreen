@@ -1,0 +1,33 @@
+package com.niuqu.chatbubble;
+
+import com.niuqu.chatbubble.packets.ChatMetaPacket;
+import com.niuqu.chatbubble.packets.QuoteSyncPacket;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.simple.SimpleChannel;
+
+public class NetworkHandler {
+    private static final String PROTOCOL = "1";
+    public static SimpleChannel CHANNEL;
+
+    public static void register() {
+        CHANNEL = NetworkRegistry.newSimpleChannel(
+            new ResourceLocation(ChatBubbleMod.MODID, "main"),
+            () -> PROTOCOL,
+            PROTOCOL::equals,
+            PROTOCOL::equals
+        );
+
+        CHANNEL.messageBuilder(QuoteSyncPacket.class, 0)
+            .encoder(QuoteSyncPacket::encode)
+            .decoder(QuoteSyncPacket::decode)
+            .consumerMainThread(QuoteSyncPacket::handle)
+            .add();
+
+        CHANNEL.messageBuilder(ChatMetaPacket.class, 1)
+            .encoder(ChatMetaPacket::encode)
+            .decoder(ChatMetaPacket::decode)
+            .consumerMainThread(ChatMetaPacket::handle)
+            .add();
+    }
+}

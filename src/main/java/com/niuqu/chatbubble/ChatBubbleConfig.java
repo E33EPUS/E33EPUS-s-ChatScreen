@@ -9,6 +9,7 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.BooleanValue RED_DOT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue ANIMATION_ENABLED;
     public static final ForgeConfigSpec.BooleanValue STRONG_HINT_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue MENTION_STRONG_HINT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue PREVIEW_ENABLED;
     public static final ForgeConfigSpec.IntValue PREVIEW_LINES;
     public static final ForgeConfigSpec.IntValue PREVIEW_WIDTH;
@@ -37,6 +38,10 @@ public class ChatBubbleConfig {
         STRONG_HINT_ENABLED = builder
             .comment("系统消息在物品栏上方显示强提示（不启用则系统消息进入消息预览）")
             .define("strong_hint", true);
+
+        MENTION_STRONG_HINT_ENABLED = builder
+            .comment("被别人 @ 或引用时在物品栏上方显示强提示")
+            .define("mention_strong_hint", true);
 
         PREVIEW_ENABLED = builder
             .comment("在 HUD 图标上方显示最近消息预览")

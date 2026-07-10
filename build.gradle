@@ -44,6 +44,7 @@ minecraft {
 
         server {
             property 'forge.enabledGameTestNamespaces', mod_id
+            property 'mixin.configs', 'mixins.e33chat.json'
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             args '--nogui'

@@ -1,12 +1,16 @@
 package com.niuqu.chatbubble;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 
 public class ChatBubbleConfigScreen extends Screen {
     private final Screen lastScreen;
@@ -17,6 +21,9 @@ public class ChatBubbleConfigScreen extends Screen {
     private static final int ROW_H = 28;
     private static final int START_Y = 38;
 
+    private int scrollOffset;
+    private final List<AbstractWidget> scrollWidgets = new ArrayList<>();
+
     public ChatBubbleConfigScreen(Screen lastScreen) {
         super(Component.translatable("e33chat.config.title"));
         this.lastScreen = lastScreen;
@@ -24,54 +31,61 @@ public class ChatBubbleConfigScreen extends Screen {
 
     @Override
     protected void init() {
-        int y = START_Y;
+        scrollWidgets.clear();
+        scrollOffset = Mth.clamp(scrollOffset, 0, calcMaxScroll());
+        int y = START_Y - scrollOffset;
 
-        addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.ENABLED.get())
+        scrollWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.ENABLED.get())
             .create(INPUT_X, y, INPUT_W, 20, Component.translatable("e33chat.config.enabled"),
-                (btn, val) -> ChatBubbleConfig.ENABLED.set(val)));
+                (btn, val) -> ChatBubbleConfig.ENABLED.set(val))));
         y += ROW_H;
 
-        addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.RED_DOT_ENABLED.get())
+        scrollWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.RED_DOT_ENABLED.get())
             .create(INPUT_X, y, INPUT_W, 20, Component.translatable("e33chat.config.red_dot"),
-                (btn, val) -> ChatBubbleConfig.RED_DOT_ENABLED.set(val)));
+                (btn, val) -> ChatBubbleConfig.RED_DOT_ENABLED.set(val))));
         y += ROW_H;
 
-        addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.ANIMATION_ENABLED.get())
+        scrollWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.ANIMATION_ENABLED.get())
             .create(INPUT_X, y, INPUT_W, 20, Component.translatable("e33chat.config.animation"),
-                (btn, val) -> ChatBubbleConfig.ANIMATION_ENABLED.set(val)));
+                (btn, val) -> ChatBubbleConfig.ANIMATION_ENABLED.set(val))));
         y += ROW_H;
 
-        addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.STRONG_HINT_ENABLED.get())
+        scrollWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.STRONG_HINT_ENABLED.get())
             .create(INPUT_X, y, INPUT_W, 20, Component.translatable("e33chat.config.strong_hint"),
-                (btn, val) -> ChatBubbleConfig.STRONG_HINT_ENABLED.set(val)));
+                (btn, val) -> ChatBubbleConfig.STRONG_HINT_ENABLED.set(val))));
         y += ROW_H;
 
-        addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.PREVIEW_ENABLED.get())
+        scrollWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get())
+            .create(INPUT_X, y, INPUT_W, 20, Component.translatable("e33chat.config.mention_strong_hint"),
+                (btn, val) -> ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.set(val))));
+        y += ROW_H;
+
+        scrollWidgets.add(addRenderableWidget(CycleButton.onOffBuilder(ChatBubbleConfig.PREVIEW_ENABLED.get())
             .create(INPUT_X, y, INPUT_W, 20, Component.translatable("e33chat.config.preview_enabled"),
-                (btn, val) -> ChatBubbleConfig.PREVIEW_ENABLED.set(val)));
+                (btn, val) -> ChatBubbleConfig.PREVIEW_ENABLED.set(val))));
         y += ROW_H;
 
-        addRenderableWidget(CycleButton.<Integer>builder(v -> Component.literal(String.valueOf(v)))
+        scrollWidgets.add(addRenderableWidget(CycleButton.<Integer>builder(v -> Component.literal(String.valueOf(v)))
             .withValues(1, 2, 3)
             .withInitialValue(ChatBubbleConfig.PREVIEW_LINES.get())
             .create(INPUT_X, y, INPUT_W, 20, Component.translatable("e33chat.config.preview_lines"),
-                (btn, val) -> ChatBubbleConfig.PREVIEW_LINES.set(val)));
+                (btn, val) -> ChatBubbleConfig.PREVIEW_LINES.set(val))));
         y += ROW_H;
 
         EditBox widthBox = mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set);
-        addRenderableWidget(widthBox); y += ROW_H;
+        scrollWidgets.add(addRenderableWidget(widthBox)); y += ROW_H;
 
         EditBox ownBubbleBox = mkHexBox(y, ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), ChatBubbleConfig.OWN_BUBBLE_COLOR::set);
-        addRenderableWidget(ownBubbleBox); y += ROW_H;
+        scrollWidgets.add(addRenderableWidget(ownBubbleBox)); y += ROW_H;
 
         EditBox otherBubbleBox = mkHexBox(y, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get(), ChatBubbleConfig.OTHER_BUBBLE_COLOR::set);
-        addRenderableWidget(otherBubbleBox); y += ROW_H;
+        scrollWidgets.add(addRenderableWidget(otherBubbleBox)); y += ROW_H;
 
         EditBox ownTextBox = mkHexBox(y, ChatBubbleConfig.OWN_TEXT_COLOR.get(), ChatBubbleConfig.OWN_TEXT_COLOR::set);
-        addRenderableWidget(ownTextBox); y += ROW_H;
+        scrollWidgets.add(addRenderableWidget(ownTextBox)); y += ROW_H;
 
         EditBox otherTextBox = mkHexBox(y, ChatBubbleConfig.OTHER_TEXT_COLOR.get(), ChatBubbleConfig.OTHER_TEXT_COLOR::set);
-        addRenderableWidget(otherTextBox); y += ROW_H;
+        scrollWidgets.add(addRenderableWidget(otherTextBox)); y += ROW_H;
 
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, btn -> onClose())
             .bounds(width / 2 - 100, height - 32, 200, 20).build());
@@ -112,22 +126,23 @@ public class ChatBubbleConfigScreen extends Screen {
         renderBackground(g);
         g.drawCenteredString(font, title, width / 2, 14, 0xFFFFFFFF);
 
-        int y = START_Y + 6;
+        int y = START_Y + 6 - scrollOffset;
         String[] labels = {"e33chat.config.enabled", "e33chat.config.red_dot", "e33chat.config.animation",
-            "e33chat.config.strong_hint",
+            "e33chat.config.strong_hint", "e33chat.config.mention_strong_hint",
             "e33chat.config.preview_enabled", "e33chat.config.preview_lines", "e33chat.config.preview_width",
-            "e33chat.config.own_bubble_color", "e33chat.config.other_bubble_color", "e33chat.config.own_text_color", "e33chat.config.other_text_color"};
+            "e33chat.config.own_bubble_color", "e33chat.config.other_bubble_color", "e33chat.config.own_text_color", "e33chat.config.other_text_color",
+};
         for (String label : labels) {
-            g.drawString(font, Component.translatable(label), LABEL_X, y, 0xFFAAAAAA, false);
+            if (y > -ROW_H && y < height)
+                g.drawString(font, Component.translatable(label), LABEL_X, y, 0xFFAAAAAA, false);
             y += ROW_H;
         }
 
-        int py = START_Y + ROW_H * 7 + 4;
+        int py = START_Y + ROW_H * 8 + 4 - scrollOffset;
         drawPreview(g, py, ChatBubbleConfig.OWN_BUBBLE_COLOR.get()); py += ROW_H;
         drawPreview(g, py, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get()); py += ROW_H;
         drawPreview(g, py, ChatBubbleConfig.OWN_TEXT_COLOR.get()); py += ROW_H;
-        drawPreview(g, py, ChatBubbleConfig.OTHER_TEXT_COLOR.get());
-
+        drawPreview(g, py, ChatBubbleConfig.OTHER_TEXT_COLOR.get()); py += ROW_H;
         super.render(g, mouseX, mouseY, partialTick);
     }
 
@@ -140,5 +155,21 @@ public class ChatBubbleConfigScreen extends Screen {
     @Override
     public void onClose() {
         minecraft.setScreen(lastScreen);
+    }
+
+    private int calcMaxScroll() {
+        int contentBottom = START_Y + 12 * ROW_H + 10;
+        return Math.max(0, contentBottom - (height - 42));
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        int maxScroll = calcMaxScroll();
+        if (maxScroll <= 0) return false;
+        scrollOffset -= (int) (delta * 20);
+        scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
+        for (int i = 0; i < scrollWidgets.size(); i++)
+            scrollWidgets.get(i).setY(START_Y + i * ROW_H - scrollOffset);
+        return true;
     }
 }

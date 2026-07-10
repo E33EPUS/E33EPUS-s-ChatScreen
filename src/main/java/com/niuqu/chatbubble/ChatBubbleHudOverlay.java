@@ -51,7 +51,8 @@ public class ChatBubbleHudOverlay {
                 alpha = Math.min(alpha, 0xFF);
                 int bgAlpha = alpha / 2;
                 int bgColor = (bgAlpha << 24) | 0x000000;
-                int textColor = (alpha << 24) | 0xFFFFFF;
+                int baseColor = ChatMessageStore.isStrongHintMention() ? 0xFFFF55 : 0xFFFFFF;
+                int textColor = (alpha << 24) | baseColor;
                 g.fill(hintX - 6, hintY - 3, hintX + hintW + 6, hintY + mc.font.lineHeight + 3, bgColor);
                 g.drawString(mc.font, hint, hintX, hintY, textColor, false);
             }

@@ -25,12 +25,17 @@ public class ChatMessageStore {
     private static final int PREVIEW_TICKS = 100;
     private static String strongHintText;
     private static int strongHintTicks;
+    private static boolean strongHintIsMention;
     public static final int STRONG_HINT_DURATION = 60;
 
     private static String currentWorldKey;
     private static final Map<String, String> worldTitles = new HashMap<>();
     private static final Gson GSON = new Gson();
     private static boolean titlesLoaded;
+    private static final Map<String, PendingMeta> pendingMetas = new HashMap<>();
+
+    private record PendingMeta(UUID senderUUID, String quoteSender, String quoteContent, List<String> mentionTargets) {}
+
     public record ChatMessage(
         UUID senderUUID,
         Component senderName,
@@ -39,7 +44,8 @@ public class ChatMessageStore {
         boolean isOwn,
         boolean isSystem,
         String replyContent,
-        String replySender
+        String replySender,
+        String messageHash
     ) {}
 
     public static class PreviewEntry {
@@ -57,6 +63,9 @@ public class ChatMessageStore {
             ? net.minecraft.client.Minecraft.getInstance().player.getName().getString() : "";
         boolean own = senderName != null && senderName.getString().equals(playerName);
 
+        String messageHash = String.valueOf(content.getString().hashCode());
+        PendingMeta pending = pendingMetas.remove(messageHash);
+
         String replyContent = null;
         String replySender = null;
         if (own && pendingReplyContent != null) {
@@ -64,6 +73,9 @@ public class ChatMessageStore {
             replySender = pendingReplySender;
             pendingReplyContent = null;
             pendingReplySender = null;
+        } else if (pending != null && !pending.quoteContent().isEmpty()) {
+            replyContent = pending.quoteContent();
+            replySender = pending.quoteSender();
         }
 
         messages.add(new ChatMessage(
@@ -74,7 +86,8 @@ public class ChatMessageStore {
             own,
             isSystem,
             replyContent,
-            replySender
+            replySender,
+            messageHash
         ));
 
         while (messages.size() > MAX)
@@ -83,7 +96,17 @@ public class ChatMessageStore {
         if (!screenOpen) {
             unreadCount++;
             boolean systemToHint = isSystem && ChatBubbleConfig.STRONG_HINT_ENABLED.get();
-            if (ChatBubbleConfig.PREVIEW_ENABLED.get() && !systemToHint) {
+            boolean mentionToHint = !own && !isSystem && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get()
+                && (content.getString().contains("@" + playerName)
+                    || (replySender != null && replySender.equals(playerName)));
+
+            if (mentionToHint) {
+                strongHintText = Component.translatable("e33chat.notif.mention").getString();
+                strongHintTicks = STRONG_HINT_DURATION;
+                strongHintIsMention = true;
+            }
+
+            if (ChatBubbleConfig.PREVIEW_ENABLED.get() && !systemToHint && !mentionToHint) {
                 String sender = senderName != null ? senderName.getString() : "";
                 if (sender.isEmpty() && isSystem) sender = Component.translatable("e33chat.sender.system").getString();
                 String preview = sender.isEmpty() ? content.getString() : sender + ": " + content.getString();
@@ -91,9 +114,10 @@ public class ChatMessageStore {
                 while (previews.size() > ChatBubbleConfig.PREVIEW_LINES.get())
                     previews.remove(0);
             }
-            if (systemToHint) {
+            if (systemToHint && !mentionToHint) {
                 strongHintText = content.getString();
                 strongHintTicks = STRONG_HINT_DURATION;
+                strongHintIsMention = false;
             }
         }
     }
@@ -171,6 +195,8 @@ public class ChatMessageStore {
 
     public static String getStrongHintText() { return strongHintTicks > 0 ? strongHintText : null; }
 
+    public static boolean isStrongHintMention() { return strongHintIsMention; }
+
     public static int getStrongHintTicks() { return strongHintTicks; }
 
     public static void tickStrongHint() { if (strongHintTicks > 0) strongHintTicks--; }
@@ -199,7 +225,12 @@ public class ChatMessageStore {
 
     public static void setCurrentWorld(String name) {
         if (java.util.Objects.equals(name, currentWorldKey)) return;
+        boolean wasFallback = "world".equals(currentWorldKey);
+        boolean isSpecific = name != null && (name.startsWith("SP:") || name.startsWith("MP:"));
+        boolean isRefinement = wasFallback && isSpecific;
+        boolean hasPendingMessages = currentWorldKey == null && isSpecific && !messages.isEmpty();
         currentWorldKey = name;
+        if (isRefinement || hasPendingMessages) return;
         messages.clear();
         unreadCount = 0;
         previews.clear();
@@ -226,5 +257,23 @@ public class ChatMessageStore {
         try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
             GSON.toJson(worldTitles, w);
         } catch (Exception ignored) {}
+    }
+
+    public static void applyChatMeta(UUID senderUUID, String messageHash, String quoteSender,
+                                      String quoteContent, List<String> mentionTargets) {
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            ChatMessage msg = messages.get(i);
+            if (msg.messageHash().equals(messageHash) && msg.senderUUID().equals(senderUUID)) {
+                if (!quoteContent.isEmpty()) {
+                    messages.set(i, new ChatMessage(
+                        msg.senderUUID(), msg.senderName(), msg.content(), msg.time(),
+                        msg.isOwn(), msg.isSystem(), quoteContent, quoteSender, msg.messageHash()));
+                }
+                return;
+            }
+        }
+        if (!quoteContent.isEmpty()) {
+            pendingMetas.put(messageHash, new PendingMeta(senderUUID, quoteSender, quoteContent, mentionTargets));
+        }
     }
 }
