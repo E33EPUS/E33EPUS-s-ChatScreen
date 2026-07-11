@@ -34,6 +34,39 @@ public class ChatMessageStore {
     private static boolean titlesLoaded;
     private static final Map<String, PendingMeta> pendingMetas = new HashMap<>();
 
+    public record SenderMeta(UUID senderUUID, Component senderName,
+                             Component rawContent, boolean isSystem) {}
+
+    private static final ThreadLocal<SenderMeta> PENDING_META = new ThreadLocal<>();
+
+    public static void setPendingMeta(SenderMeta meta) { PENDING_META.set(meta); }
+
+    public static SenderMeta consumePendingMeta() {
+        SenderMeta m = PENDING_META.get();
+        PENDING_META.remove();
+        return m;
+    }
+
+    private static final java.util.Queue<String> pendingEchoHashes = new java.util.ArrayDeque<>();
+
+    public static void markPendingEcho(String hash) {
+        pendingEchoHashes.add(hash);
+        while (pendingEchoHashes.size() > 5) pendingEchoHashes.poll();
+    }
+
+    public static boolean consumeEcho(String hash) {
+        return pendingEchoHashes.remove(hash);
+    }
+
+    public static boolean isRecentDuplicate(String content) {
+        int size = messages.size();
+        for (int i = size - 1; i >= 0 && i >= size - 2; i--) {
+            String existing = messages.get(i).content().getString();
+            if (existing.contains(content) || content.contains(existing)) return true;
+        }
+        return false;
+    }
+
     private record PendingMeta(UUID senderUUID, String quoteSender, String quoteContent, List<String> mentionTargets) {}
 
     public record ChatMessage(
@@ -59,11 +92,12 @@ public class ChatMessageStore {
 
     public static void addMessage(Component content, UUID senderUUID, Component senderName, boolean isSystem) {
         content = addUnderlineToClicks(content);
+        String messageHash = String.valueOf(content.getString().hashCode());
+
+
         String playerName = net.minecraft.client.Minecraft.getInstance().player != null
             ? net.minecraft.client.Minecraft.getInstance().player.getName().getString() : "";
         boolean own = senderName != null && senderName.getString().equals(playerName);
-
-        String messageHash = String.valueOf(content.getString().hashCode());
         PendingMeta pending = pendingMetas.remove(messageHash);
 
         String replyContent = null;
