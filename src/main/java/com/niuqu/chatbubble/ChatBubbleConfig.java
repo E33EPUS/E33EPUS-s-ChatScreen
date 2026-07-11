@@ -10,6 +10,7 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.BooleanValue ANIMATION_ENABLED;
     public static final ForgeConfigSpec.BooleanValue STRONG_HINT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue MENTION_STRONG_HINT_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue SYSTEM_CHAT_AS_BUBBLE;
     public static final ForgeConfigSpec.BooleanValue PREVIEW_ENABLED;
     public static final ForgeConfigSpec.IntValue PREVIEW_LINES;
     public static final ForgeConfigSpec.IntValue PREVIEW_WIDTH;
@@ -42,6 +43,10 @@ public class ChatBubbleConfig {
         MENTION_STRONG_HINT_ENABLED = builder
             .comment("被别人 @ 或引用时在物品栏上方显示强提示")
             .define("mention_strong_hint", true);
+
+        SYSTEM_CHAT_AS_BUBBLE = builder
+            .comment("系统消息也渲染为聊天气泡（兼容禁用聊天举报的插件服）")
+            .define("system_chat_as_bubble", false);
 
         PREVIEW_ENABLED = builder
             .comment("在 HUD 图标上方显示最近消息预览")

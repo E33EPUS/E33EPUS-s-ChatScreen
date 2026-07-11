@@ -1,6 +1,7 @@
 package com.niuqu.chatbubble.mixin;
 
 import com.mojang.authlib.GameProfile;
+import com.niuqu.chatbubble.ChatBubbleConfig;
 import com.niuqu.chatbubble.ChatMessageStore;
 import com.niuqu.chatbubble.ChatMessageStore.SenderMeta;
 import net.minecraft.client.multiplayer.chat.ChatListener;
@@ -49,11 +50,12 @@ public class ChatListenerMixin {
     @Inject(method = "handleSystemMessage", at = @At("HEAD"))
     private void onSystemChat(Component message, boolean overlay, CallbackInfo ci) {
         if (overlay) return;
+        boolean isSystem = !ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE.get();
         ChatMessageStore.setPendingMeta(new SenderMeta(
             new UUID(0, 0),
             Component.translatable("e33chat.sender.system"),
             message,
-            true
+            isSystem
         ));
     }
 }

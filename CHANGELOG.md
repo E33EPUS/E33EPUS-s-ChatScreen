@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.1-beta
+
+新增配置项 `system_chat_as_bubble`（默认关闭）——开启后所有系统消息也渲染为聊天气泡。兼容禁用聊天举报的插件服（Paper/Bukkit），这类服务器会把玩家发言强制走系统消息通道。
+
+Added `system_chat_as_bubble` config option (off by default) — when enabled, system messages render as chat bubbles instead of gray text. Compatible with plugin servers (Paper/Bukkit) that disable chat reporting by routing all player messages through the system chat channel.
+
 ## v0.2.0-beta
 
 重构了聊天消息拦截架构——不再 cancel 原版消息处理管线，而是改在 `ChatComponent.addMessage` 末端捕获所有 mod 处理后的最终消息，从根本上解决了与其他 mod（Xaero、FTB Team 等）的兼容性问题。系统消息的点击事件（如 FTB 邀请的"接受/拒绝"按钮）现在完整保留；Xaero 路径点分享正确显示为系统消息，点击事件正常；局域网开放提示不再丢失；重写去重机制，用待消费回显队列替代内容扫描，自己连续发重复消息不会被误吞。
