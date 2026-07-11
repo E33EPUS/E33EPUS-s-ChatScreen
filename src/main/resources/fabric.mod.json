@@ -16,6 +16,9 @@
 		],
 		"client": [
 			"com.niuqu.chatbubble.client.E33chatClient"
+		],
+		"modmenu": [
+			"com.niuqu.chatbubble.client.ModMenuIntegration"
 		]
 	},
 	"mixins": [

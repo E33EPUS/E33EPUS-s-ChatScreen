@@ -18,14 +18,26 @@ public class MinecraftMixin {
         if (!E33ChatConfig.enabled) return;
         if (screen instanceof ChatScreen chatScreen) {
             ci.cancel();
-            String initial = "";
-            try {
-                var f = ChatScreen.class.getDeclaredField("initial");
-                f.setAccessible(true);
-                Object val = f.get(chatScreen);
-                if (val != null) initial = (String) val;
-            } catch (Exception ignored) {}
-            Minecraft.getInstance().setScreen(new ChatBubbleScreen(initial));
+            Minecraft.getInstance().setScreen(new ChatBubbleScreen(getChatInitialText(chatScreen)));
         }
+    }
+
+    private static String getChatInitialText(ChatScreen chatScreen) {
+        try {
+            var f = ChatScreen.class.getDeclaredField("initial");
+            f.setAccessible(true);
+            String val = (String) f.get(chatScreen);
+            return val != null ? val : "";
+        } catch (Exception ignored) {}
+        for (var f : ChatScreen.class.getDeclaredFields()) {
+            if (f.getType() == String.class) {
+                f.setAccessible(true);
+                try {
+                    String val = (String) f.get(chatScreen);
+                    if (val != null && !val.isEmpty()) return val;
+                } catch (Exception ignored) {}
+            }
+        }
+        return "";
     }
 }
