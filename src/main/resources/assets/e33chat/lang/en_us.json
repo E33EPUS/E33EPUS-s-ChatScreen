@@ -5,6 +5,11 @@
   "e33chat.config.enabled": "Enable Mod",
   "e33chat.config.red_dot": "Red Dot",
   "e33chat.config.animation": "Animation",
+  "e33chat.config.strong_hint": "Strong System Hint",
+  "e33chat.config.mention_strong_hint": "Mention Strong Hint",
+  "e33chat.config.preview_enabled": "Message Preview",
+  "e33chat.config.preview_lines": "Preview Lines",
+  "e33chat.config.preview_width": "Preview Width",
   "e33chat.config.own_bubble_color": "Own Bubble Color",
   "e33chat.config.other_bubble_color": "Others' Bubble Color",
   "e33chat.config.own_text_color": "Own Text Color",
@@ -12,5 +17,7 @@
   "e33chat.context.copy": "Copy",
   "e33chat.context.quote": "Quote",
   "e33chat.toast.copied": "Copied",
-  "e33chat.sender.system": "System"
+  "e33chat.sender.system": "System",
+  "e33chat.notif.new_messages": " new messages",
+  "e33chat.notif.mention": "You were mentioned"
 }

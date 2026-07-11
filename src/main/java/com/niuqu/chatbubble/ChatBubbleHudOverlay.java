@@ -7,6 +7,9 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ChatBubbleHudOverlay {
 
     private static final int ICON_S = 16;
@@ -29,19 +32,66 @@ public class ChatBubbleHudOverlay {
         g.pose().pushPose();
         g.pose().translate(0, 0, 300);
 
-        // Message preview above icon
-        String preview = ChatMessageStore.getLatestPreview();
-        if (preview != null) {
-            int maxPreviewW = mc.font.width("玩家名: 消息内容...") + 10;
-            String display = mc.font.plainSubstrByWidth(preview, maxPreviewW - 4);
-            if (!display.equals(preview)) display += "...";
-            int pw = mc.font.width(display);
-            int px = x + ICON_S / 2 - pw / 2;
-            int py = iconY - mc.font.lineHeight - 5;
-            int alpha = ChatMessageStore.getPreviewTicks() > 10 ? 0xDD : (ChatMessageStore.getPreviewTicks() * 0xDD / 10);
-            int bgColor = (alpha << 24) | 0x000000;
-            g.fill(px - 3, py - 2, px + pw + 3, py + mc.font.lineHeight + 2, bgColor);
-            g.drawString(mc.font, display, px, py, 0xFFFFFFFF, false);
+        // Strong hint above hotbar
+        if (E33ChatConfig.strongHint) {
+            String hint = ChatMessageStore.getStrongHintText();
+            if (hint != null) {
+                int ticks = ChatMessageStore.getStrongHintTicks();
+                int screenW = mc.getWindow().getGuiScaledWidth();
+                int hintW = mc.font.width(hint);
+                int hintX = (screenW - hintW) / 2;
+                int hintY = screenH - 22 - 30 - mc.font.lineHeight;
+                int alpha;
+                if (ticks > 50)
+                    alpha = (ChatMessageStore.STRONG_HINT_DURATION - ticks) * 0xFF / 10;
+                else if (ticks > 10)
+                    alpha = 0xFF;
+                else
+                    alpha = ticks * 0xFF / 10;
+                alpha = Math.min(alpha, 0xFF);
+                int bgAlpha = alpha / 2;
+                int bgColor = (bgAlpha << 24) | 0x000000;
+                int baseColor = ChatMessageStore.isStrongHintMention() ? 0xFFFF55 : 0xFFFFFF;
+                int textColor = (alpha << 24) | baseColor;
+                g.fill(hintX - 6, hintY - 3, hintX + hintW + 6, hintY + mc.font.lineHeight + 3, bgColor);
+                g.drawString(mc.font, hint, hintX, hintY, textColor, false);
+            }
+        }
+
+        // Message preview above icon (multi-line)
+        if (E33ChatConfig.previewEnabled) {
+            List<ChatMessageStore.PreviewEntry> previews = ChatMessageStore.getPreviews();
+            if (previews != null && !previews.isEmpty()) {
+                int maxW = E33ChatConfig.previewWidth;
+                int lineH = mc.font.lineHeight;
+                int gap = 2;
+
+                List<String> displays = new ArrayList<>();
+                int maxTextW = 0;
+                for (var e : previews) {
+                    String d = mc.font.plainSubstrByWidth(e.text, maxW - 4);
+                    if (!d.equals(e.text)) d += "...";
+                    displays.add(d);
+                    maxTextW = Math.max(maxTextW, mc.font.width(d));
+                }
+
+                int px = x + ICON_S / 2 - maxTextW / 2;
+                if (px < 2) px = 2;
+                int bgX1 = px - 3;
+                if (bgX1 < 0) bgX1 = 0;
+
+                int bottomLineY = iconY - 5 - lineH;
+                int topLineY = bottomLineY - (displays.size() - 1) * (lineH + gap);
+                int newestTicks = previews.get(previews.size() - 1).ticks;
+                int newestAlpha = newestTicks > 10 ? 0xDD : (newestTicks * 0xDD / 10);
+                int bgAlpha = newestAlpha / 2;
+                int bgColor = (bgAlpha << 24) | 0x000000;
+                g.fill(bgX1, topLineY - 2, px + maxTextW + 3, bottomLineY + lineH + 2, bgColor);
+                for (int i = displays.size() - 1; i >= 0; i--) {
+                    int lineY = bottomLineY - (displays.size() - 1 - i) * (lineH + gap);
+                    g.drawString(mc.font, displays.get(i), px, lineY, 0xFFFFFFFF, false);
+                }
+            }
         }
 
         // Chat bubble icon
@@ -54,7 +104,7 @@ public class ChatBubbleHudOverlay {
         // Red dot
         if (E33ChatConfig.redDot && ChatMessageStore.getUnreadCount() > 0) {
             int dotX = x + ICON_S - RED_DOT_R;
-            int dotY = iconY - RED_DOT_R / 2;
+            int dotY = iconY + RED_DOT_R;
             int dotColor = ChatMessageStore.hasUnreadMention(mc.player.getName().getString())
                 ? 0xFFFF4444 : 0xFFFF0000;
             g.fill(dotX - RED_DOT_R, dotY - RED_DOT_R, dotX + RED_DOT_R, dotY + RED_DOT_R, dotColor);
@@ -96,11 +146,7 @@ public class ChatBubbleHudOverlay {
             abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
         } catch (Exception e) {
             loadIconTexture();
-            try {
-                abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
-            } catch (Exception e2) {
-                return;
-            }
+            abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
         }
         RenderSystem.setShaderTexture(0, abstractTex.getId());
         RenderSystem.setShader(GameRenderer::getPositionTexShader);

@@ -2,6 +2,7 @@ package com.niuqu.chatbubble.mixin;
 
 import com.mojang.authlib.GameProfile;
 import com.niuqu.chatbubble.ChatMessageStore;
+import com.niuqu.chatbubble.ChatMessageStore.SenderMeta;
 import net.minecraft.client.multiplayer.chat.ChatListener;
 import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
@@ -16,40 +17,43 @@ import java.util.UUID;
 @Mixin(value = ChatListener.class, priority = 500)
 public class ChatListenerMixin {
 
-    private static boolean loggedPlayer, loggedSystem;
-
-    @Inject(method = "handlePlayerChatMessage", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "handlePlayerChatMessage", at = @At("HEAD"))
     private void onPlayerChat(PlayerChatMessage message, GameProfile gameProfile,
                               ChatType.Bound bound, CallbackInfo ci) {
-        if (!loggedPlayer) {
-            System.out.println("[e33chat] handlePlayerChatMessage 拦截生效");
-            loggedPlayer = true;
+        UUID senderId = gameProfile.getId();
+        Component raw = message.decoratedContent();
+        String rawStr = raw.getString();
+        if (rawStr.startsWith("xaero-waypoint:")
+            || rawStr.startsWith("xaero_waypoint:")
+            || rawStr.startsWith("xaero_waypoint_add:")) {
+            return;
         }
-        var player = net.minecraft.client.Minecraft.getInstance().player;
-        var senderId = gameProfile.getId();
-        if (player == null || senderId == null || !senderId.equals(player.getUUID())) {
-            ChatMessageStore.addMessage(message.decoratedContent(),
-                senderId != null ? senderId : new UUID(0, 0),
-                Component.literal(gameProfile.getName()), false);
-        }
-        ci.cancel();
+        ChatMessageStore.setPendingMeta(new SenderMeta(
+            senderId != null ? senderId : new UUID(0, 0),
+            Component.literal(gameProfile.getName()),
+            raw,
+            false
+        ));
     }
 
-    @Inject(method = "handleDisguisedChatMessage", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "handleDisguisedChatMessage", at = @At("HEAD"))
     private void onDisguisedChat(Component message, ChatType.Bound bound, CallbackInfo ci) {
-        ChatMessageStore.addMessage(message, new UUID(0, 0),
-            Component.translatable("e33chat.sender.system"), true);
-        ci.cancel();
+        ChatMessageStore.setPendingMeta(new SenderMeta(
+            new UUID(0, 0),
+            Component.translatable("e33chat.sender.system"),
+            message,
+            true
+        ));
     }
 
-    @Inject(method = "handleSystemMessage", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "handleSystemMessage", at = @At("HEAD"))
     private void onSystemChat(Component message, boolean overlay, CallbackInfo ci) {
-        if (!loggedSystem) {
-            System.out.println("[e33chat] handleSystemMessage 拦截生效");
-            loggedSystem = true;
-        }
-        ChatMessageStore.addMessage(message, new UUID(0, 0),
-            Component.translatable("e33chat.sender.system"), true);
-        ci.cancel();
+        if (overlay) return;
+        ChatMessageStore.setPendingMeta(new SenderMeta(
+            new UUID(0, 0),
+            Component.translatable("e33chat.sender.system"),
+            message,
+            true
+        ));
     }
 }

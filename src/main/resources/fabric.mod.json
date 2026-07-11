@@ -11,6 +11,9 @@
 	"icon": "icon.png",
 	"environment": "client",
 	"entrypoints": {
+		"main": [
+			"com.niuqu.chatbubble.E33chatMod"
+		],
 		"client": [
 			"com.niuqu.chatbubble.client.E33chatClient"
 		]
@@ -23,7 +26,9 @@
 		"fabricloader": ">=0.15.0",
 		"minecraft": "~1.20.1",
 		"java": ">=17",
-		"fabric-api": "*",
+		"fabric-api": "*"
+	},
+	"recommends": {
 		"modmenu": "*"
 	},
 	"custom": {

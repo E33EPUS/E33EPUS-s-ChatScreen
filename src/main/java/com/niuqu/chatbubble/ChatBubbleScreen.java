@@ -1,6 +1,10 @@
 package com.niuqu.chatbubble;
 
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.niuqu.chatbubble.packets.E33chatNetworking;
+import io.netty.buffer.Unpooled;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.CommandSuggestions;
@@ -11,13 +15,13 @@ import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import com.mojang.blaze3d.platform.NativeImage;
-import java.io.InputStream;
 
+import java.io.InputStream;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -38,6 +42,7 @@ public class ChatBubbleScreen extends Screen {
     private static final int NAME_H = 10;
     private static final int TIME_SEP_H = 14;
     private static final int BAR_H = 38;
+    private static final int NOTIF_H = 14;
 
     private static final int ICON_S = 16;
     private static final ResourceLocation TEX_GEAR = new ResourceLocation("e33chat","textures/gui/settings");
@@ -75,6 +80,9 @@ public class ChatBubbleScreen extends Screen {
     // Bubble hit tracking
     private final List<int[]> bubbleRects = new ArrayList<>();
 
+    // Clickable text span tracking (for ClickEvent support)
+    private final List<ClickableSpan> clickableSpans = new ArrayList<>();
+
     // Reply / quote
     private int replyTargetIndex = -1;
 
@@ -85,6 +93,15 @@ public class ChatBubbleScreen extends Screen {
     private long animStart;
     private boolean closing;
     private static final int ANIM_MS = 150;
+
+    // Notification bar
+    private int newMessageCount;
+    private boolean hasNewMentionOrQuote;
+    private int latestMentionIndex = -1;
+    private int lastSeenMessageCount;
+    private int notifCountLeft, notifCountRight;
+    private int notifMentionLeft = -1, notifMentionRight = -1;
+    private int notifBarTextY;
 
     public ChatBubbleScreen(String initialText) {
         super(Component.translatable("e33chat.screen.title"));
@@ -213,6 +230,25 @@ public class ChatBubbleScreen extends Screen {
         }
         if (contextMsgIndex >= 0) { contextMsgIndex = -1; return true; }
 
+        // Notification bar clicks
+        if (button == 0 && newMessageCount > 0) {
+            if (mouseX >= notifCountLeft && mouseX <= notifCountRight
+                && mouseY >= notifBarTextY && mouseY <= notifBarTextY + font.lineHeight) {
+                scrollToBottom = true;
+                newMessageCount = 0;
+                hasNewMentionOrQuote = false;
+                latestMentionIndex = -1;
+                lastSeenMessageCount = ChatMessageStore.getMessages().size();
+                return true;
+            }
+            if (hasNewMentionOrQuote && notifMentionLeft >= 0
+                && mouseX >= notifMentionLeft && mouseX <= notifMentionRight
+                && mouseY >= notifBarTextY && mouseY <= notifBarTextY + font.lineHeight) {
+                jumpToMessage(latestMentionIndex);
+                return true;
+            }
+        }
+
         // Reply bar cancel button
         if (button == 0 && replyTargetIndex >= 0 && isMouseOverReplyCancel(mouseX, mouseY)) {
             replyTargetIndex = -1;
@@ -245,6 +281,23 @@ public class ChatBubbleScreen extends Screen {
             }
         }
 
+        // Avatar click for @mention
+        if (button == 0) {
+            for (int[] r : bubbleRects) {
+                ChatMessageStore.ChatMessage msg = ChatMessageStore.getMessageAt(r[4]);
+                if (msg == null || msg.isSystem()) continue;
+                int avatarX = r[0] - AVATAR - 4;
+                int avatarY = r[1] - 6;
+                if (mouseX >= avatarX && mouseX <= avatarX + AVATAR
+                    && mouseY >= avatarY && mouseY <= avatarY + AVATAR) {
+                    String mention = "@" + msg.senderName().getString() + " ";
+                    input.setValue(input.getValue() + mention);
+                    input.moveCursorToEnd();
+                    return true;
+                }
+            }
+        }
+
         if (button == 1) {
             for (int[] r : bubbleRects) {
                 if (mouseX >= r[0] && mouseX <= r[0] + r[2]
@@ -254,6 +307,20 @@ public class ChatBubbleScreen extends Screen {
                     contextY = (int) mouseY;
                     return true;
                 }
+            }
+        }
+
+        // Clickable text (ClickEvent)
+        if (button == 0) {
+            net.minecraft.network.chat.Style style = getHoveredStyle(mouseX, mouseY);
+            if (style != null && style.getClickEvent() != null) {
+                net.minecraft.network.chat.ClickEvent click = style.getClickEvent();
+                if (click.getAction() == net.minecraft.network.chat.ClickEvent.Action.SUGGEST_COMMAND) {
+                    input.setValue(click.getValue());
+                    return true;
+                }
+                handleComponentClicked(style);
+                return true;
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -314,6 +381,7 @@ public class ChatBubbleScreen extends Screen {
 
         renderTitleBar(g, mouseX, mouseY);
         renderMessages(g, mouseX, mouseY);
+        renderNotificationBar(g, mouseX, mouseY);
         renderReplyBar(g, mouseX, mouseY);
         renderContextMenu(g, mouseX, mouseY);
         renderToast(g);
@@ -405,6 +473,7 @@ public class ChatBubbleScreen extends Screen {
 
     private void renderMessages(GuiGraphics g, int mouseX, int mouseY) {
         bubbleRects.clear();
+        clickableSpans.clear();
         List<ChatMessageStore.ChatMessage> messages = ChatMessageStore.getMessages();
         if (messages.isEmpty()) return;
 
@@ -418,20 +487,48 @@ public class ChatBubbleScreen extends Screen {
             }
         }
 
-        int areaH = msgBottom - msgTop;
+        int effectiveMsgBottom = newMessageCount > 0 ? barTop - NOTIF_H - 1 : msgBottom;
+        int areaH = effectiveMsgBottom - msgTop;
         int totalH = 0;
         for (var msg : messages) totalH += getMsgHeight(msg) + GAP;
         totalH += timeSeps * (TIME_SEP_H + GAP);
+        int prevMaxScroll = maxScroll;
         maxScroll = Math.max(0, totalH - areaH);
 
-        boolean wasAtBottom = scrollOffset >= maxScroll - 2;
+        boolean wasAtBottom = scrollOffset >= prevMaxScroll - 2;
+
+        String playerName = minecraft.player != null ? minecraft.player.getName().getString() : "";
+        int currentMsgCount = messages.size();
+        if (wasAtBottom) {
+            newMessageCount = 0;
+            hasNewMentionOrQuote = false;
+            latestMentionIndex = -1;
+            lastSeenMessageCount = currentMsgCount;
+        } else if (currentMsgCount > lastSeenMessageCount) {
+            if (lastSeenMessageCount > currentMsgCount) lastSeenMessageCount = currentMsgCount;
+            for (int i = lastSeenMessageCount; i < currentMsgCount; i++) {
+                var msg = messages.get(i);
+                if (msg == null) continue;
+                newMessageCount++;
+                if (msg.content().getString().contains("@" + playerName)) {
+                    hasNewMentionOrQuote = true;
+                    latestMentionIndex = i;
+                }
+                if (msg.replySender() != null && msg.replySender().equals(playerName)) {
+                    hasNewMentionOrQuote = true;
+                    if (i > latestMentionIndex) latestMentionIndex = i;
+                }
+            }
+            lastSeenMessageCount = currentMsgCount;
+        }
+
         if (scrollToBottom || wasAtBottom) {
             scrollOffset = maxScroll;
             scrollToBottom = false;
         }
         scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
 
-        g.enableScissor(panelX, msgTop, panelX + panelW, msgBottom);
+        g.enableScissor(panelX, msgTop, panelX + panelW, effectiveMsgBottom);
 
         int contentY = 0;
         lastKey = null;
@@ -454,7 +551,7 @@ public class ChatBubbleScreen extends Screen {
             int screenY = msgTop + contentY - scrollOffset;
             contentY += h + GAP;
 
-            if (screenY + h <= msgTop || screenY >= msgBottom) continue;
+            if (screenY + h <= msgTop || screenY >= effectiveMsgBottom) continue;
             renderBubble(g, msg, i, screenY, mouseX, mouseY);
         }
         g.disableScissor();
@@ -487,7 +584,7 @@ public class ChatBubbleScreen extends Screen {
             int yy = baseY + 2;
             for (var line : lines) {
                 int lw = font.width(line);
-                g.drawString(font, line, panelX + (panelW - lw) / 2, yy, 0xFF888888, false);
+                renderLineWithClicks(g, line, panelX + (panelW - lw) / 2, yy, 0xFF888888);
                 yy += font.lineHeight;
             }
             return;
@@ -552,13 +649,82 @@ public class ChatBubbleScreen extends Screen {
         g.fill(bubbleX, bubbleY, bubbleX + bubbleW, bubbleY + bubbleH, bg);
 
         for (int li = 0; li < lines.size(); li++)
-            g.drawString(font, lines.get(li), bubbleX + BUBBLE_PAD_X,
-                bubbleY + BUBBLE_PAD_Y + li * font.lineHeight, fg, false);
+            renderLineWithClicks(g, lines.get(li), bubbleX + BUBBLE_PAD_X,
+                bubbleY + BUBBLE_PAD_Y + li * font.lineHeight, fg);
 
         ResourceLocation skin = getSkin(msg.senderUUID());
         PlayerFaceRenderer.draw(g, skin, avatarX, avatarY, AVATAR);
 
         bubbleRects.add(new int[]{bubbleX, bubbleY, bubbleW, bubbleH, index});
+    }
+
+    private void renderLineWithClicks(GuiGraphics g, FormattedCharSequence line,
+                                       int x, int y, int color) {
+        g.drawString(font, line, x, y, color, false);
+
+        final int[] pos = {0};
+        final int[] spanStart = {-1};
+        final net.minecraft.network.chat.Style[] spanStyle = {null};
+
+        line.accept((index, style, codePoint) -> {
+            int charW = font.width(String.valueOf((char) codePoint));
+            if (style.getClickEvent() != null) {
+                if (spanStart[0] < 0) {
+                    spanStart[0] = pos[0]; spanStyle[0] = style;
+                } else if (!style.equals(spanStyle[0])) {
+                    clickableSpans.add(new ClickableSpan(x + spanStart[0], y,
+                        pos[0] - spanStart[0], font.lineHeight, spanStyle[0]));
+                    spanStart[0] = pos[0]; spanStyle[0] = style;
+                }
+            } else {
+                if (spanStart[0] >= 0) {
+                    clickableSpans.add(new ClickableSpan(x + spanStart[0], y,
+                        pos[0] - spanStart[0], font.lineHeight, spanStyle[0]));
+                    spanStart[0] = -1; spanStyle[0] = null;
+                }
+            }
+            pos[0] += charW;
+            return true;
+        });
+        if (spanStart[0] >= 0) {
+            clickableSpans.add(new ClickableSpan(x + spanStart[0], y,
+                pos[0] - spanStart[0], font.lineHeight, spanStyle[0]));
+        }
+    }
+
+    private net.minecraft.network.chat.Style getHoveredStyle(double mouseX, double mouseY) {
+        for (ClickableSpan s : clickableSpans) {
+            if (mouseX >= s.x && mouseX <= s.x + s.w
+                && mouseY >= s.y && mouseY <= s.y + s.h)
+                return s.style;
+        }
+        return null;
+    }
+
+    private void renderNotificationBar(GuiGraphics g, int mouseX, int mouseY) {
+        if (newMessageCount <= 0) return;
+        int notifY = barTop - NOTIF_H;
+        g.fill(panelX, notifY - 1, panelX + panelW, notifY, COLOR_DIVIDER);
+        int yellow = 0xFFFFFF55;
+        int textY = notifY + (NOTIF_H - font.lineHeight) / 2;
+        String ct = newMessageCount + Component.translatable("e33chat.notif.new_messages").getString() + " ▽";
+        notifCountLeft = panelX + PAD;
+        notifCountRight = notifCountLeft + font.width(ct);
+        notifBarTextY = textY;
+        boolean h = mouseX >= notifCountLeft && mouseX <= notifCountRight
+            && mouseY >= textY && mouseY <= textY + font.lineHeight;
+        g.drawString(font, Component.literal(ct), notifCountLeft, textY, h ? 0xFFFFFF88 : yellow, false);
+        if (hasNewMentionOrQuote) {
+            String mt = Component.translatable("e33chat.notif.mention").getString() + " ▽";
+            notifMentionLeft = panelX + panelW - PAD - font.width(mt);
+            notifMentionRight = notifMentionLeft + font.width(mt);
+            h = mouseX >= notifMentionLeft && mouseX <= notifMentionRight
+                && mouseY >= textY && mouseY <= textY + font.lineHeight;
+            g.drawString(font, Component.literal(mt), notifMentionLeft, textY, h ? 0xFFFFFF88 : yellow, false);
+        } else {
+            notifMentionLeft = -1;
+            notifMentionRight = -1;
+        }
     }
 
     private void renderContextMenu(GuiGraphics g, int mouseX, int mouseY) {
@@ -596,14 +762,15 @@ public class ChatBubbleScreen extends Screen {
         ChatMessageStore.ChatMessage target = ChatMessageStore.getMessageAt(replyTargetIndex);
         if (target == null) { replyTargetIndex = -1; return; }
 
+        int notifOffset = (newMessageCount > 0) ? NOTIF_H : 0;
         int gearX = panelX + PAD;
         int sendX = panelX + panelW - PAD - ICON_S;
         int barX = gearX + ICON_S + 8;
         int barW = sendX - 6 - barX;
-        int barY = barTop - REPLY_BAR_H;
+        int barY = barTop - REPLY_BAR_H - notifOffset;
 
-        g.fill(barX, barY, barX + barW, barTop, 0xEE1E1E1E);
-        g.fill(barX, barTop - 1, barX + barW, barTop, COLOR_DIVIDER);
+        g.fill(barX, barY, barX + barW, barTop - notifOffset, 0xEE1E1E1E);
+        g.fill(barX, barTop - notifOffset - 1, barX + barW, barTop - notifOffset, COLOR_DIVIDER);
 
         String sender = target.senderName().getString();
         if (sender.isEmpty()) sender = Component.translatable("e33chat.sender.system").getString();
@@ -623,11 +790,12 @@ public class ChatBubbleScreen extends Screen {
 
     private boolean isMouseOverReplyCancel(double mx, double my) {
         if (replyTargetIndex < 0) return false;
+        int notifOffset = (newMessageCount > 0) ? NOTIF_H : 0;
         int gearX = panelX + PAD;
         int sendX = panelX + panelW - PAD - ICON_S;
         int barX = gearX + ICON_S + 8;
         int barW = sendX - 6 - barX;
-        int barY = barTop - REPLY_BAR_H;
+        int barY = barTop - REPLY_BAR_H - notifOffset;
         int cx = barX + barW - 16;
         int cy = barY + 3;
         return mx >= cx && mx <= cx + 12 && my >= cy && my <= cy + 12;
@@ -710,14 +878,43 @@ public class ChatBubbleScreen extends Screen {
         return info != null ? info.getSkinLocation() : DefaultPlayerSkin.getDefaultSkin(uuid);
     }
 
+    private void jumpToMessage(int msgIndex) {
+        var msgs = ChatMessageStore.getMessages();
+        if (msgIndex < 0 || msgIndex >= msgs.size()) return;
+        int cy = 0;
+        String lk = null;
+        for (int i = 0; i < msgIndex && i < msgs.size(); i++) {
+            var m = msgs.get(i);
+            if (!m.isSystem()) {
+                String k = m.time().format(TIME_FMT);
+                if (lk == null || !k.equals(lk)) {
+                    lk = k;
+                    cy += TIME_SEP_H + GAP;
+                }
+            }
+            cy += getMsgHeight(m) + GAP;
+        }
+        scrollOffset = Math.max(0, cy - 20);
+        newMessageCount = 0;
+        hasNewMentionOrQuote = false;
+        latestMentionIndex = -1;
+        lastSeenMessageCount = msgs.size();
+    }
+
     private void sendMessage() {
         String text = input.getValue().trim();
         if (text.isEmpty()) return;
 
         if (replyTargetIndex >= 0) {
             ChatMessageStore.ChatMessage target = ChatMessageStore.getMessageAt(replyTargetIndex);
-            if (target != null)
+            if (target != null) {
                 ChatMessageStore.setPendingReply(target.content().getString(), target.senderName().getString());
+                FriendlyByteBuf syncBuf = new FriendlyByteBuf(Unpooled.buffer());
+                syncBuf.writeUtf(target.senderName().getString());
+                syncBuf.writeUtf(target.content().getString());
+                syncBuf.writeUtf(String.valueOf(text.hashCode()));
+                ClientPlayNetworking.send(E33chatNetworking.QUOTE_SYNC, syncBuf);
+            }
             replyTargetIndex = -1;
         }
 
@@ -727,11 +924,11 @@ public class ChatBubbleScreen extends Screen {
             minecraft.player.connection.sendChat(text);
         minecraft.gui.getChat().addRecentChat(text);
 
-        // 直接添加到 store，不依赖服务器回显（多模组环境回显可能被拦截）
         ChatMessageStore.addMessage(Component.literal(text),
             minecraft.player.getUUID(),
             Component.literal(minecraft.player.getName().getString()),
             false);
+        ChatMessageStore.markPendingEcho(String.valueOf(text.hashCode()));
 
         input.setValue("");
         scrollToBottom = true;
@@ -773,4 +970,12 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public boolean isPauseScreen() { return false; }
+
+    private static class ClickableSpan {
+        final int x, y, w, h;
+        final net.minecraft.network.chat.Style style;
+        ClickableSpan(int x, int y, int w, int h, net.minecraft.network.chat.Style style) {
+            this.x = x; this.y = y; this.w = w; this.h = h; this.style = style;
+        }
+    }
 }
