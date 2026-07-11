@@ -2,9 +2,9 @@
 
 ## v0.2.1-beta
 
-新增配置项 `system_chat_as_bubble`（默认关闭）——开启后所有系统消息也渲染为聊天气泡。兼容禁用聊天举报的插件服（Paper/Bukkit），这类服务器会把玩家发言强制走系统消息通道。
+新增配置项 `system_chat_as_bubble`（默认关闭）——开启后所有系统消息也渲染为聊天气泡。修复伪装聊天通道（`handleDisguisedChatMessage`）的去重失效问题，改用发送者身份匹配替代内容 hash 匹配；同时伪装聊天的 `isSystem` 改为根据 `bound.name()` 自动判断。
 
-Added `system_chat_as_bubble` config option (off by default) — when enabled, system messages render as chat bubbles instead of gray text. Compatible with plugin servers (Paper/Bukkit) that disable chat reporting by routing all player messages through the system chat channel.
+Added `system_chat_as_bubble` config option (off by default). Fixed echo deduplication for disguised chat channel — replaced content hash matching with sender identity matching. Disguised chat messages now auto-detect system vs player via `bound.name()`.
 
 ## v0.2.0-beta
 

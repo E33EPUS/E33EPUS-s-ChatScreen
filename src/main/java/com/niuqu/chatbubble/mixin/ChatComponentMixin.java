@@ -52,8 +52,7 @@ public class ChatComponentMixin {
             );
         }
 
-        String coreHash = String.valueOf(meta.rawContent().getString().hashCode());
-        if (ChatMessageStore.consumeEcho(coreHash)) return;
+        if (ChatMessageStore.consumeEchoIfSenderMatches(meta.senderName().getString())) return;
 
         String rawStr = meta.rawContent().getString();
         String finalStr = finalComponent.getString();

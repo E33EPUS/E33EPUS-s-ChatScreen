@@ -916,7 +916,7 @@ public class ChatBubbleScreen extends Screen {
             minecraft.player.getUUID(),
             Component.literal(minecraft.player.getName().getString()),
             false);
-        ChatMessageStore.markPendingEcho(String.valueOf(text.hashCode()));
+        ChatMessageStore.incrementPendingEcho();
 
         input.setValue("");
         scrollToBottom = true;

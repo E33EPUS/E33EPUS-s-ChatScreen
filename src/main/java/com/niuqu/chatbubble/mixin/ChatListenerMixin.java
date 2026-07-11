@@ -39,11 +39,18 @@ public class ChatListenerMixin {
 
     @Inject(method = "handleDisguisedChatMessage", at = @At("HEAD"))
     private void onDisguisedChat(Component message, ChatType.Bound bound, CallbackInfo ci) {
+        String msgStr = message.getString();
+        if (msgStr.startsWith("xaero-waypoint:")
+            || msgStr.startsWith("xaero_waypoint:")
+            || msgStr.startsWith("xaero_waypoint_add:")) {
+            return;
+        }
+        boolean hasSender = bound.name() != null;
         ChatMessageStore.setPendingMeta(new SenderMeta(
             new UUID(0, 0),
-            Component.translatable("e33chat.sender.system"),
+            hasSender ? bound.name() : Component.translatable("e33chat.sender.system"),
             message,
-            true
+            !hasSender
         ));
     }
 

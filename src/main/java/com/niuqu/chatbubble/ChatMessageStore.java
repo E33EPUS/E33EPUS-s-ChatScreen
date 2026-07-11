@@ -47,15 +47,21 @@ public class ChatMessageStore {
         return m;
     }
 
-    private static final java.util.Queue<String> pendingEchoHashes = new java.util.ArrayDeque<>();
+    private static int pendingEchoCount;
 
-    public static void markPendingEcho(String hash) {
-        pendingEchoHashes.add(hash);
-        while (pendingEchoHashes.size() > 5) pendingEchoHashes.poll();
+    public static void incrementPendingEcho() {
+        pendingEchoCount++;
     }
 
-    public static boolean consumeEcho(String hash) {
-        return pendingEchoHashes.remove(hash);
+    public static boolean consumeEchoIfSenderMatches(String senderName) {
+        if (pendingEchoCount <= 0) return false;
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        if (player == null) return false;
+        if (senderName.equals(player.getName().getString())) {
+            pendingEchoCount--;
+            return true;
+        }
+        return false;
     }
 
     public static boolean isRecentDuplicate(String content) {
