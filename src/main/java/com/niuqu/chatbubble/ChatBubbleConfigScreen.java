@@ -17,7 +17,7 @@ public class ChatBubbleConfigScreen extends Screen {
     private static final int LABEL_X = 40;
     private static final int INPUT_X = 165;
     private static final int INPUT_W = 80;
-    private static final int PREVIEW_X = 308;
+    private static final int PREVIEW_X = 255;
     private static final int ROW_H = 28;
     private static final int START_Y = 38;
 
@@ -143,9 +143,10 @@ public class ChatBubbleConfigScreen extends Screen {
 
         int y = START_Y + 6 - scrollOffset;
         // Section header: general
+        int generalHeaderY = START_Y - scrollOffset - 20;
         Component generalHeader = Component.translatable("e33chat.config.section.general");
-        if (y > -ROW_H && y < height)
-            g.drawCenteredString(font, generalHeader, width / 2, y - 22, 0xFFFFAA00);
+        if (generalHeaderY > -ROW_H && generalHeaderY < height)
+            g.drawCenteredString(font, generalHeader, width / 2, generalHeaderY, 0xFFFFAA00);
 
         String[] labels = {"e33chat.config.enabled", "e33chat.config.red_dot", "e33chat.config.hide_chat_icon", "e33chat.config.animation",
             "e33chat.config.strong_hint", "e33chat.config.mention_strong_hint",
@@ -164,8 +165,7 @@ public class ChatBubbleConfigScreen extends Screen {
         }
 
         // Section header: compatibility
-        int compatLabelIdx = 14; // system_chat_as_bubble
-        int compatHeaderY = START_Y + 6 + compatLabelIdx * ROW_H - scrollOffset - 22 + 12; // +6 for extra gap
+        int compatHeaderY = START_Y + 14 * ROW_H + 12 - scrollOffset - 20;
         Component compatHeader = Component.translatable("e33chat.config.section.compatibility");
         if (compatHeaderY > -ROW_H && compatHeaderY < height)
             g.drawCenteredString(font, compatHeader, width / 2, compatHeaderY, 0xFFFFAA00);
