@@ -53,6 +53,7 @@ public class ChatComponentMixin {
         }
 
         if (ChatMessageStore.consumeEchoIfSenderMatches(meta.senderName().getString())) return;
+        if (ChatMessageStore.consumeEchoBySystemChat(finalComponent.getString())) return;
 
         String rawStr = meta.rawContent().getString();
         String finalStr = finalComponent.getString();

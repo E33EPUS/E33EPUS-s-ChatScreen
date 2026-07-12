@@ -48,9 +48,23 @@ public class ChatMessageStore {
     }
 
     private static int pendingEchoCount;
+    private static final List<String> pendingEchoTexts = new ArrayList<>();
 
-    public static void incrementPendingEcho() {
+    public static void incrementPendingEcho(String sentText) {
         pendingEchoCount++;
+        pendingEchoTexts.add(sentText);
+    }
+
+    public static boolean consumeEchoBySystemChat(String incomingText) {
+        if (pendingEchoCount <= 0) return false;
+        for (int i = 0; i < pendingEchoTexts.size(); i++) {
+            if (incomingText.contains(pendingEchoTexts.get(i))) {
+                pendingEchoTexts.remove(i);
+                pendingEchoCount--;
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean consumeEchoIfSenderMatches(String senderName) {
@@ -62,6 +76,18 @@ public class ChatMessageStore {
             return true;
         }
         return false;
+    }
+
+    public static UUID lookupPlayerUUID(String name) {
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        if (player == null) return new UUID(0, 0);
+        var connection = player.connection;
+        if (connection == null) return new UUID(0, 0);
+        for (var info : connection.getOnlinePlayers()) {
+            if (info.getProfile().getName().equals(name))
+                return info.getProfile().getId();
+        }
+        return new UUID(0, 0);
     }
 
     public static boolean isRecentDuplicate(String content) {
@@ -84,7 +110,8 @@ public class ChatMessageStore {
         boolean isSystem,
         String replyContent,
         String replySender,
-        String messageHash
+        String messageHash,
+        int duplicateCount
     ) {}
 
     public static class PreviewEntry {
@@ -100,10 +127,29 @@ public class ChatMessageStore {
         content = addUnderlineToClicks(content);
         String messageHash = String.valueOf(content.getString().hashCode());
 
-
         String playerName = net.minecraft.client.Minecraft.getInstance().player != null
             ? net.minecraft.client.Minecraft.getInstance().player.getName().getString() : "";
         boolean own = senderName != null && senderName.getString().equals(playerName);
+
+        if (ChatBubbleConfig.ANTI_SPAM.get() && !messages.isEmpty()) {
+            ChatMessage last = messages.get(messages.size() - 1);
+            if (!last.isSystem() && last.senderName().getString().equals(senderName.getString())
+                && last.content().getString().equals(content.getString())) {
+                if (own && pendingReplyContent != null) {
+                    pendingReplyContent = null;
+                    pendingReplySender = null;
+                }
+                messages.set(messages.size() - 1, new ChatMessage(
+                    last.senderUUID(), last.senderName(), last.content(),
+                    LocalTime.now(),
+                    last.isOwn(), last.isSystem(),
+                    last.replyContent(), last.replySender(), last.messageHash(),
+                    last.duplicateCount() + 1
+                ));
+                return;
+            }
+        }
+
         PendingMeta pending = pendingMetas.remove(messageHash);
 
         String replyContent = null;
@@ -127,7 +173,8 @@ public class ChatMessageStore {
             isSystem,
             replyContent,
             replySender,
-            messageHash
+            messageHash,
+            1
         ));
 
         while (messages.size() > MAX)
@@ -307,7 +354,8 @@ public class ChatMessageStore {
                 if (!quoteContent.isEmpty()) {
                     messages.set(i, new ChatMessage(
                         msg.senderUUID(), msg.senderName(), msg.content(), msg.time(),
-                        msg.isOwn(), msg.isSystem(), quoteContent, quoteSender, msg.messageHash()));
+                        msg.isOwn(), msg.isSystem(), quoteContent, quoteSender, msg.messageHash(),
+                        msg.duplicateCount()));
                 }
                 return;
             }

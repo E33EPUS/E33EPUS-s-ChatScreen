@@ -11,6 +11,8 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.BooleanValue STRONG_HINT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue MENTION_STRONG_HINT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue SYSTEM_CHAT_AS_BUBBLE;
+    public static final ForgeConfigSpec.BooleanValue ANTI_SPAM;
+    public static final ForgeConfigSpec.BooleanValue CHAT_REPORT_COMPAT;
     public static final ForgeConfigSpec.BooleanValue PREVIEW_ENABLED;
     public static final ForgeConfigSpec.IntValue PREVIEW_LINES;
     public static final ForgeConfigSpec.IntValue PREVIEW_WIDTH;
@@ -47,6 +49,14 @@ public class ChatBubbleConfig {
         SYSTEM_CHAT_AS_BUBBLE = builder
             .comment("系统消息也渲染为聊天气泡（兼容禁用聊天举报的插件服）")
             .define("system_chat_as_bubble", false);
+
+        ANTI_SPAM = builder
+            .comment("防刷屏——连续相同消息合并为一条，旁白显示重复次数")
+            .define("anti_spam", false);
+
+        CHAT_REPORT_COMPAT = builder
+            .comment("禁用聊天举报兼容模式——从系统消息中提取玩家名和头像（自动解析 <玩家名> 格式）")
+            .define("chat_report_compat", false);
 
         PREVIEW_ENABLED = builder
             .comment("在 HUD 图标上方显示最近消息预览")

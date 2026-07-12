@@ -312,6 +312,10 @@ public class ChatBubbleScreen extends Screen {
                     return true;
                 }
                 handleComponentClicked(style);
+                if (click.getAction() != net.minecraft.network.chat.ClickEvent.Action.COPY_TO_CLIPBOARD
+                    && click.getAction() != net.minecraft.network.chat.ClickEvent.Action.OPEN_URL) {
+                    minecraft.setScreen(null);
+                }
                 return true;
             }
         }
@@ -373,6 +377,10 @@ public class ChatBubbleScreen extends Screen {
 
         renderTitleBar(g, mouseX, mouseY);
         renderMessages(g, mouseX, mouseY);
+        net.minecraft.network.chat.Style hovered = getHoveredStyle(mouseX, mouseY);
+        if (hovered != null && hovered.getHoverEvent() != null) {
+            g.renderComponentHoverEffect(font, hovered, mouseX, mouseY);
+        }
         renderNotificationBar(g, mouseX, mouseY);
         renderReplyBar(g, mouseX, mouseY);
         renderContextMenu(g, mouseX, mouseY);
@@ -647,6 +655,18 @@ public class ChatBubbleScreen extends Screen {
         ResourceLocation skin = getSkin(msg.senderUUID());
         PlayerFaceRenderer.draw(g, skin, avatarX, avatarY, AVATAR);
 
+        if (msg.duplicateCount() > 1) {
+            String label = "x" + msg.duplicateCount();
+            int labelW = font.width(label);
+            int labelX, labelY = bubbleY + (bubbleH - font.lineHeight) / 2;
+            if (own) {
+                labelX = bubbleX - labelW - 3;
+            } else {
+                labelX = bubbleX + bubbleW + 3;
+            }
+            g.drawString(font, Component.literal(label), labelX, labelY, 0xFFFFAA00, false);
+        }
+
         bubbleRects.add(new int[]{bubbleX, bubbleY, bubbleW, bubbleH, index});
     }
 
@@ -916,7 +936,7 @@ public class ChatBubbleScreen extends Screen {
             minecraft.player.getUUID(),
             Component.literal(minecraft.player.getName().getString()),
             false);
-        ChatMessageStore.incrementPendingEcho();
+        ChatMessageStore.incrementPendingEcho(text);
 
         input.setValue("");
         scrollToBottom = true;

@@ -57,6 +57,32 @@ public class ChatListenerMixin {
     @Inject(method = "handleSystemMessage", at = @At("HEAD"))
     private void onSystemChat(Component message, boolean overlay, CallbackInfo ci) {
         if (overlay) return;
+
+        if (ChatBubbleConfig.CHAT_REPORT_COMPAT.get()) {
+            String text = message.getString();
+            if (text.startsWith("<") && text.contains("> ")) {
+                int endBracket = text.indexOf("> ");
+                String extractedName = text.substring(1, endBracket);
+                String cleanContent = text.substring(endBracket + 2);
+                UUID senderId = ChatMessageStore.lookupPlayerUUID(extractedName);
+                ChatMessageStore.setPendingMeta(new SenderMeta(
+                    senderId,
+                    Component.literal(extractedName),
+                    Component.literal(cleanContent),
+                    false
+                ));
+                return;
+            }
+            boolean isSystem = !ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE.get();
+            ChatMessageStore.setPendingMeta(new SenderMeta(
+                new UUID(0, 0),
+                Component.translatable("e33chat.sender.system"),
+                message,
+                isSystem
+            ));
+            return;
+        }
+
         boolean isSystem = !ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE.get();
         ChatMessageStore.setPendingMeta(new SenderMeta(
             new UUID(0, 0),
