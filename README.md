@@ -21,6 +21,8 @@ previews, strong hints, and more
 - Unread notification bar when scrolled up
 - Message preview fading above the hotbar
 
+**If your server uses a "No Chat Reports" type plugin, enable "No Chat Reports" Compat config**
+
 ## License
 
 MIT
@@ -48,6 +50,8 @@ MIT
 - 每个世界独立标题栏（点 ✎ 改名）
 - 向上滚动时未读提示条
 - 快捷栏上方消息预览淡入淡出
+
+**如果你的游戏或服务器安装了禁用聊天举报类的插件，在配置中开启 “禁用聊天举报”模组兼容 选项**
 
 ## 许可
 
