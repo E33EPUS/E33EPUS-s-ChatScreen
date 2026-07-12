@@ -21,7 +21,7 @@ previews, strong hints, and more
 - Unread notification bar when scrolled up
 - Message preview fading above the hotbar
 
-**If your server uses a "No Chat Reports" type plugin, enable "No Chat Reports" Compat config**
+**If your server uses a "No Chat Reports" type plugin, enable "No Chat Reports" Compat config (0.2.4-beta+)**
 
 ## License
 
@@ -33,7 +33,7 @@ MIT
 
 一个重置了原版聊天框的简易mod。
 
-**客户端**必装，**服务端**可选。
+**客户端**需装，**服务端**可选。
 
 ## 特点
 
@@ -51,8 +51,8 @@ MIT
 - 向上滚动时未读提示条
 - 快捷栏上方消息预览淡入淡出
 
-**如果你的游戏或服务器安装了禁用聊天举报类的插件，在配置中开启 “禁用聊天举报”模组兼容 选项**
-
+**如果你的游戏或服务器安装了禁用聊天举报类的插件，在配置中开启 “禁用聊天举报”模组兼容 选项 （0.2.4-beta+）**
+ 
 ## 许可
 
 MIT
