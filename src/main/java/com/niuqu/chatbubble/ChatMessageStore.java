@@ -71,8 +71,9 @@ public class ChatMessageStore {
         if (pendingEchoCount <= 0) return false;
         var player = net.minecraft.client.Minecraft.getInstance().player;
         if (player == null) return false;
-        if (senderName.equals(player.getName().getString())) {
+        if (senderName.contains(player.getName().getString())) {
             pendingEchoCount--;
+            if (!pendingEchoTexts.isEmpty()) pendingEchoTexts.remove(0);
             return true;
         }
         return false;

@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import com.niuqu.chatbubble.ChatBubbleConfig;
 import com.niuqu.chatbubble.ChatMessageStore;
 import com.niuqu.chatbubble.ChatMessageStore.SenderMeta;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.chat.ChatListener;
 import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
@@ -60,14 +61,29 @@ public class ChatListenerMixin {
 
         if (ChatBubbleConfig.CHAT_REPORT_COMPAT.get()) {
             String text = message.getString();
-            if (text.startsWith("<") && text.contains("> ")) {
-                int endBracket = text.indexOf("> ");
-                String extractedName = text.substring(1, endBracket);
-                String cleanContent = text.substring(endBracket + 2);
-                UUID senderId = ChatMessageStore.lookupPlayerUUID(extractedName);
+            var connection = Minecraft.getInstance().player.connection;
+            String foundName = null;
+            int nameStart = -1, contentStart = -1;
+            if (connection != null) {
+                for (var info : connection.getOnlinePlayers()) {
+                    String name = info.getProfile().getName();
+                    String pattern = "<" + name + "> ";
+                    int idx = text.indexOf(pattern);
+                    if (idx >= 0) {
+                        foundName = name;
+                        nameStart = idx;
+                        contentStart = idx + pattern.length();
+                        break;
+                    }
+                }
+            }
+            if (foundName != null) {
+                UUID senderId = ChatMessageStore.lookupPlayerUUID(foundName);
+                String displayName = (text.substring(0, nameStart) + foundName).trim();
+                String cleanContent = text.substring(contentStart);
                 ChatMessageStore.setPendingMeta(new SenderMeta(
                     senderId,
-                    Component.literal(extractedName),
+                    Component.literal(displayName),
                     Component.literal(cleanContent),
                     false
                 ));

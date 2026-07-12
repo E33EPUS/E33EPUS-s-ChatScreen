@@ -7,6 +7,7 @@ public class ChatBubbleConfig {
 
     public static final ForgeConfigSpec.BooleanValue ENABLED;
     public static final ForgeConfigSpec.BooleanValue RED_DOT_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue HIDE_CHAT_ICON;
     public static final ForgeConfigSpec.BooleanValue ANIMATION_ENABLED;
     public static final ForgeConfigSpec.BooleanValue STRONG_HINT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue MENTION_STRONG_HINT_ENABLED;
@@ -34,6 +35,10 @@ public class ChatBubbleConfig {
             .comment("HUD 图标上显示未读红点")
             .define("red_dot", true);
 
+        HIDE_CHAT_ICON = builder
+            .comment("隐藏聊天HUD图标（红点等一并隐藏）")
+            .define("hide_chat_icon", false);
+
         ANIMATION_ENABLED = builder
             .comment("聊天框打开/关闭动画")
             .define("animation", true);
@@ -55,7 +60,7 @@ public class ChatBubbleConfig {
             .define("anti_spam", false);
 
         CHAT_REPORT_COMPAT = builder
-            .comment("禁用聊天举报兼容模式——从系统消息中提取玩家名和头像（自动解析 <玩家名> 格式）")
+            .comment("禁用聊天举报兼容模式——从系统消息中扫描在线玩家名并还原身份（支持服务器前缀/称号）")
             .define("chat_report_compat", false);
 
         PREVIEW_ENABLED = builder

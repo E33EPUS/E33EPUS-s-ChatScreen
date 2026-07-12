@@ -94,32 +94,35 @@ public class ChatBubbleHudOverlay {
             }
         }
 
-        // Chat bubble icon
-        if (!iconLoaded) {
-            loadIconTexture();
-            iconLoaded = true;
-        }
-        drawIcon(g, x, iconY);
+        // Chat bubble icon (hidden if hide_chat_icon enabled)
+        if (!ChatBubbleConfig.HIDE_CHAT_ICON.get()) {
+            if (!iconLoaded) {
+                loadIconTexture();
+                iconLoaded = true;
+            }
+            drawIcon(g, x, iconY);
 
-        // Red dot
-        if (ChatBubbleConfig.RED_DOT_ENABLED.get() && ChatMessageStore.getUnreadCount() > 0) {
-            int dotX = x + ICON_S - RED_DOT_R;
-            int dotY = iconY + RED_DOT_R;
-            int dotColor = ChatMessageStore.hasUnreadMention(mc.player.getName().getString())
-                ? 0xFFFF4444 : 0xFFFF0000;
-            g.fill(dotX - RED_DOT_R, dotY - RED_DOT_R, dotX + RED_DOT_R, dotY + RED_DOT_R, dotColor);
-        }
+            // Red dot
+            if (ChatBubbleConfig.RED_DOT_ENABLED.get() && ChatMessageStore.getUnreadCount() > 0) {
+                int dotX = x + ICON_S - RED_DOT_R;
+                int dotY = iconY + RED_DOT_R;
+                int dotColor = ChatMessageStore.hasUnreadMention(mc.player.getName().getString())
+                    ? 0xFFFF4444 : 0xFFFF0000;
+                g.fill(dotX - RED_DOT_R, dotY - RED_DOT_R, dotX + RED_DOT_R, dotY + RED_DOT_R, dotColor);
+            }
 
-        // Keybind text below icon
-        String keyDisplay = "[" + keyName + "]";
-        int keyW = mc.font.width(keyDisplay);
-        int keyX = keyW > ICON_S ? x : x + (ICON_S - keyW) / 2;
-        g.drawString(mc.font, keyDisplay, keyX, textY, 0xFFFFFFFF, false);
+            // Keybind text below icon
+            String keyDisplay = "[" + keyName + "]";
+            int keyW = mc.font.width(keyDisplay);
+            int keyX = keyW > ICON_S ? x : x + (ICON_S - keyW) / 2;
+            g.drawString(mc.font, keyDisplay, keyX, textY, 0xFFFFFFFF, false);
+        }
 
         g.pose().popPose();
     }
 
     public static boolean isMouseOverIcon(double mx, double my) {
+        if (ChatBubbleConfig.HIDE_CHAT_ICON.get()) return false;
         Minecraft mc = Minecraft.getInstance();
         if (mc.screen != null) return false;
         int screenH = mc.getWindow().getGuiScaledHeight();
