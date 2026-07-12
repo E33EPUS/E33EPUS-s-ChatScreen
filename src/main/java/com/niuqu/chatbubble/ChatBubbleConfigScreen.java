@@ -146,7 +146,7 @@ public class ChatBubbleConfigScreen extends Screen {
         int generalHeaderY = START_Y - scrollOffset - 20;
         Component generalHeader = Component.translatable("e33chat.config.section.general");
         if (generalHeaderY > -ROW_H && generalHeaderY < height)
-            g.drawCenteredString(font, generalHeader, width / 2, generalHeaderY, 0xFFFFAA00);
+            g.drawString(font, generalHeader, LABEL_X, generalHeaderY, 0xFFFFAA00, false);
 
         String[] labels = {"e33chat.config.enabled", "e33chat.config.red_dot", "e33chat.config.hide_chat_icon", "e33chat.config.animation",
             "e33chat.config.strong_hint", "e33chat.config.mention_strong_hint",
@@ -168,7 +168,7 @@ public class ChatBubbleConfigScreen extends Screen {
         int compatHeaderY = START_Y + 14 * ROW_H + 12 - scrollOffset - 20;
         Component compatHeader = Component.translatable("e33chat.config.section.compatibility");
         if (compatHeaderY > -ROW_H && compatHeaderY < height)
-            g.drawCenteredString(font, compatHeader, width / 2, compatHeaderY, 0xFFFFAA00);
+            g.drawString(font, compatHeader, LABEL_X, compatHeaderY, 0xFFFFAA00, false);
 
         int py = START_Y + ROW_H * 10 + 4 - scrollOffset;
         drawPreview(g, py, ChatBubbleConfig.OWN_BUBBLE_COLOR.get()); py += ROW_H;
