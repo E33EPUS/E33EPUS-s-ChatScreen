@@ -2,7 +2,7 @@
 
 A simple mod that replaces the vanilla chat HUD.
 
-**Client + Server** required.
+**Client** required, **server** optional.
 
 ## Features
 
@@ -33,7 +33,7 @@ MIT
 
 一个重置了原版聊天框的简易mod。
 
-需要**客户端+服务端**同时安装。
+**客户端**必装，**服务端**可选。
 
 ## 特点
 
