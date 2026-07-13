@@ -1,34 +1,32 @@
 # E33EPUS's ChatScreen
 
-Replace the vanilla chat with chat bubbles.
+A simple mod that replaces the vanilla chat HUD.
 
-Client only. Server optional.
+Client required, server optional.
 
-## What it does
+## Features
 
-- Shows chat as bubbles with player heads, like QQ/WeChat
-- Click a head to @ someone
-- Right-click a message to copy or quote reply
-- Plays a chime when someone @mentions or quotes you
-- Pops a hint above the hotbar for @mentions and system messages
-- Message preview fades in above the hotbar
-- Red dot on the chat icon when you have unread messages
-- Command suggestions while typing
-- Saves chat history per world so you don't lose it after quitting (enable `chat_history` in config)
-- Remembers what you typed if you close chat without sending
-- Anti-spam: repeated messages get merged into "x2", "x3", etc.
-- Arrow keys and mouse wheel to scroll through history
-- Click the pencil icon to rename the title bar per world
+- Messages with bubbles and player heads, chat-app style
+- Left-click a player head to @ them
+- Right-click a message: copy / quote reply
+- System / @ / quote popup hints
+- Message preview at bottom-left of screen
+- Per-world chat history (enable `chat_history` in config)
+- Input text preserved when closing chat
+- Anti-spam: consecutive identical messages get merged
+- More to come
 
 ## Config
 
-Everything in `config/e33chat-client.toml` — bubble colors, text colors, preview size, animations, hints, and more.
+Config file: `config/e33chat-client.toml`
 
-**If your server uses "No Chat Reports", turn on the compat option in config (0.2.4-beta+)**
+Custom bubble colors, text colors, preview lines, animations, popup hints, and more.
+
+If your server uses "No Chat Reports", turn on the compat option in config (0.2.4-beta+)
 
 ## License
 
-MIT
+MIT License
 
 ---
 
