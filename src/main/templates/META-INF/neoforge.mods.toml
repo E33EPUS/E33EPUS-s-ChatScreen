@@ -18,11 +18,11 @@ config="${mod_id}.mixins.json"
     type="required"
     versionRange="[21.1,)"
     ordering="NONE"
-    side="BOTH"
+    side="CLIENT"
 
 [[dependencies.${mod_id}]]
     modId="minecraft"
     type="required"
     versionRange="${minecraft_version_range}"
     ordering="NONE"
-    side="BOTH"
+    side="CLIENT"

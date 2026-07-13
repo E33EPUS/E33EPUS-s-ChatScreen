@@ -42,6 +42,5 @@ public record ChatMetaPayload(UUID senderUUID, String messageHash, String quoteS
         ));
     }
 
-    public static void send(String messageText, String quoteSender, String quoteContent, String[] mentionTargets) {
-    }
+
 }

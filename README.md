@@ -2,60 +2,60 @@
 
 A simple mod that replaces the vanilla chat HUD.
 
-- **Forge 1.20.1**: `Forge-1.20.1` branch
-- **NeoForge 1.21.1**: `Neoforge-1.21.1` branch (this branch)
-
-**Client** required, **server** optional.
+Client required, server optional.
 
 ## Features
 
-- **Chat bubbles** — each message renders with player head, QQ/WeChat style
-- **Strong hints** — @mentions and important system messages pop a heads-up above the hotbar
-- **Right-click menu** — copy message or quote reply
-- **Click-to-@** — left-click others' player head to @mention them
-- **Configurable** (`config/e33chat-client.toml`) — bubble color, text color, background, animations, message
-previews, strong hints, and more
+- Messages with bubbles and player heads, chat-app style
+- Left-click a player head to @ them
+- Right-click a message: copy / quote reply
+- System / @ / quote popup hints
+- Message preview at bottom-left of screen
+- Per-world chat history (enable `chat_history` in config)
+- Input text preserved when closing chat
+- Anti-spam: consecutive identical messages get merged
+- More to come
 
-## Also
+## Config
 
-- Command suggestions while typing
-- Chat history (arrow keys / mouse wheel)
-- Per-world custom title bar (click ✎ to rename)
-- Unread notification bar when scrolled up
-- Message preview fading above the hotbar
+Config file: `config/e33chat-client.toml`
 
-**If your server uses a "No Chat Reports" type plugin, enable "No Chat Reports" Compat config (0.2.4-beta+)**
+Custom bubble colors, text colors, preview lines, animations, popup hints, and more.
+
+If your server uses "No Chat Reports", turn on the compat option in config (0.2.4-beta+)
 
 ## License
 
-MIT
+MIT License
 
 ---
 
 # E33EPUS的聊天界面
 
-一个重置了原版聊天框的简易mod。
+一个替换了原版聊天栏的简易模组。
 
-**客户端**需装，**服务端**可选。
+客户端需装，服务端可选。
 
-## 特点
+## 功能
 
-- **聊天气泡**——每条消息渲染为带发送者头像的气泡，QQ/微信 风格
-- **强提示**——被 @或收到重要系统消息时，快捷栏上方弹出醒目提示
-- **右键菜单**——复制消息或引用回复
-- **点头像 @**——左击他人头像进行@
-- **配置项**（`config/e33chat-client.toml`）——气泡颜色、文字颜色、背景、动画、消息预览、强提示等
+- 消息带气泡和玩家头像，聊天APP风格
+- 左键玩家头像可 @ ta
+- 右键消息：复制消息 / 引用回复
+- 系统消息 / @ / 引用消息 弹窗提示
+- 屏幕左下角消息预览
+- 保存存档聊天记录（配置里开启 `chat_history`）
+- 保留已输入文本
+- 防刷屏：连续相同消息自动合并
+- 敬请期待
 
-## 其他
+## 配置
 
-- 输入时指令补全
-- 聊天历史（方向键 / 滚轮）
-- 每个世界独立标题栏（点 ✎ 改名）
-- 向上滚动时未读提示条
-- 快捷栏上方消息预览淡入淡出
+配置文件：`config/e33chat-client.toml` 
 
-**如果你的游戏或服务器安装了禁用聊天举报类的插件，在配置中开启 “禁用聊天举报”模组兼容 选项 （0.2.4-beta+）**
- 
+- 自定义气泡颜色、文字颜色、预览行数、动画、弹窗提示等等。
+
+- **如果你的服务器装了"禁用聊天举报"插件，在配置里打开兼容选项（0.2.4-beta+）**
+
 ## 许可
 
-MIT
+MIT License

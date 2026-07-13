@@ -38,8 +38,16 @@ public class ChatComponentMixin {
         captureMessage(message);
     }
 
+    private String lastText;
+    private long lastTime;
+
     private void captureMessage(Component finalComponent) {
         if (!ChatBubbleConfig.ENABLED.get()) return;
+        String text = finalComponent.getString();
+        long now = System.currentTimeMillis();
+        if (text.equals(lastText) && now - lastTime < 100) return;
+        lastText = text;
+        lastTime = now;
 
         SenderMeta meta = ChatMessageStore.consumePendingMeta();
         if (meta == null) {

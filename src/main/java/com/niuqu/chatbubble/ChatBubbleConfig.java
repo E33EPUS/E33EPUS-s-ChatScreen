@@ -14,6 +14,7 @@ public class ChatBubbleConfig {
     public static final ModConfigSpec.BooleanValue SYSTEM_CHAT_AS_BUBBLE;
     public static final ModConfigSpec.BooleanValue ANTI_SPAM;
     public static final ModConfigSpec.BooleanValue CHAT_REPORT_COMPAT;
+    public static final ModConfigSpec.BooleanValue CHAT_HISTORY_ENABLED;
     public static final ModConfigSpec.BooleanValue PREVIEW_ENABLED;
     public static final ModConfigSpec.IntValue PREVIEW_LINES;
     public static final ModConfigSpec.IntValue PREVIEW_WIDTH;
@@ -44,6 +45,7 @@ public class ChatBubbleConfig {
             .comment("聊天框打开/关闭动画")
             .define("animation", true);
 
+
         STRONG_HINT_ENABLED = builder
             .comment("系统消息在物品栏上方显示强提示（不启用则系统消息进入消息预览）")
             .define("strong_hint", true);
@@ -58,7 +60,11 @@ public class ChatBubbleConfig {
 
         ANTI_SPAM = builder
             .comment("防刷屏——连续相同消息合并为一条，旁白显示重复次数")
-            .define("anti_spam", false);
+            .define("anti_spam", true);
+
+        CHAT_HISTORY_ENABLED = builder
+            .comment("保留聊天记录——每个存档的聊天记录保存到本地")
+            .define("chat_history", false);
 
         CHAT_REPORT_COMPAT = builder
             .comment("禁用聊天举报兼容模式——从系统消息中扫描在线玩家名并还原身份（支持服务器前缀/称号）")
@@ -69,12 +75,12 @@ public class ChatBubbleConfig {
             .define("preview_enabled", true);
 
         PREVIEW_LINES = builder
-            .comment("消息预览行数（1-3）")
-            .defineInRange("preview_lines", 2, 1, 3);
+            .comment("消息预览行数（1-8）")
+            .defineInRange("preview_lines", 3, 1, 8);
 
         PREVIEW_WIDTH = builder
             .comment("消息预览宽度（像素，50-400）")
-            .defineInRange("preview_width", 150, 50, 400);
+            .defineInRange("preview_width", 200, 50, 400);
 
         builder.pop();
         builder.push("bubble");

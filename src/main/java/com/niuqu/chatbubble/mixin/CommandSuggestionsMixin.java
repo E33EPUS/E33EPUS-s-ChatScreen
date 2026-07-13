@@ -25,7 +25,7 @@ public class CommandSuggestionsMixin {
         index = 1, require = 0)
     private int fixSuggestionsX(int x) {
         if (Minecraft.getInstance().screen instanceof ChatBubbleScreen) {
-            return Math.max(x, ChatBubbleScreen.getPanelLeft() + 4);
+            return ChatBubbleScreen.getInputX();
         }
         return x;
     }

@@ -25,17 +25,17 @@ public class ChatBubbleClientListener {
             var f = ChatScreen.class.getDeclaredField("initial");
             f.setAccessible(true);
             String val = (String) f.get(chatScreen);
-            System.out.println("[e33chat] initial='" + val + "'");
+            ChatBubbleMod.LOGGER.debug("initial='{}'", val);
             return val != null ? val : "";
         } catch (Exception e) {
-            System.out.println("[e33chat] 'initial' field not found, scanning: " + e);
+            ChatBubbleMod.LOGGER.debug("'initial' field not found, scanning: {}", e);
         }
         for (var f : ChatScreen.class.getDeclaredFields()) {
             if (f.getType() == String.class) {
                 f.setAccessible(true);
                 try {
                     String val = (String) f.get(chatScreen);
-                    System.out.println("[e33chat] String field '" + f.getName() + "' = '" + val + "'");
+                    ChatBubbleMod.LOGGER.debug("String field '{}' = '{}'", f.getName(), val);
                     if (val != null && !val.isEmpty()) return val;
                 } catch (Exception ignored) {}
             }
