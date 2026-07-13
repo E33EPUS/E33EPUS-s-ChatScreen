@@ -70,6 +70,12 @@ public class ChatBubbleScreen extends Screen {
     private boolean editingTitle;
     private EditBox titleEditor;
 
+    // @mention autocomplete
+    private boolean showMentions;
+    private final List<String> mentionCandidates = new ArrayList<>();
+    private int mentionIdx;
+    private String mentionFilter = "";
+
     // Right-click menu
     private int contextMsgIndex = -1;
     private int contextX, contextY;
@@ -166,7 +172,32 @@ public class ChatBubbleScreen extends Screen {
         return Component.translatable("e33chat.title.fallback").getString();
     }
 
+    private void insertMention(String name) {
+        String text = input.getValue();
+        int atIdx = text.lastIndexOf('@');
+        input.setValue(text.substring(0, atIdx) + "@" + name + " ");
+        input.moveCursorToEnd();
+        showMentions = false;
+    }
+
     private void onEdited(String text) {
+        showMentions = false;
+        int atIdx = text.lastIndexOf('@');
+        if (atIdx >= 0 && minecraft.player != null && minecraft.player.connection != null) {
+            String after = text.substring(atIdx + 1);
+            if (!after.contains(" ")) {
+                mentionFilter = after.toLowerCase();
+                mentionCandidates.clear();
+                for (var info : minecraft.player.connection.getOnlinePlayers()) {
+                    String name = info.getProfile().getName();
+                    if (name.toLowerCase().contains(mentionFilter))
+                        mentionCandidates.add(name);
+                }
+                mentionCandidates.sort(String::compareToIgnoreCase);
+                mentionIdx = 0;
+                showMentions = !mentionCandidates.isEmpty();
+            }
+        }
         if (commandSuggestions != null) {
             commandSuggestions.setAllowSuggestions(!text.equals(initialText));
             commandSuggestions.updateCommandInfo();
@@ -197,6 +228,31 @@ public class ChatBubbleScreen extends Screen {
             if (keyCode == 257 || keyCode == 335) { exitTitleEdit(true); return true; }
             return titleEditor.keyPressed(keyCode, scanCode, modifiers);
         }
+
+        // @mention autocomplete keys
+        if (showMentions) {
+            if (keyCode == 258) { // Tab
+                insertMention(mentionCandidates.get(mentionIdx));
+                return true;
+            }
+            if (keyCode == 256) { // Esc
+                showMentions = false;
+                return true;
+            }
+            if (keyCode == 265) { // Up
+                mentionIdx = mentionIdx > 0 ? mentionIdx - 1 : mentionCandidates.size() - 1;
+                return true;
+            }
+            if (keyCode == 264) { // Down
+                mentionIdx = mentionIdx < mentionCandidates.size() - 1 ? mentionIdx + 1 : 0;
+                return true;
+            }
+            if (keyCode == 257 || keyCode == 335) { // Enter
+                insertMention(mentionCandidates.get(mentionIdx));
+                return true;
+            }
+        }
+
         if (commandSuggestions != null && commandSuggestions.keyPressed(keyCode, scanCode, modifiers))
             return true;
         if (keyCode == 256) { onClose(); return true; }
@@ -212,6 +268,10 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (showMentions && !mentionCandidates.isEmpty()) {
+            mentionIdx = Mth.clamp(mentionIdx - (int) delta, 0, mentionCandidates.size() - 1);
+            return true;
+        }
         if (commandSuggestions != null && commandSuggestions.mouseScrolled(delta))
             return true;
         scrollToBottom = false;
@@ -222,6 +282,28 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // @mention popup click
+        if (showMentions && button == 0) {
+            int popupX = input.getX();
+            int popupH = Math.min(mentionCandidates.size(), 8) * font.lineHeight + 4;
+            int popupY = input.getY() - popupH - 2;
+            if (popupY < msgTop) popupY = input.getY() + input.getHeight() + 2;
+            int maxW = 60;
+            for (String name : mentionCandidates)
+                maxW = Math.max(maxW, font.width(name));
+            int popupW = maxW + 12;
+            if (mouseX >= popupX && mouseX <= popupX + popupW && mouseY >= popupY && mouseY <= popupY + popupH) {
+                int relY = (int) mouseY - popupY - 2;
+                int idx = relY / font.lineHeight;
+                int startIdx = Math.max(0, mentionIdx - Math.min(mentionCandidates.size(), 8) + 1);
+                idx += startIdx;
+                if (idx >= 0 && idx < mentionCandidates.size()) {
+                    insertMention(mentionCandidates.get(idx));
+                    return true;
+                }
+            }
+        }
+
         // Context menu clicks must be handled before dismiss
         if (button == 0 && contextMsgIndex >= 0) {
             handleContextClick((int) mouseX, (int) mouseY);
@@ -386,6 +468,7 @@ public class ChatBubbleScreen extends Screen {
         renderContextMenu(g, mouseX, mouseY);
         renderToast(g);
         renderBottomBar(g, mouseX, mouseY);
+        renderMentionPopup(g, mouseX, mouseY);
 
         g.enableScissor(panelX, 0, panelX + panelW, height);
         if (commandSuggestions != null) commandSuggestions.render(g, mouseX, mouseY);
@@ -808,6 +891,39 @@ public class ChatBubbleScreen extends Screen {
         int cx = barX + barW - 16;
         int cy = barY + 3;
         return mx >= cx && mx <= cx + 12 && my >= cy && my <= cy + 12;
+    }
+
+    private void renderMentionPopup(GuiGraphics g, int mouseX, int mouseY) {
+        if (!showMentions || mentionCandidates.isEmpty()) return;
+
+        int maxW = 60;
+        for (String name : mentionCandidates)
+            maxW = Math.max(maxW, font.width(name));
+        int popupW = maxW + 12;
+        int visible = Math.min(mentionCandidates.size(), 8);
+        int popupH = visible * font.lineHeight + 4;
+        int popupX = input.getX();
+        int popupY = input.getY() - popupH - 2;
+        if (popupY < msgTop) popupY = input.getY() + input.getHeight() + 2;
+
+        g.fill(popupX, popupY, popupX + popupW, popupY + popupH, 0xEE1E1E1E);
+        g.fill(popupX, popupY, popupX + popupW, popupY + 1, COLOR_DIVIDER);
+        g.fill(popupX, popupY + popupH - 1, popupX + popupW, popupY + popupH, COLOR_DIVIDER);
+
+        int startIdx = Math.max(0, mentionIdx - visible + 1);
+        int endIdx = Math.min(mentionCandidates.size(), startIdx + visible);
+        if (endIdx - startIdx < visible)
+            startIdx = Math.max(0, endIdx - visible);
+        for (int i = startIdx; i < endIdx; i++) {
+            int ly = popupY + 2 + (i - startIdx) * font.lineHeight;
+            boolean hover = mouseX >= popupX && mouseX <= popupX + popupW
+                && mouseY >= ly && mouseY <= ly + font.lineHeight;
+            if (hover || i == mentionIdx)
+                g.fill(popupX + 1, ly, popupX + popupW - 1, ly + font.lineHeight,
+                    i == mentionIdx ? 0xFF444444 : 0xFF333333);
+            g.drawString(font, Component.literal(mentionCandidates.get(i)),
+                popupX + 4, ly, 0xFFFFFFFF, false);
+        }
     }
 
     private void renderToast(GuiGraphics g) {
