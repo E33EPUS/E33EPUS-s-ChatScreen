@@ -1,5 +1,67 @@
 # Changelog
 
+## v1.0
+
+**修复**
+- 修复 `ChatComponent.addMessage` 双重触发导致的@/引用重复音效
+- 引用提示音改为风铃声 (`NOTE_BLOCK_CHIME`)——和被@一致
+- 修复聊天框打开时强提示/弹窗被隐藏
+- 修复指令补全界面 X 坐标错位（不同 GUI 缩放下偏移不同）
+- 修复引用预览竖线颜色不统一（统一白色）
+- 修复 `isRecentDuplicate` 回显抑制回归（`CHAT_REPORT_COMPAT` 下发送消息被误吞）
+- 修复配置界面"兼容性选项"标题滚动时偏移不同步
+
+**UI 优化**
+- 气泡宽度完全跟随文本（去掉最小宽度限制），横向内边距 8→6，纵向 5→4
+- 头像位置对齐玩家名顶部
+- 标题栏顶部缝隙消除，底栏高度 30→26，输入框高度 20→14，图标 16→14
+- 标题编辑框尺寸贴合文本，不再错位
+- 配置界面重构为数据驱动（增删配置项无需手改索引）
+- 动画改为 ease-out 三次方缓出
+
+**新功能**
+- 输入 `@` 弹出在线玩家名补全列表（Tab/Enter 选中，Esc 关闭）
+- 聊天记录按存档持久化（`chat_history` 配置，默认关闭）
+- 关闭聊天框后保留已输入文本
+- 预览行数上限 3→8
+- 被@/引用播放风铃提示音
+
+**配置**
+- 新增 `chat_history`——保留每个存档的聊天记录
+- `anti_spam`、`chat_history` 描述精简
+- jar 命名格式改为 `e33chat-Forge-1.20.1-1.0`
+
+***
+
+**Fixes**
+- Fixed double sound on @mention/quote caused by `ChatComponent.addMessage` dual trigger
+- Quote notification now uses `NOTE_BLOCK_CHIME` (same wind chime as @mention)
+- Fixed strong hints being hidden when chat screen is open
+- Fixed command suggestion X offset (misaligned at different GUI scales)
+- Fixed quote bar accent color inconsistency (always white now)
+- Fixed `isRecentDuplicate` echo suppression regression (messages swallowed under `CHAT_REPORT_COMPAT`)
+- Fixed config screen "Compatibility" header drifting on scroll
+
+**UI**
+- Bubble width follows text exactly (removed min width), padding X 8→6, Y 5→4
+- Avatar aligned to player name top
+- Title bar gap removed, bottom bar 30→26, input height 20→14, icons 16→14
+- Title edit box sized to match text, no more misalignment
+- Config screen refactored to data-driven entries
+- Animation switched to ease-out cubic
+
+**New Features**
+- `@` autocomplete popup with online player names (Tab/Enter to select, Esc to close)
+- Per-world chat history persistence (`chat_history` config, disabled by default)
+- Input text preserved when closing/reopening chat
+- Preview lines cap 3→8
+- Wind chime sound on @mention/quote
+
+**Config**
+- Added `chat_history` — saves chat history per world
+- Simplified `anti_spam` and `chat_history` labels
+- Jar naming: `e33chat-Forge-1.20.1-1.0`
+
 ## v0.2.4-beta
 
 增强 `chat_report_compat` 匹配——改为扫描在线玩家列表而非要求 `<` 开头，支持服务器前缀/称号（如 `【称号】 <PlayerName> 消息`）。匹配到的前缀保留到发送者显示名中。修复服务端兼容性——客户端可加入无 mod 服务端，双端安装时服务端也不再因客户端类加载崩溃（`displayTest="NONE"` + 客户端初始化抽离到 `@OnlyIn(Dist.CLIENT)` 类）。
