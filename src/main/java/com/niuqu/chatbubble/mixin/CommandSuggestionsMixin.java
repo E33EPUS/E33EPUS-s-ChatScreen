@@ -13,8 +13,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = CommandSuggestions.class, priority = 500)
 public class CommandSuggestionsMixin {
 
-    private static boolean loggedSuggestionsY;
-
     @Inject(method = "renderUsage", at = @At("HEAD"), cancellable = true, require = 0)
     private void onRenderUsage(GuiGraphics g, CallbackInfo ci) {
         if (Minecraft.getInstance().screen instanceof ChatBubbleScreen) {
@@ -25,15 +23,21 @@ public class CommandSuggestionsMixin {
     @ModifyArg(method = "showSuggestions",
         at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/gui/components/CommandSuggestions$SuggestionsList;<init>(Lnet/minecraft/client/gui/components/CommandSuggestions;IIILjava/util/List;Z)V"),
+        index = 1)
+    private int fixSuggestionsX(int x) {
+        if (Minecraft.getInstance().screen instanceof ChatBubbleScreen) {
+            return ChatBubbleScreen.getInputX();
+        }
+        return x;
+    }
+
+    @ModifyArg(method = "showSuggestions",
+        at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/gui/components/CommandSuggestions$SuggestionsList;<init>(Lnet/minecraft/client/gui/components/CommandSuggestions;IIILjava/util/List;Z)V"),
         index = 2)
     private int fixSuggestionsY(int y) {
         if (Minecraft.getInstance().screen instanceof ChatBubbleScreen) {
-            int fixed = ChatBubbleScreen.getInputY() + 3;
-            if (!loggedSuggestionsY) {
-                System.out.println("[e33chat] CommandSuggestions Y " + y + " -> " + fixed + " (inputY=" + ChatBubbleScreen.getInputY() + ")");
-                loggedSuggestionsY = true;
-            }
-            return fixed;
+            return ChatBubbleScreen.getInputY() + 3;
         }
         return y;
     }

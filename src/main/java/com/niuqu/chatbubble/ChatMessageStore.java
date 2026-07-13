@@ -15,7 +15,7 @@ import java.util.*;
 
 
 public class ChatMessageStore {
-    private static final int MAX = 100;
+    private static final int MAX = 10000;
     private static final List<ChatMessage> messages = new ArrayList<>();
     private static int unreadCount = 0;
     private static boolean screenOpen = false;
@@ -95,12 +95,17 @@ public class ChatMessageStore {
         int size = messages.size();
         for (int i = size - 1; i >= 0 && i >= size - 2; i--) {
             String existing = messages.get(i).content().getString();
-            if (existing.contains(content) || content.contains(existing)) return true;
+            if (existing.equals(content)) return true;
+            if (existing.contains(content) || content.contains(existing)) {
+                if (content.contains("<") && content.contains(">")) return true;
+                if (existing.contains("<") && existing.contains(">")) return true;
+            }
         }
         return false;
     }
 
-    private record PendingMeta(UUID senderUUID, String quoteSender, String quoteContent, List<String> mentionTargets) {}
+    private record PendingMeta(UUID senderUUID, String quoteSender, String quoteContent,
+                               List<String> mentionTargets, LocalTime createdAt) {}
 
     public record ChatMessage(
         UUID senderUUID,
@@ -152,6 +157,9 @@ public class ChatMessageStore {
         }
 
         PendingMeta pending = pendingMetas.remove(messageHash);
+        if (pending != null && pending.createdAt().isBefore(LocalTime.now().minusSeconds(10))) {
+            pending = null;
+        }
 
         String replyContent = null;
         String replySender = null;
@@ -181,12 +189,19 @@ public class ChatMessageStore {
         while (messages.size() > MAX)
             messages.remove(0);
 
+        boolean isMentionOrQuote = !own && !isSystem
+            && (content.getString().contains("@" + playerName)
+                || (replySender != null && replySender.equals(playerName)));
+
+        if (isMentionOrQuote && Minecraft.getInstance().player != null) {
+            Minecraft.getInstance().player.playSound(
+                net.minecraft.sounds.SoundEvents.NOTE_BLOCK_CHIME.get(), 0.6F, 1.0F);
+        }
+
         if (!screenOpen) {
             unreadCount++;
             boolean systemToHint = isSystem && ChatBubbleConfig.STRONG_HINT_ENABLED.get();
-            boolean mentionToHint = !own && !isSystem && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get()
-                && (content.getString().contains("@" + playerName)
-                    || (replySender != null && replySender.equals(playerName)));
+            boolean mentionToHint = isMentionOrQuote && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get();
 
             if (mentionToHint) {
                 strongHintText = Component.translatable("e33chat.notif.mention").getString();
@@ -317,11 +332,69 @@ public class ChatMessageStore {
         boolean isSpecific = name != null && (name.startsWith("SP:") || name.startsWith("MP:"));
         boolean isRefinement = wasFallback && isSpecific;
         boolean hasPendingMessages = currentWorldKey == null && isSpecific && !messages.isEmpty();
+        if (ChatBubbleConfig.CHAT_HISTORY_ENABLED.get() && currentWorldKey != null)
+            saveMessages(currentWorldKey);
         currentWorldKey = name;
         if (isRefinement || hasPendingMessages) return;
         messages.clear();
         unreadCount = 0;
         previews.clear();
+        if (ChatBubbleConfig.CHAT_HISTORY_ENABLED.get() && currentWorldKey != null)
+            loadMessages(currentWorldKey);
+    }
+
+    private static File getHistoryFile(String worldKey) {
+        String safe = worldKey.replaceAll("[^a-zA-Z0-9_.\\-]", "_");
+        return new File(Minecraft.getInstance().gameDirectory, "e33chat/history/" + safe + ".json");
+    }
+
+    private static void saveMessages(String worldKey) {
+        if (messages.isEmpty()) return;
+        File f = getHistoryFile(worldKey);
+        f.getParentFile().mkdirs();
+        List<Object> list = new ArrayList<>();
+        for (ChatMessage msg : messages) {
+            var obj = new HashMap<String, Object>();
+            obj.put("senderUUID", msg.senderUUID().toString());
+            obj.put("senderName", msg.senderName().getString());
+            obj.put("content", Component.Serializer.toJson(msg.content()));
+            obj.put("time", msg.time().format(DateTimeFormatter.ISO_LOCAL_TIME));
+            obj.put("isOwn", msg.isOwn());
+            obj.put("isSystem", msg.isSystem());
+            if (msg.replyContent() != null) {
+                obj.put("replyContent", msg.replyContent());
+                obj.put("replySender", msg.replySender());
+            }
+            list.add(obj);
+        }
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
+            GSON.toJson(list, w);
+        } catch (Exception ignored) {}
+    }
+
+    private static void loadMessages(String worldKey) {
+        File f = getHistoryFile(worldKey);
+        if (!f.exists()) return;
+        try (Reader r = new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8)) {
+            List<Map<String, Object>> list = GSON.fromJson(r, new TypeToken<List<Map<String, Object>>>(){}.getType());
+            if (list == null) return;
+            for (Map<String, Object> obj : list) {
+                try {
+                    UUID uuid = UUID.fromString((String) obj.get("senderUUID"));
+                    Component senderName = Component.literal((String) obj.get("senderName"));
+                    Component content = Component.Serializer.fromJson((String) obj.get("content"));
+                    if (content == null) content = Component.literal("");
+                    LocalTime time = LocalTime.parse((String) obj.get("time"), DateTimeFormatter.ISO_LOCAL_TIME);
+                    boolean isOwn = (Boolean) obj.getOrDefault("isOwn", false);
+                    boolean isSystem = (Boolean) obj.getOrDefault("isSystem", false);
+                    String replyContent = (String) obj.get("replyContent");
+                    String replySender = (String) obj.get("replySender");
+                    messages.add(new ChatMessage(uuid, senderName, content, time,
+                        isOwn, isSystem, replyContent, replySender, "", 1));
+                } catch (Exception ignored) {}
+            }
+            while (messages.size() > MAX) messages.remove(0);
+        } catch (Exception ignored) {}
     }
 
     private static File getTitlesFile() {
@@ -349,20 +422,37 @@ public class ChatMessageStore {
 
     public static void applyChatMeta(UUID senderUUID, String messageHash, String quoteSender,
                                       String quoteContent, List<String> mentionTargets) {
+        LocalTime cutoff = LocalTime.now().minusSeconds(5);
         for (int i = messages.size() - 1; i >= 0; i--) {
             ChatMessage msg = messages.get(i);
             if (msg.messageHash().equals(messageHash) && msg.senderUUID().equals(senderUUID)) {
+                if (msg.replyContent() != null) continue;
+                if (msg.time().isBefore(cutoff)) continue;
                 if (!quoteContent.isEmpty()) {
                     messages.set(i, new ChatMessage(
                         msg.senderUUID(), msg.senderName(), msg.content(), msg.time(),
                         msg.isOwn(), msg.isSystem(), quoteContent, quoteSender, msg.messageHash(),
                         msg.duplicateCount()));
+                    String playerName = Minecraft.getInstance().player != null
+                        ? Minecraft.getInstance().player.getName().getString() : "";
+                    if (!msg.isOwn() && !playerName.isEmpty()
+                        && playerName.equals(quoteSender)
+                        && !msg.content().getString().contains("@" + playerName)) {
+                        Minecraft.getInstance().player.playSound(
+                            net.minecraft.sounds.SoundEvents.NOTE_BLOCK_CHIME.get(), 0.6F, 1.0F);
+                        if (!screenOpen && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get()) {
+                            strongHintText = Component.translatable("e33chat.notif.mention").getString();
+                            strongHintTicks = STRONG_HINT_DURATION;
+                            strongHintIsMention = true;
+                        }
+                    }
                 }
                 return;
             }
         }
         if (!quoteContent.isEmpty()) {
-            pendingMetas.put(messageHash, new PendingMeta(senderUUID, quoteSender, quoteContent, mentionTargets));
+            pendingMetas.put(messageHash, new PendingMeta(senderUUID, quoteSender, quoteContent,
+                mentionTargets, LocalTime.now()));
         }
     }
 }

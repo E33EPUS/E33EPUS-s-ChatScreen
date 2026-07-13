@@ -14,6 +14,7 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.BooleanValue SYSTEM_CHAT_AS_BUBBLE;
     public static final ForgeConfigSpec.BooleanValue ANTI_SPAM;
     public static final ForgeConfigSpec.BooleanValue CHAT_REPORT_COMPAT;
+    public static final ForgeConfigSpec.BooleanValue CHAT_HISTORY_ENABLED;
     public static final ForgeConfigSpec.BooleanValue PREVIEW_ENABLED;
     public static final ForgeConfigSpec.IntValue PREVIEW_LINES;
     public static final ForgeConfigSpec.IntValue PREVIEW_WIDTH;
@@ -52,28 +53,32 @@ public class ChatBubbleConfig {
             .define("mention_strong_hint", true);
 
         SYSTEM_CHAT_AS_BUBBLE = builder
-            .comment("系统消息也渲染为聊天气泡（兼容禁用聊天举报的插件服）")
+            .comment("系统消息以气泡形式显示在聊天框中")
             .define("system_chat_as_bubble", false);
 
         ANTI_SPAM = builder
-            .comment("防刷屏——连续相同消息合并为一条，旁白显示重复次数")
-            .define("anti_spam", false);
+            .comment("防刷屏")
+            .define("anti_spam", true);
 
         CHAT_REPORT_COMPAT = builder
-            .comment("禁用聊天举报兼容模式——从系统消息中扫描在线玩家名并还原身份（支持服务器前缀/称号）")
+            .comment("禁用聊天举报后兼容 <玩家名> 消息格式")
             .define("chat_report_compat", false);
+
+        CHAT_HISTORY_ENABLED = builder
+            .comment("保留每个存档的聊天记录（退出后恢复）")
+            .define("chat_history", false);
 
         PREVIEW_ENABLED = builder
             .comment("在 HUD 图标上方显示最近消息预览")
             .define("preview_enabled", true);
 
         PREVIEW_LINES = builder
-            .comment("消息预览行数（1-3）")
-            .defineInRange("preview_lines", 2, 1, 3);
+            .comment("消息预览行数（1-8）")
+            .defineInRange("preview_lines", 3, 1, 8);
 
         PREVIEW_WIDTH = builder
             .comment("消息预览宽度（像素，50-400）")
-            .defineInRange("preview_width", 150, 50, 400);
+            .defineInRange("preview_width", 200, 50, 400);
 
         builder.pop();
         builder.push("bubble");

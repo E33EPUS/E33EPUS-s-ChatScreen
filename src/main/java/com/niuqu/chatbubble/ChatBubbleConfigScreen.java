@@ -23,6 +23,39 @@ public class ChatBubbleConfigScreen extends Screen {
 
     private int scrollOffset;
     private final List<AbstractWidget> scrollWidgets = new ArrayList<>();
+    private int previewStartIdx = -1;
+
+    private interface WidgetFactory {
+        AbstractWidget create(int y);
+    }
+
+    private record Entry(String labelKey, WidgetFactory factory, boolean isGap) {}
+
+    private List<Entry> entries;
+
+    private void buildEntries() {
+        if (entries != null) return;
+        entries = new ArrayList<>();
+        entries.add(new Entry("e33chat.config.enabled", y -> mkBoolButton(y, ChatBubbleConfig.ENABLED), false));
+        entries.add(new Entry("e33chat.config.red_dot", y -> mkBoolButton(y, ChatBubbleConfig.RED_DOT_ENABLED), false));
+        entries.add(new Entry("e33chat.config.hide_chat_icon", y -> mkBoolButton(y, ChatBubbleConfig.HIDE_CHAT_ICON), false));
+        entries.add(new Entry("e33chat.config.animation", y -> mkBoolButton(y, ChatBubbleConfig.ANIMATION_ENABLED), false));
+        entries.add(new Entry("e33chat.config.strong_hint", y -> mkBoolButton(y, ChatBubbleConfig.STRONG_HINT_ENABLED), false));
+        entries.add(new Entry("e33chat.config.mention_strong_hint", y -> mkBoolButton(y, ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED), false));
+        entries.add(new Entry("e33chat.config.anti_spam", y -> mkBoolButton(y, ChatBubbleConfig.ANTI_SPAM), false));
+        entries.add(new Entry("e33chat.config.chat_history", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_HISTORY_ENABLED), false));
+        entries.add(new Entry("e33chat.config.preview_enabled", y -> mkBoolButton(y, ChatBubbleConfig.PREVIEW_ENABLED), false));
+        entries.add(new Entry("e33chat.config.preview_lines", this::mkCycleButton, false));
+        entries.add(new Entry("e33chat.config.preview_width", y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set), false));
+        previewStartIdx = entries.size();
+        entries.add(new Entry("e33chat.config.own_bubble_color", y -> mkHexBox(y, ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), ChatBubbleConfig.OWN_BUBBLE_COLOR::set), false));
+        entries.add(new Entry("e33chat.config.other_bubble_color", y -> mkHexBox(y, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get(), ChatBubbleConfig.OTHER_BUBBLE_COLOR::set), false));
+        entries.add(new Entry("e33chat.config.own_text_color", y -> mkHexBox(y, ChatBubbleConfig.OWN_TEXT_COLOR.get(), ChatBubbleConfig.OWN_TEXT_COLOR::set), false));
+        entries.add(new Entry("e33chat.config.other_text_color", y -> mkHexBox(y, ChatBubbleConfig.OTHER_TEXT_COLOR.get(), ChatBubbleConfig.OTHER_TEXT_COLOR::set), false));
+        entries.add(new Entry(null, null, true)); // section gap
+        entries.add(new Entry("e33chat.config.system_chat_as_bubble", y -> mkBoolButton(y, ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE), false));
+        entries.add(new Entry("e33chat.config.chat_report_compat", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_REPORT_COMPAT), false));
+    }
 
     public ChatBubbleConfigScreen(Screen lastScreen) {
         super(Component.translatable("e33chat.config.title"));
@@ -31,52 +64,16 @@ public class ChatBubbleConfigScreen extends Screen {
 
     @Override
     protected void init() {
+        buildEntries();
         scrollWidgets.clear();
         scrollOffset = Mth.clamp(scrollOffset, 0, calcMaxScroll());
+
         int y = START_Y - scrollOffset;
-
-        scrollWidgets.add(addRenderableWidget(
-            mkBoolButton(y, ChatBubbleConfig.ENABLED))); y += ROW_H;
-        scrollWidgets.add(addRenderableWidget(
-            mkBoolButton(y, ChatBubbleConfig.RED_DOT_ENABLED))); y += ROW_H;
-        scrollWidgets.add(addRenderableWidget(
-            mkBoolButton(y, ChatBubbleConfig.HIDE_CHAT_ICON))); y += ROW_H;
-        scrollWidgets.add(addRenderableWidget(
-            mkBoolButton(y, ChatBubbleConfig.ANIMATION_ENABLED))); y += ROW_H;
-        scrollWidgets.add(addRenderableWidget(
-            mkBoolButton(y, ChatBubbleConfig.STRONG_HINT_ENABLED))); y += ROW_H;
-        scrollWidgets.add(addRenderableWidget(
-            mkBoolButton(y, ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED))); y += ROW_H;
-        scrollWidgets.add(addRenderableWidget(
-            mkBoolButton(y, ChatBubbleConfig.ANTI_SPAM))); y += ROW_H;
-        scrollWidgets.add(addRenderableWidget(
-            mkBoolButton(y, ChatBubbleConfig.PREVIEW_ENABLED))); y += ROW_H;
-
-        scrollWidgets.add(addRenderableWidget(
-            mkCycleButton(y))); y += ROW_H;
-
-        EditBox widthBox = mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set);
-        scrollWidgets.add(addRenderableWidget(widthBox)); y += ROW_H;
-
-        EditBox ownBubbleBox = mkHexBox(y, ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), ChatBubbleConfig.OWN_BUBBLE_COLOR::set);
-        scrollWidgets.add(addRenderableWidget(ownBubbleBox)); y += ROW_H;
-
-        EditBox otherBubbleBox = mkHexBox(y, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get(), ChatBubbleConfig.OTHER_BUBBLE_COLOR::set);
-        scrollWidgets.add(addRenderableWidget(otherBubbleBox)); y += ROW_H;
-
-        EditBox ownTextBox = mkHexBox(y, ChatBubbleConfig.OWN_TEXT_COLOR.get(), ChatBubbleConfig.OWN_TEXT_COLOR::set);
-        scrollWidgets.add(addRenderableWidget(ownTextBox)); y += ROW_H;
-
-        EditBox otherTextBox = mkHexBox(y, ChatBubbleConfig.OTHER_TEXT_COLOR.get(), ChatBubbleConfig.OTHER_TEXT_COLOR::set);
-        scrollWidgets.add(addRenderableWidget(otherTextBox)); y += ROW_H;
-
-        // Section gap before compatibility options
-        y += 12;
-
-        scrollWidgets.add(addRenderableWidget(
-            mkBoolButton(y, ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE))); y += ROW_H;
-        scrollWidgets.add(addRenderableWidget(
-            mkBoolButton(y, ChatBubbleConfig.CHAT_REPORT_COMPAT))); y += ROW_H;
+        for (Entry e : entries) {
+            if (e.isGap) { y += 12; continue; }
+            scrollWidgets.add(addRenderableWidget(e.factory.create(y)));
+            y += ROW_H;
+        }
 
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, btn -> onClose())
             .bounds(width / 2 - 100, height - 32, 200, 20).build());
@@ -99,7 +96,7 @@ public class ChatBubbleConfigScreen extends Screen {
             Component.literal(String.valueOf(ChatBubbleConfig.PREVIEW_LINES.get())),
             btn -> {
                 int v = ChatBubbleConfig.PREVIEW_LINES.get() + 1;
-                if (v > 3) v = 1;
+                if (v > 8) v = 1;
                 ChatBubbleConfig.PREVIEW_LINES.set(v);
                 btn.setMessage(Component.literal(String.valueOf(v)));
             }
@@ -142,39 +139,46 @@ public class ChatBubbleConfigScreen extends Screen {
         g.drawCenteredString(font, title, width / 2, 14, 0xFFFFFFFF);
 
         int y = START_Y + 6 - scrollOffset;
+
         // Section header: general
         int generalHeaderY = START_Y - scrollOffset - 20;
         Component generalHeader = Component.translatable("e33chat.config.section.general");
         if (generalHeaderY > -ROW_H && generalHeaderY < height)
             g.drawString(font, generalHeader, LABEL_X, generalHeaderY, 0xFFFFAA00, false);
 
-        String[] labels = {"e33chat.config.enabled", "e33chat.config.red_dot", "e33chat.config.hide_chat_icon", "e33chat.config.animation",
-            "e33chat.config.strong_hint", "e33chat.config.mention_strong_hint",
-            "e33chat.config.anti_spam",
-            "e33chat.config.preview_enabled", "e33chat.config.preview_lines", "e33chat.config.preview_width",
-            "e33chat.config.own_bubble_color", "e33chat.config.other_bubble_color", "e33chat.config.own_text_color", "e33chat.config.other_text_color",
-            "e33chat.config.system_chat_as_bubble",
-            "e33chat.config.chat_report_compat",
+        String[] previewColors = {
+            ChatBubbleConfig.OWN_BUBBLE_COLOR.get(),
+            ChatBubbleConfig.OTHER_BUBBLE_COLOR.get(),
+            ChatBubbleConfig.OWN_TEXT_COLOR.get(),
+            ChatBubbleConfig.OTHER_TEXT_COLOR.get()
         };
-        for (String label : labels) {
+        int previewIdx = 0;
+
+        boolean compatHeaderDrawn = false;
+        for (Entry e : entries) {
+            if (e.isGap) {
+                y += 12;
+                if (!compatHeaderDrawn) {
+                    int compatHeaderY = y - 20;
+                    Component compatHeader = Component.translatable("e33chat.config.section.compatibility");
+                    if (compatHeaderY > -ROW_H && compatHeaderY < height)
+                        g.drawString(font, compatHeader, LABEL_X, compatHeaderY, 0xFFFFAA00, false);
+                    compatHeaderDrawn = true;
+                }
+                continue;
+            }
             if (y > -ROW_H && y < height)
-                g.drawString(font, Component.translatable(label), LABEL_X, y, 0xFFAAAAAA, false);
+                g.drawString(font, Component.translatable(e.labelKey), LABEL_X, y, 0xFFFFFFFF, false);
             y += ROW_H;
-            // Extra gap after label 12 (other_text_color) before compatibility section
-            if (label.equals("e33chat.config.other_text_color")) y += 12;
         }
 
-        // Section header: compatibility
-        int compatHeaderY = START_Y + 14 * ROW_H + 12 - scrollOffset - 20;
-        Component compatHeader = Component.translatable("e33chat.config.section.compatibility");
-        if (compatHeaderY > -ROW_H && compatHeaderY < height)
-            g.drawString(font, compatHeader, LABEL_X, compatHeaderY, 0xFFFFAA00, false);
+        // Color previews
+        int py = START_Y + previewStartIdx * ROW_H + 4 - scrollOffset;
+        for (String hex : previewColors) {
+            drawPreview(g, py, hex);
+            py += ROW_H;
+        }
 
-        int py = START_Y + ROW_H * 10 + 4 - scrollOffset;
-        drawPreview(g, py, ChatBubbleConfig.OWN_BUBBLE_COLOR.get()); py += ROW_H;
-        drawPreview(g, py, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get()); py += ROW_H;
-        drawPreview(g, py, ChatBubbleConfig.OWN_TEXT_COLOR.get()); py += ROW_H;
-        drawPreview(g, py, ChatBubbleConfig.OTHER_TEXT_COLOR.get()); py += ROW_H;
         super.render(g, mouseX, mouseY, partialTick);
     }
 
@@ -189,9 +193,18 @@ public class ChatBubbleConfigScreen extends Screen {
         minecraft.setScreen(lastScreen);
     }
 
+    @Override
+    public void renderBackground(GuiGraphics g) {
+        g.fill(0, 0, width, height, 0xC0101010);
+    }
+
     private int calcMaxScroll() {
-        int contentBottom = START_Y + 16 * ROW_H + 12 + 10;
-        return Math.max(0, contentBottom - (height - 42));
+        int total = 0;
+        for (Entry e : entries) {
+            if (e.isGap) total += 12;
+            else total += ROW_H;
+        }
+        return Math.max(0, START_Y + total - (height - 42));
     }
 
     @Override
@@ -200,8 +213,16 @@ public class ChatBubbleConfigScreen extends Screen {
         if (maxScroll <= 0) return false;
         scrollOffset -= (int) (delta * 20);
         scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
-        for (int i = 0; i < scrollWidgets.size(); i++)
-            scrollWidgets.get(i).setY(START_Y + i * ROW_H - scrollOffset + (i >= 14 ? 12 : 0));
+
+        int y = START_Y - scrollOffset;
+        int wi = 0;
+        for (Entry e : entries) {
+            if (e.isGap) { y += 12; continue; }
+            if (wi < scrollWidgets.size())
+                scrollWidgets.get(wi).setY(y);
+            wi++;
+            y += ROW_H;
+        }
         return true;
     }
 }

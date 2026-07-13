@@ -21,18 +21,11 @@ public class ChatBubbleHudOverlay {
     public static void render(GuiGraphics g) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options == null) return;
-        if (mc.screen != null) return;
-
-        String keyName = mc.options.keyChat.getTranslatedKeyMessage().getString();
-        int screenH = mc.getWindow().getGuiScaledHeight();
-        int x = 3;
-        int iconY = screenH - ICON_S - 20;
-        int textY = iconY + ICON_S + 1;
 
         g.pose().pushPose();
         g.pose().translate(0, 0, 300);
 
-        // Strong hint above hotbar
+        // Strong hint above hotbar — render even when a screen is open
         if (ChatBubbleConfig.STRONG_HINT_ENABLED.get()) {
             String hint = ChatMessageStore.getStrongHintText();
             if (hint != null) {
@@ -40,7 +33,7 @@ public class ChatBubbleHudOverlay {
                 int screenW = mc.getWindow().getGuiScaledWidth();
                 int hintW = mc.font.width(hint);
                 int hintX = (screenW - hintW) / 2;
-                int hintY = screenH - 22 - 30 - mc.font.lineHeight;
+                int hintY = mc.getWindow().getGuiScaledHeight() - 22 - 30 - mc.font.lineHeight;
                 int alpha;
                 if (ticks > 50)
                     alpha = (ChatMessageStore.STRONG_HINT_DURATION - ticks) * 0xFF / 10;
@@ -57,6 +50,14 @@ public class ChatBubbleHudOverlay {
                 g.drawString(mc.font, hint, hintX, hintY, textColor, false);
             }
         }
+
+        if (mc.screen != null) { g.pose().popPose(); return; }
+
+        String keyName = mc.options.keyChat.getTranslatedKeyMessage().getString();
+        int screenH = mc.getWindow().getGuiScaledHeight();
+        int x = 3;
+        int iconY = screenH - ICON_S - 20;
+        int textY = iconY + ICON_S + 1;
 
         // Message preview above icon (multi-line)
         if (ChatBubbleConfig.PREVIEW_ENABLED.get()) {

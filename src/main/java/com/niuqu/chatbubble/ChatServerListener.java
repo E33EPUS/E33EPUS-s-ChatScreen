@@ -22,11 +22,10 @@ public class ChatServerListener {
     public void onServerChat(ServerChatEvent event) {
         ServerPlayer player = event.getPlayer();
         String rawText = event.getRawText();
-        String messageHash = String.valueOf(rawText.hashCode());
-
         List<String> mentions = extractMentions(rawText, player.getServer().getPlayerList().getPlayerCount());
 
         QuotePending quote = pendingQuotes.remove(player.getUUID());
+        String messageHash = quote != null ? quote.messageHash() : String.valueOf(rawText.hashCode());
         String quoteSender = quote != null ? quote.quotedSenderName() : "";
         String quoteContent = quote != null ? quote.quotedContent() : "";
 

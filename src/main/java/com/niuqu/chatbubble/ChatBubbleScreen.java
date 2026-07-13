@@ -33,14 +33,15 @@ public class ChatBubbleScreen extends Screen {
     private int titleY, msgTop, msgBottom, barTop;
     private static final int PAD = 10;
     private static final int AVATAR = 20;
-    private static final int BUBBLE_PAD_X = 8;
-    private static final int BUBBLE_PAD_Y = 5;
+    private static final int BUBBLE_PAD_X = 6;
+    private static final int BUBBLE_PAD_Y = 4;
     private static final int GAP = 6;
     private static final int NAME_H = 10;
     private static final int TIME_SEP_H = 14;
-    private static final int BAR_H = 38;
+    private static final int BAR_H = 26;
 
-    private static final int ICON_S = 16;
+    private static final int INPUT_H = 14;
+    private static final int ICON_S = 14;
     private static final ResourceLocation TEX_GEAR = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/settings");
     private static final ResourceLocation TEX_SEND = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/send");
     private static boolean iconsLoaded;
@@ -52,15 +53,17 @@ public class ChatBubbleScreen extends Screen {
     private static final int COLOR_BAR_BG = 0xFF242424;
     private static final int COLOR_DIVIDER = 0xFF333333;
     private static final int COLOR_INPUT_BG = 0xFF2A2A2A;
+
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private EditBox input;
     private CommandSuggestions commandSuggestions;
-    private static int inputY;
+    private static int inputX, inputY;
     private final String initialText;
     private int scrollOffset;
     private int maxScroll;
     private boolean scrollToBottom = true;
+    private static String savedInput = "";
     private String historyBuffer = "";
     private int historyPos = -1;
     private String worldName;
@@ -112,21 +115,21 @@ public class ChatBubbleScreen extends Screen {
 
         panelW = Math.max(200, (int) (width * 0.4));
         panelX = 0;
-        titleY = 4;
+        titleY = 0;
         msgTop = titleY + TITLE_H + 1;
         barTop = height - BAR_H;
         msgBottom = barTop - 1;
 
         // Input box between gear (left) and send (right) icons
-        int ibY = barTop + (BAR_H - 20) / 2;
+        int ibY = barTop + (BAR_H - INPUT_H) / 2;
         inputY = ibY;
-        int inputX = panelX + PAD + ICON_S + 8;
+        inputX = panelX + PAD + ICON_S + 8;
         int inputW = panelX + panelW - PAD - ICON_S - 8 - inputX;
 
-        input = new EditBox(font, inputX, ibY, inputW, 20, Component.literal(""));
+        input = new EditBox(font, inputX, ibY, inputW, INPUT_H, Component.literal(""));
         input.setMaxLength(256);
         input.setBordered(false);
-        input.setValue(initialText);
+        input.setValue(initialText.isEmpty() && !savedInput.isEmpty() ? savedInput : initialText);
         input.setCanLoseFocus(false);
         input.setResponder(this::onEdited);
         addRenderableWidget(input);
@@ -142,10 +145,11 @@ public class ChatBubbleScreen extends Screen {
 
         worldName = getWorldName();
 
-        int editW = Math.min(180, panelW - 80);
+        String title = getDisplayTitle();
+        int editW = Math.max(60, Math.min(180, font.width(title) + 16));
         int editX = panelX + (panelW - editW) / 2;
-        int editY = titleY + (TITLE_H - 20) / 2;
-        titleEditor = new EditBox(font, editX, editY, editW, 20, Component.literal(""));
+        int editY = titleY + (TITLE_H - INPUT_H) / 2;
+        titleEditor = new EditBox(font, editX, editY, editW, INPUT_H, Component.literal(""));
         titleEditor.setMaxLength(32);
         titleEditor.setBordered(false);
         titleEditor.setVisible(false);
@@ -181,9 +185,9 @@ public class ChatBubbleScreen extends Screen {
     private float getAnimProgress() {
         if (!ChatBubbleConfig.ANIMATION_ENABLED.get()) return 1.0f;
         long elapsed = net.minecraft.Util.getMillis() - animStart;
-        float p = (float) elapsed / ANIM_MS;
-        if (closing) p = 1.0f - p;
-        return Mth.clamp(p, 0f, 1f);
+        float t = Mth.clamp((float) elapsed / ANIM_MS, 0f, 1f);
+        if (closing) t = 1.0f - t;
+        return 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
     }
 
     @Override
@@ -312,10 +316,6 @@ public class ChatBubbleScreen extends Screen {
                     return true;
                 }
                 handleComponentClicked(style);
-                if (click.getAction() != net.minecraft.network.chat.ClickEvent.Action.COPY_TO_CLIPBOARD
-                    && click.getAction() != net.minecraft.network.chat.ClickEvent.Action.OPEN_URL) {
-                    minecraft.setScreen(null);
-                }
                 return true;
             }
         }
@@ -442,7 +442,7 @@ public class ChatBubbleScreen extends Screen {
         int titleW = font.width(title);
         int titleX = panelX + (panelW - titleW) / 2;
         int penX = titleX + titleW + 3;
-        int penY = titleY + (TITLE_H - 9) / 2;
+        int penY = titleY + (TITLE_H - font.lineHeight) / 2;
         return mx >= penX && mx <= penX + 9 && my >= penY && my <= penY + 9;
     }
 
@@ -596,7 +596,7 @@ public class ChatBubbleScreen extends Screen {
 
         int textW = 0;
         for (var line : lines) textW = Math.max(textW, font.width(line));
-        int bubbleW = Math.max(textW + BUBBLE_PAD_X * 2, 36);
+        int bubbleW = textW + BUBBLE_PAD_X * 2;
         int bubbleH = lines.size() * font.lineHeight + BUBBLE_PAD_Y * 2;
 
         int avatarX, bubbleX;
@@ -618,15 +618,12 @@ public class ChatBubbleScreen extends Screen {
             String replyText = msg.replySender() + ": " + msg.replyContent();
             String replyDisplay = font.plainSubstrByWidth(replyText, replyMaxW - font.width("..."));
             if (!replyDisplay.equals(replyText)) replyDisplay += "...";
-            int accentColor = own
-                ? ChatBubbleConfig.parseHexColor(ChatBubbleConfig.OWN_TEXT_COLOR.get(), 0xFF0A0A0A)
-                : ChatBubbleConfig.parseHexColor(ChatBubbleConfig.OTHER_TEXT_COLOR.get(), 0xFFFFFFFF);
-            g.fill(replyBarX, nameY, replyBarX + 2, nameY + replyH, accentColor);
+            g.fill(replyBarX, nameY, replyBarX + 2, nameY + replyH, 0xFFFFFFFF);
             g.drawString(font, Component.literal(replyDisplay), replyBarX + 6, nameY + 1, 0xFF999999, false);
             nameY += replyH + 2;
         }
 
-        if (!msg.senderName().getString().isEmpty()) {
+        if (!msg.senderName().getString().isEmpty() && msg.replyContent() == null) {
             int maxNameW = panelW - AVATAR - PAD * 2 - 20;
             Component displayName = msg.senderName();
             if (font.width(displayName) > maxNameW)
@@ -636,8 +633,8 @@ public class ChatBubbleScreen extends Screen {
             g.drawString(font, displayName, startX, nameY, COLOR_NAME, false);
         }
 
-        int bubbleY = baseY + NAME_H;
-        int avatarY = bubbleY - 6;
+        int bubbleY = baseY + (msg.replyContent() != null ? font.lineHeight + 2 : NAME_H);
+        int avatarY = baseY;
 
         int bg = own
             ? ChatBubbleConfig.parseHexColor(ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), 0xFF95EC69)
@@ -835,9 +832,9 @@ public class ChatBubbleScreen extends Screen {
         int gearX = panelX + PAD;
         int sendX = panelX + panelW - PAD - ICON_S;
         int ibX = gearX + ICON_S + 6;
-        int ibY = barTop + (BAR_H - 20) / 2;
+        int ibY = barTop + (BAR_H - INPUT_H) / 2;
         int ibW = sendX - 6 - ibX;
-        int ibH = 20;
+        int ibH = INPUT_H;
         g.fill(ibX, ibY - 1, ibX + ibW, ibY, COLOR_DIVIDER);
         g.fill(ibX, ibY, ibX + ibW, ibY + ibH, COLOR_INPUT_BG);
 
@@ -939,6 +936,7 @@ public class ChatBubbleScreen extends Screen {
         ChatMessageStore.incrementPendingEcho(text);
 
         input.setValue("");
+        savedInput = "";
         scrollToBottom = true;
     }
 
@@ -965,6 +963,7 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public void onClose() {
+        savedInput = input.getValue();
         if (!ChatBubbleConfig.ANIMATION_ENABLED.get()) {
             minecraft.setScreen(null);
             return;
@@ -974,6 +973,7 @@ public class ChatBubbleScreen extends Screen {
         animStart = net.minecraft.Util.getMillis();
     }
 
+    public static int getInputX() { return inputX; }
     public static int getInputY() { return inputY; }
 
     @Override

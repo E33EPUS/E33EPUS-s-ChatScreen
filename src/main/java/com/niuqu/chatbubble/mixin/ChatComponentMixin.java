@@ -17,6 +17,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = ChatComponent.class, priority = 500)
 public class ChatComponentMixin {
 
+    private String lastText;
+    private long lastTime;
+
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void onRender(GuiGraphics guiGraphics, int tickCount, int mouseX,
                           int mouseY, CallbackInfo ci) {
@@ -41,9 +44,16 @@ public class ChatComponentMixin {
     private void captureMessage(Component finalComponent) {
         if (!ChatBubbleConfig.ENABLED.get()) return;
 
+        // 3-arg addMessage calls 1-arg internally — skip the duplicate
+        String text = finalComponent.getString();
+        long now = System.currentTimeMillis();
+        if (text.equals(lastText) && now - lastTime < 100) return;
+        lastText = text;
+        lastTime = now;
+
         SenderMeta meta = ChatMessageStore.consumePendingMeta();
         if (meta == null) {
-            if (ChatMessageStore.isRecentDuplicate(finalComponent.getString())) return;
+            if (ChatMessageStore.isRecentDuplicate(text)) return;
             meta = new SenderMeta(
                 new UUID(0, 0),
                 Component.translatable("e33chat.sender.system"),
