@@ -1,35 +1,30 @@
 # E33EPUS's ChatScreen
 
-A simple mod that replaces the vanilla chat HUD.
+Replace the vanilla chat with chat bubbles.
 
-**Client** required, **server** optional.
+Client only. Server optional.
 
-## Features
+## What it does
 
-**Chat**
-- Chat bubbles with player heads, QQ/WeChat style
-- Click player head to @mention
-- Right-click menu: copy message, quote reply
-- Anti-spam: consecutive identical messages merged into xN
-
-**Notifications**
-- Strong hints above hotbar for @mentions / quotes / system messages
-- Message preview fading above hotbar
-- Red dot on HUD icon for unread messages
-- Notification sound (chime) when @mentioned or quoted
-
-**Quality of Life**
+- Shows chat as bubbles with player heads, like QQ/WeChat
+- Click a head to @ someone
+- Right-click a message to copy or quote reply
+- Plays a chime when someone @mentions or quotes you
+- Pops a hint above the hotbar for @mentions and system messages
+- Message preview fades in above the hotbar
+- Red dot on the chat icon when you have unread messages
 - Command suggestions while typing
-- Chat history persistence per world (enable in config)
-- Input text preserved when closing/reopening chat
-- Unread notification bar when scrolled up
-- Ease-out open/close animation
+- Saves chat history per world so you don't lose it after quitting (enable `chat_history` in config)
+- Remembers what you typed if you close chat without sending
+- Anti-spam: repeated messages get merged into "x2", "x3", etc.
+- Arrow keys and mouse wheel to scroll through history
+- Click the pencil icon to rename the title bar per world
 
-**Customization**
-- Configurable (`config/e33chat-client.toml`): bubble colors, text colors, preview lines/width, animations, strong hints, and more
-- Per-world custom title bar (click ✎ to rename)
+## Config
 
-**If your server uses a "No Chat Reports" type plugin, enable "No Chat Reports" Compat config (0.2.4-beta+)**
+Everything in `config/e33chat-client.toml` — bubble colors, text colors, preview size, animations, hints, and more.
+
+**If your server uses "No Chat Reports", turn on the compat option in config (0.2.4-beta+)**
 
 ## License
 
@@ -39,36 +34,31 @@ MIT
 
 # E33EPUS的聊天界面
 
-一个重置了原版聊天框的简易mod。
+用聊天气泡替换原版聊天栏。
 
-**客户端**需装，**服务端**可选。
+只需客户端装，服务端可选。
 
 ## 功能
 
-**聊天**
-- 聊天气泡，带玩家头像，QQ/微信风格
-- 点击头像 @提及
-- 右键菜单：复制消息、引用回复
-- 防刷屏：连续相同消息合并为 xN
+- 气泡聊天，带头像，像 QQ/微信那样
+- 点人头像 @他
+- 右键消息：复制或引用回复
+- 被 @或引用时有风铃声提示
+- 被 @或系统消息在快捷栏上方弹出提示
+- 消息预览在快捷栏上方淡入淡出
+- 有未读消息时聊天图标显示红点
+- 输入指令时自动补全
+- 聊天记录按存档保存，退游戏不丢（在配置里开 `chat_history`）
+- 输入内容没发送就关掉，下次打开还在
+- 防刷屏：连续发相同消息自动合并成 x2、x3
+- 方向键和滚轮翻聊天历史
+- 点 ✎ 给每个世界改标题栏名字
 
-**通知**
-- 被 @/引用/系统消息时快捷栏上方弹出强提示
-- 快捷栏上方消息预览淡入淡出
-- HUD 图标红点未读提示
-- 被 @/引用时播放风铃提示音
+## 配置
 
-**体验**
-- 输入时指令补全
-- 聊天记录按存档持久化（配置开启）
-- 关闭聊天框后保留已输入文本
-- 向上滚动时未读提示条
-- 开关动画 ease-out 缓出
+`config/e33chat-client.toml` 里什么都能改——气泡颜色、文字颜色、预览大小、动画、提示等等。
 
-**自定义**
-- 可配置（`config/e33chat-client.toml`）：气泡色、文字色、预览行数/宽度、动画、强提示等
-- 每个世界独立标题栏（点 ✎ 改名）
-
-**如果你的游戏或服务器安装了禁用聊天举报类的插件，在配置中开启 "禁用聊天举报"模组兼容 选项（0.2.4-beta+）**
+**如果你的服务器装了"禁用聊天举报"插件，在配置里打开兼容选项（0.2.4-beta+）**
 
 ## 许可
 
