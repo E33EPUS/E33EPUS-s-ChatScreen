@@ -2,13 +2,23 @@ package com.niuqu.chatbubble;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerSleepInBedEvent;
+import net.minecraftforge.event.entity.player.PlayerWakeUpEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import org.lwjgl.glfw.GLFW;
 
 public class ChatBubbleClientListener {
+
+    private static boolean manualChatOpen;
+    private static Screen screenBeforeSleep;
+
+    public static void setManualChatOpen(boolean v) { manualChatOpen = v; }
+    public static boolean isManualChatOpen() { return manualChatOpen; }
 
     @SubscribeEvent
     public void onScreenOpen(ScreenEvent.Opening event) {
@@ -18,6 +28,7 @@ public class ChatBubbleClientListener {
             String initial = getChatInitialText(chatScreen);
             Minecraft.getInstance().setScreen(new ChatBubbleScreen(initial));
         }
+        manualChatOpen = false;
     }
 
     private static String getChatInitialText(ChatScreen chatScreen) {
@@ -25,22 +36,51 @@ public class ChatBubbleClientListener {
             var f = ChatScreen.class.getDeclaredField("initial");
             f.setAccessible(true);
             String val = (String) f.get(chatScreen);
-            System.out.println("[e33chat] initial='" + val + "'");
             return val != null ? val : "";
         } catch (Exception e) {
-            System.out.println("[e33chat] 'initial' field not found, scanning: " + e);
+            // ignore
         }
         for (var f : ChatScreen.class.getDeclaredFields()) {
             if (f.getType() == String.class) {
                 f.setAccessible(true);
                 try {
                     String val = (String) f.get(chatScreen);
-                    System.out.println("[e33chat] String field '" + f.getName() + "' = '" + val + "'");
                     if (val != null && !val.isEmpty()) return val;
                 } catch (Exception ignored) {}
             }
         }
         return "";
+    }
+
+    @SubscribeEvent
+    public void onKeyPress(InputEvent.Key event) {
+        if (!ChatBubbleConfig.ENABLED.get()) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.options == null) return;
+        if (event.getAction() == GLFW.GLFW_PRESS) {
+            int chatKey = mc.options.keyChat.getKey().getValue();
+            if (event.getKey() == chatKey) {
+                manualChatOpen = true;
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onSleepStart(PlayerSleepInBedEvent event) {
+        screenBeforeSleep = Minecraft.getInstance().screen;
+    }
+
+    @SubscribeEvent
+    public void onWakeUp(PlayerWakeUpEvent event) {
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> {
+            if (screenBeforeSleep == null) {
+                if (mc.screen instanceof ChatBubbleScreen) {
+                    mc.setScreen(null);
+                }
+            }
+            screenBeforeSleep = null;
+        });
     }
 
     @SubscribeEvent
@@ -78,6 +118,7 @@ public class ChatBubbleClientListener {
         double my = mc.mouseHandler.ypos() * (double) mc.getWindow().getGuiScaledHeight() / (double) mc.getWindow().getScreenHeight();
         if (ChatBubbleHudOverlay.isMouseOverIcon(mx, my)) {
             event.setCanceled(true);
+            manualChatOpen = true;
             mc.setScreen(new ChatBubbleScreen(""));
         }
     }

@@ -46,6 +46,7 @@ public class ChatBubbleConfigScreen extends Screen {
         entries.add(new Entry("e33chat.config.chat_history", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_HISTORY_ENABLED), false));
         entries.add(new Entry("e33chat.config.preview_enabled", y -> mkBoolButton(y, ChatBubbleConfig.PREVIEW_ENABLED), false));
         entries.add(new Entry("e33chat.config.preview_lines", this::mkCycleButton, false));
+        entries.add(new Entry("e33chat.config.time_separator", this::mkTimeSepButton, false));
         entries.add(new Entry("e33chat.config.preview_width", y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set), false));
         previewStartIdx = entries.size();
         entries.add(new Entry("e33chat.config.own_bubble_color", y -> mkHexBox(y, ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), ChatBubbleConfig.OWN_BUBBLE_COLOR::set), false));
@@ -101,6 +102,27 @@ public class ChatBubbleConfigScreen extends Screen {
                 btn.setMessage(Component.literal(String.valueOf(v)));
             }
         ).bounds(INPUT_X, y, INPUT_W, 20).build();
+    }
+
+    private static final int[] TIME_SEP_PRESETS = {1, 5, 10, 15, 30, 0};
+
+    private Button mkTimeSepButton(int y) {
+        int cur = ChatBubbleConfig.TIME_SEPARATOR_MINUTES.get();
+        String label = cur == 0 ? Component.translatable("e33chat.config.time_separator.disable").getString()
+            : cur + " " + Component.translatable("e33chat.config.time_separator.minute").getString();
+        return Button.builder(Component.literal(label), btn -> {
+            int idx = -1;
+            for (int i = 0; i < TIME_SEP_PRESETS.length; i++) {
+                if (TIME_SEP_PRESETS[i] == ChatBubbleConfig.TIME_SEPARATOR_MINUTES.get()) {
+                    idx = i; break;
+                }
+            }
+            int next = TIME_SEP_PRESETS[(idx + 1) % TIME_SEP_PRESETS.length];
+            ChatBubbleConfig.TIME_SEPARATOR_MINUTES.set(next);
+            String nl = next == 0 ? Component.translatable("e33chat.config.time_separator.disable").getString()
+                : next + " " + Component.translatable("e33chat.config.time_separator.minute").getString();
+            btn.setMessage(Component.literal(nl));
+        }).bounds(INPUT_X, y, INPUT_W, 20).build();
     }
 
     private EditBox mkHexBox(int y, String initial, java.util.function.Consumer<String> onChange) {
