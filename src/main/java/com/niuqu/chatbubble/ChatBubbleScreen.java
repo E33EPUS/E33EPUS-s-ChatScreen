@@ -1392,6 +1392,7 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public void removed() {
+        savedInput = input.getValue();
         ChatMessageStore.setScreenOpen(false);
         minecraft.gui.getChat().resetChatScroll();
     }
