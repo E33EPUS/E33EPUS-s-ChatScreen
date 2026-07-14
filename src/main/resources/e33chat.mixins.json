@@ -9,7 +9,8 @@
   "client": [
     "ChatComponentMixin",
     "ChatListenerMixin",
-    "CommandSuggestionsMixin"
+    "CommandSuggestionsMixin",
+    "MinecraftSleepMixin"
   ],
   "injectors": {
     "defaultRequire": 1

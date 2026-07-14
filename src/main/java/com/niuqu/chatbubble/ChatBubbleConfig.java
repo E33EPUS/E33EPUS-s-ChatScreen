@@ -18,6 +18,7 @@ public class ChatBubbleConfig {
     public static final ModConfigSpec.BooleanValue PREVIEW_ENABLED;
     public static final ModConfigSpec.IntValue PREVIEW_LINES;
     public static final ModConfigSpec.IntValue PREVIEW_WIDTH;
+    public static final ModConfigSpec.IntValue TIME_SEPARATOR_MINUTES;
     public static final ModConfigSpec.ConfigValue<String> OWN_BUBBLE_COLOR;
     public static final ModConfigSpec.ConfigValue<String> OTHER_BUBBLE_COLOR;
     public static final ModConfigSpec.ConfigValue<String> OWN_TEXT_COLOR;
@@ -81,6 +82,10 @@ public class ChatBubbleConfig {
         PREVIEW_WIDTH = builder
             .comment("消息预览宽度（像素，50-400）")
             .defineInRange("preview_width", 200, 50, 400);
+
+        TIME_SEPARATOR_MINUTES = builder
+            .comment("时间分隔符间隔（分钟，0=关闭，1-60）。默认5分钟")
+            .defineInRange("time_separator_minutes", 5, 0, 60);
 
         builder.pop();
         builder.push("bubble");

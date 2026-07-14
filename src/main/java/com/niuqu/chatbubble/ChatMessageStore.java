@@ -58,7 +58,7 @@ public class ChatMessageStore {
     public static boolean consumeEchoBySystemChat(String incomingText) {
         if (pendingEchoCount <= 0) return false;
         for (int i = 0; i < pendingEchoTexts.size(); i++) {
-            if (incomingText.contains(pendingEchoTexts.get(i))) {
+            if (incomingText.equals(pendingEchoTexts.get(i))) {
                 pendingEchoTexts.remove(i);
                 pendingEchoCount--;
                 return true;
@@ -71,7 +71,7 @@ public class ChatMessageStore {
         if (pendingEchoCount <= 0) return false;
         var player = net.minecraft.client.Minecraft.getInstance().player;
         if (player == null) return false;
-        if (senderName.equals(player.getName().getString())) {
+        if (senderName.contains(player.getName().getString())) {
             pendingEchoCount--;
             if (!pendingEchoTexts.isEmpty()) pendingEchoTexts.remove(0);
             return true;
@@ -94,12 +94,7 @@ public class ChatMessageStore {
     public static boolean isRecentDuplicate(String content) {
         int size = messages.size();
         for (int i = size - 1; i >= 0 && i >= size - 2; i--) {
-            String existing = messages.get(i).content().getString();
-            if (existing.equals(content)) return true;
-            if (existing.contains(content) || content.contains(existing)) {
-                if (content.contains("<") && content.contains(">")) return true;
-                if (existing.contains("<") && existing.contains(">")) return true;
-            }
+            if (messages.get(i).content().getString().equals(content)) return true;
         }
         return false;
     }
@@ -326,26 +321,35 @@ public class ChatMessageStore {
         saveWorldTitles();
     }
 
+    private static boolean isWorldSpecific(String key) {
+        return key != null && (key.startsWith("SP:") || key.startsWith("MP:"));
+    }
+
     public static void setCurrentWorld(String name) {
         if (java.util.Objects.equals(name, currentWorldKey)) return;
         boolean wasFallback = "world".equals(currentWorldKey);
         boolean isSpecific = name != null && (name.startsWith("SP:") || name.startsWith("MP:"));
         boolean isRefinement = wasFallback && isSpecific;
         boolean hasPendingMessages = currentWorldKey == null && isSpecific && !messages.isEmpty();
-        if (ChatBubbleConfig.CHAT_HISTORY_ENABLED.get() && currentWorldKey != null)
+        if (ChatBubbleConfig.CHAT_HISTORY_ENABLED.get() && isWorldSpecific(currentWorldKey))
             saveMessages(currentWorldKey);
         currentWorldKey = name;
-        if (isRefinement || hasPendingMessages) return;
+        if (isRefinement || hasPendingMessages) {
+            if (ChatBubbleConfig.CHAT_HISTORY_ENABLED.get() && isWorldSpecific(currentWorldKey))
+                loadMessages(currentWorldKey);
+            return;
+        }
         messages.clear();
         unreadCount = 0;
         previews.clear();
-        if (ChatBubbleConfig.CHAT_HISTORY_ENABLED.get() && currentWorldKey != null)
+        if (ChatBubbleConfig.CHAT_HISTORY_ENABLED.get() && isWorldSpecific(currentWorldKey))
             loadMessages(currentWorldKey);
     }
 
     private static File getHistoryFile(String worldKey) {
         String safe = worldKey.replaceAll("[^a-zA-Z0-9_.\\-]", "_");
-        return new File(Minecraft.getInstance().gameDirectory, "e33chat/history/" + safe + ".json");
+        String hash = Integer.toHexString(worldKey.hashCode());
+        return new File(Minecraft.getInstance().gameDirectory, "e33chat/history/" + safe + "_" + hash + ".json");
     }
 
     private static void saveMessages(String worldKey) {

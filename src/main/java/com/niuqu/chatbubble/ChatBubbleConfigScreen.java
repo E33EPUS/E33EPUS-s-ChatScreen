@@ -47,6 +47,7 @@ public class ChatBubbleConfigScreen extends Screen {
         entries.add(new Entry("e33chat.config.preview_enabled", y -> mkBoolButton(y, ChatBubbleConfig.PREVIEW_ENABLED), false));
         entries.add(new Entry("e33chat.config.preview_lines", this::mkCycleButton, false));
         entries.add(new Entry("e33chat.config.preview_width", y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set), false));
+        entries.add(new Entry("e33chat.config.time_separator", this::mkTimeSepButton, false));
         previewStartIdx = entries.size();
         entries.add(new Entry("e33chat.config.own_bubble_color", y -> mkHexBox(y, ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), ChatBubbleConfig.OWN_BUBBLE_COLOR::set), false));
         entries.add(new Entry("e33chat.config.other_bubble_color", y -> mkHexBox(y, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get(), ChatBubbleConfig.OTHER_BUBBLE_COLOR::set), false));
@@ -100,6 +101,31 @@ public class ChatBubbleConfigScreen extends Screen {
                 if (v > 8) v = 1;
                 ChatBubbleConfig.PREVIEW_LINES.set(v);
                 btn.setMessage(Component.literal(String.valueOf(v)));
+            }
+        ).bounds(INPUT_X, y, INPUT_W, 20).build();
+    }
+
+    private static final int[] TIME_SEP_VALUES = {1, 5, 10, 15, 30, 0};
+
+    private Button mkTimeSepButton(int y) {
+        int v = ChatBubbleConfig.TIME_SEPARATOR_MINUTES.get();
+        String label = v == 0
+            ? Component.translatable("e33chat.config.time_separator.disable").getString()
+            : v + Component.translatable("e33chat.config.time_separator.minute").getString();
+        return Button.builder(
+            Component.literal(label),
+            btn -> {
+                int cur = ChatBubbleConfig.TIME_SEPARATOR_MINUTES.get();
+                int idx = 0;
+                for (int i = 0; i < TIME_SEP_VALUES.length; i++) {
+                    if (TIME_SEP_VALUES[i] == cur) { idx = (i + 1) % TIME_SEP_VALUES.length; break; }
+                }
+                int nv = TIME_SEP_VALUES[idx];
+                ChatBubbleConfig.TIME_SEPARATOR_MINUTES.set(nv);
+                String nl = nv == 0
+                    ? Component.translatable("e33chat.config.time_separator.disable").getString()
+                    : nv + Component.translatable("e33chat.config.time_separator.minute").getString();
+                btn.setMessage(Component.literal(nl));
             }
         ).bounds(INPUT_X, y, INPUT_W, 20).build();
     }

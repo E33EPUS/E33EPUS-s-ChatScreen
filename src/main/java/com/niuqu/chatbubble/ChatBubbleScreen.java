@@ -45,6 +45,7 @@ public class ChatBubbleScreen extends Screen {
     private static final int ICON_S = 14;
     private static final ResourceLocation TEX_GEAR = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/settings");
     private static final ResourceLocation TEX_SEND = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/send");
+    private static final ResourceLocation TEX_EMOJI = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/emoji");
     private static boolean iconsLoaded;
 
     private static final int COLOR_NAME = 0xFFCCCCCC;
@@ -52,10 +53,20 @@ public class ChatBubbleScreen extends Screen {
     private static final int COLOR_PANEL_BG = 0xEE1E1E1E;
     private static final int COLOR_TITLE_BG = 0xFF242424;
     private static final int COLOR_BAR_BG = 0xFF242424;
+    private static final int COLOR_POPUP_BG = 0xB31E1E1E;
+    private static final int COLOR_POPUP_HOVER = 0xB3444444;
     private static final int COLOR_DIVIDER = 0xFF333333;
     private static final int COLOR_INPUT_BG = 0xFF2A2A2A;
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+
+    private static String timeKey(LocalTime t) {
+        int interval = ChatBubbleConfig.TIME_SEPARATOR_MINUTES.get();
+        if (interval <= 0) return "";
+        if (interval == 1) return t.format(TIME_FMT);
+        int m = (t.getMinute() / interval) * interval;
+        return String.format("%02d:%02d", t.getHour(), m);
+    }
 
     private EditBox input;
     private CommandSuggestions commandSuggestions;
@@ -70,6 +81,45 @@ public class ChatBubbleScreen extends Screen {
     private String worldName;
     private boolean editingTitle;
     private EditBox titleEditor;
+
+    // Emoji panel
+    private boolean showEmojiPanel;
+    private int emojiScroll;
+    private int emojiTab;
+    private static final int EMOJI_PANEL_H = 132;
+    private static final int EMOJI_TAB_H = 18;
+    private static final int EMOJI_COLS = 9;
+    private static final int EMOJI_SLOT = 18;
+    private static final int KAO_ITEM_H = 13;
+
+    private static final String[] EMOJI_EMOTES = {
+        "😀","😃","😄","😁","😆","😅","🤣","😂",
+        "🙂","😉","😊","😇","🥰","😍","🤩","😘",
+        "😋","😛","😜","🤪","😎","🤗","🤔","😐",
+        "😢","😭","😤","😡","🥺","😴","😷","🤒",
+        "🐱","🐶","🐼","🐨","🐰","🦊","🐸","🐵",
+        "🐭","🐹","🐮","🦁","🐯","🐻","🐧","🐤",
+        "🐴","🦄","🐝","🐞","🦋","🐙","🦀","🐠",
+        "❤️","🧡","💛","💚","💙","💜","🖤","💔",
+        "💕","💖","💗","💘","💝","💟","❣️","💌",
+        "👍","👎","👏","🙌","💪","🤝","👋","✌️",
+        "🎮","🎯","🎨","🎵","🎶","🎤","🎧","🎼",
+        "⭐","🌟","🔥","💧","🌈","❄️","🎉","🎊",
+        "🍕","🍔","🌮","🍩","🍪","🎂","☕","🍺",
+        "⬆️","⬇️","✅","❌","❓","❗","💤","💡",
+        "💀","🗿","🤡","👀","💯","💢","💬","💭",
+    };
+
+    private static final String[] KAOMOJI = {
+        "(｡•̀ᴗ-)✧","(๑˃̵ᴗ˂̵)و","(๑•̀ㅂ•́)و✧","(◍•ᴗ•◍)",
+        "╰(*°▽°*)╯","(≧∇≦)ﾉ","(＾▽＾)","✧٩(ˊωˋ*)و✧",
+        "ฅ^•ﻌ•^ฅ","(•ω•)","(￣▽￣*)","(⌒▽⌒)☆",
+        "(o゜▽゜)o☆","＼(￣▽￣)／","(◔◡◔)","／(=✪ x ✪=)＼",
+        "¯\\_(ツ)_/¯","(ー_ー゛)","(￢_￢)","(¬_¬)",
+        "(⇀‸↼‶)","(｡ŏ_ŏ)","(・∀・)","_(:з」∠)_",
+        "(╯°□°）╯︵ ┻━┻","(´;ω;｀)","Σ(°△°|||)","(◎ロ◎)",
+        "(∪.∪ )...zzz",
+    };
 
     // @mention autocomplete
     private boolean showMentions;
@@ -127,11 +177,12 @@ public class ChatBubbleScreen extends Screen {
         barTop = height - BAR_H;
         msgBottom = barTop - 1;
 
-        // Input box between gear (left) and send (right) icons
+        // Input box: gear (left) → input → emoji → send (right)
         int ibY = barTop + (BAR_H - INPUT_H) / 2;
         inputY = ibY;
-        inputX = panelX + PAD + ICON_S + 8;
-        int inputW = panelX + panelW - PAD - ICON_S - 8 - inputX;
+        inputX = panelX + 4 + ICON_S + 3;
+        int sendX = panelX + panelW - PAD - ICON_S;
+        int inputW = sendX - ICON_S - 8 - inputX;
 
         input = new EditBox(font, inputX, ibY, inputW, INPUT_H, Component.literal(""));
         input.setMaxLength(256);
@@ -228,6 +279,13 @@ public class ChatBubbleScreen extends Screen {
             return titleEditor.keyPressed(keyCode, scanCode, modifiers);
         }
 
+        // Emoji panel gets ESC first
+        if (showEmojiPanel && keyCode == 256) {
+            showEmojiPanel = false;
+            return true;
+        }
+
+        // @mention autocomplete keys
         if (showMentions) {
             if (keyCode == 258) { insertMention(mentionCandidates.get(mentionIdx)); return true; }
             if (keyCode == 256) { showMentions = false; return true; }
@@ -251,6 +309,10 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (showEmojiPanel) {
+            emojiScroll = Mth.clamp(emojiScroll - (int) scrollY * 20, 0, 200);
+            return true;
+        }
         if (showMentions && !mentionCandidates.isEmpty()) {
             mentionIdx = Mth.clamp(mentionIdx - (int) scrollY, 0, mentionCandidates.size() - 1);
             return true;
@@ -339,6 +401,8 @@ public class ChatBubbleScreen extends Screen {
                 onClose();
                 return true;
             }
+            if (showEmojiPanel && handleEmojiClick((int) mouseX, (int) mouseY))
+                return true;
             if (mouseY >= barTop) {
                 if (handleIconClick((int) mouseX, (int) mouseY))
                     return true;
@@ -387,16 +451,73 @@ public class ChatBubbleScreen extends Screen {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
+    private boolean handleEmojiClick(int mx, int my) {
+        if (!showEmojiPanel) return false;
+        int sendX = panelX + panelW - PAD - ICON_S;
+
+        boolean isKaomoji = emojiTab == 1;
+        int kCols = 2;
+        int kColW = 90;
+        int pw = isKaomoji ? kCols * kColW + 8 : EMOJI_COLS * EMOJI_SLOT + 8;
+        int px = sendX + ICON_S / 2 - pw / 2;
+        px = Mth.clamp(px, panelX + 2, panelX + panelW - pw - 2);
+        int py = barTop - EMOJI_PANEL_H - 4;
+
+        if (mx < px || mx > px + pw || my < py || my > py + EMOJI_PANEL_H) {
+            showEmojiPanel = false;
+            return false;
+        }
+
+        // Tab click
+        if (my < py + EMOJI_TAB_H) {
+            int tabW = pw / 2;
+            int t = (mx - px) / tabW;
+            if (t >= 0 && t <= 1) { emojiTab = t; emojiScroll = 0; }
+            return true;
+        }
+
+        // Content click
+        int cy = py + EMOJI_TAB_H + 1;
+        if (isKaomoji) {
+            int cw = (pw - 8) / kCols;
+            int col = (mx - px - 4) / cw;
+            int row = (my - cy - 2 + emojiScroll) / KAO_ITEM_H;
+            int idx = row * kCols + col;
+            if (idx >= 0 && idx < KAOMOJI.length) {
+                input.setValue(input.getValue() + KAOMOJI[idx]);
+                input.moveCursorToEnd(false);
+            }
+        } else {
+            int col = (mx - px - 4) / EMOJI_SLOT;
+            int row = (my - cy - 2 + emojiScroll) / EMOJI_SLOT;
+            int idx = row * EMOJI_COLS + col;
+            if (idx >= 0 && idx < EMOJI_EMOTES.length) {
+                input.setValue(input.getValue() + EMOJI_EMOTES[idx]);
+                input.moveCursorToEnd(false);
+            }
+        }
+        showEmojiPanel = false;
+        return true;
+    }
+
     private boolean handleIconClick(int mx, int my) {
         int iconY = barTop + (BAR_H - ICON_S) / 2;
         // Gear icon (left)
-        int gearX = panelX + PAD;
+        int gearX = panelX + 4;
         if (mx >= gearX && mx <= gearX + ICON_S && my >= iconY && my <= iconY + ICON_S) {
             minecraft.setScreen(new ChatBubbleConfigScreen(this));
             return true;
         }
-        // Send icon (right)
+        // Emoji icon
         int sendX = panelX + panelW - PAD - ICON_S;
+        int emojiX = sendX - ICON_S - 6;
+        if (mx >= emojiX && mx <= emojiX + ICON_S && my >= iconY && my <= iconY + ICON_S) {
+            showEmojiPanel = !showEmojiPanel;
+            showMentions = false;
+            if (showEmojiPanel) emojiScroll = 0;
+            return true;
+        }
+        // Send icon (right)
         if (mx >= sendX && mx <= sendX + ICON_S && my >= iconY && my <= iconY + ICON_S) {
             sendMessage();
             return true;
@@ -453,6 +574,7 @@ public class ChatBubbleScreen extends Screen {
         renderBottomBar(g, mouseX, mouseY);
 
         renderMentionPopup(g, mouseX, mouseY);
+        renderEmojiPanel(g, mouseX, mouseY);
 
         g.enableScissor(panelX, 0, panelX + panelW, height);
         if (commandSuggestions != null) commandSuggestions.render(g, mouseX, mouseY);
@@ -554,8 +676,8 @@ public class ChatBubbleScreen extends Screen {
         String lastKey = null;
         for (var msg : messages) {
             if (!msg.isSystem()) {
-                String key = msg.time().format(TIME_FMT);
-                if (lastKey == null || !key.equals(lastKey)) { timeSeps++; lastKey = key; }
+                String key = timeKey(msg.time());
+                if (!key.isEmpty() && (lastKey == null || !key.equals(lastKey))) { timeSeps++; lastKey = key; }
             }
         }
 
@@ -609,8 +731,8 @@ public class ChatBubbleScreen extends Screen {
 
             // Time separator
             if (!msg.isSystem()) {
-                String key = msg.time().format(TIME_FMT);
-                if (lastKey == null || !key.equals(lastKey)) {
+                String key = timeKey(msg.time());
+                if (!key.isEmpty() && (lastKey == null || !key.equals(lastKey))) {
                     lastKey = key;
                     int ssy = msgTop + contentY - scrollOffset;
                     if (ssy + TIME_SEP_H > msgTop && ssy < msgBottom)
@@ -844,9 +966,9 @@ public class ChatBubbleScreen extends Screen {
         if (target == null) { replyTargetIndex = -1; return; }
 
         int notifOffset = (newMessageCount > 0) ? NOTIF_H : 0;
-        int gearX = panelX + PAD;
+        int gearX = panelX + 4;
         int sendX = panelX + panelW - PAD - ICON_S;
-        int barX = gearX + ICON_S + 8;
+        int barX = gearX + ICON_S + 4;
         int barW = sendX - 6 - barX;
         int barY = barTop - REPLY_BAR_H - notifOffset;
 
@@ -872,9 +994,9 @@ public class ChatBubbleScreen extends Screen {
     private boolean isMouseOverReplyCancel(double mx, double my) {
         if (replyTargetIndex < 0) return false;
         int notifOffset = (newMessageCount > 0) ? NOTIF_H : 0;
-        int gearX = panelX + PAD;
+        int gearX = panelX + 4;
         int sendX = panelX + panelW - PAD - ICON_S;
-        int barX = gearX + ICON_S + 8;
+        int barX = gearX + ICON_S + 4;
         int barW = sendX - 6 - barX;
         int barY = barTop - REPLY_BAR_H - notifOffset;
         int cx = barX + barW - 16;
@@ -900,12 +1022,13 @@ public class ChatBubbleScreen extends Screen {
 
         int iconY = barTop + (BAR_H - ICON_S) / 2;
 
-        // Input background + divider above it (between suggestions and input)
-        int gearX = panelX + PAD;
+        // Input background + divider above it
+        int gearX = panelX + 4;
         int sendX = panelX + panelW - PAD - ICON_S;
-        int ibX = gearX + ICON_S + 6;
+        int emojiX = sendX - ICON_S - 6;
+        int ibX = gearX + ICON_S + 3;
         int ibY = barTop + (BAR_H - INPUT_H) / 2;
-        int ibW = sendX - 6 - ibX;
+        int ibW = emojiX - 6 - ibX;
         int ibH = INPUT_H;
         g.fill(ibX, ibY - 1, ibX + ibW, ibY, COLOR_DIVIDER);
         g.fill(ibX, ibY, ibX + ibW, ibY + ibH, COLOR_INPUT_BG);
@@ -915,6 +1038,12 @@ public class ChatBubbleScreen extends Screen {
             && mouseY >= iconY && mouseY <= iconY + ICON_S;
         if (hoverGear) g.fill(gearX - 1, iconY - 1, gearX + ICON_S + 1, iconY + ICON_S + 1, 0xFF444444);
         drawTextureIcon(g, TEX_GEAR, gearX, iconY, ICON_S);
+
+        // Emoji icon (between input and send)
+        boolean hoverEmoji = mouseX >= emojiX && mouseX <= emojiX + ICON_S
+            && mouseY >= iconY && mouseY <= iconY + ICON_S;
+        if (hoverEmoji || showEmojiPanel) g.fill(emojiX - 1, iconY - 1, emojiX + ICON_S + 1, iconY + ICON_S + 1, 0xFF444444);
+        drawTextureIcon(g, TEX_EMOJI, emojiX, iconY, ICON_S);
 
         // Send icon (right)
         boolean hoverSend = mouseX >= sendX && mouseX <= sendX + ICON_S
@@ -926,6 +1055,7 @@ public class ChatBubbleScreen extends Screen {
     private void loadIconTextures() {
         loadIconTexture(TEX_GEAR, "assets/e33chat/textures/gui/settings.png");
         loadIconTexture(TEX_SEND, "assets/e33chat/textures/gui/send.png");
+        loadIconTexture(TEX_EMOJI, "assets/e33chat/textures/gui/emoji.png");
     }
 
     private void loadIconTexture(ResourceLocation loc, String classpath) {
@@ -973,8 +1103,8 @@ public class ChatBubbleScreen extends Screen {
         for (int i = 0; i < msgIndex && i < msgs.size(); i++) {
             var m = msgs.get(i);
             if (!m.isSystem()) {
-                String k = m.time().format(TIME_FMT);
-                if (lk == null || !k.equals(lk)) {
+                String k = timeKey(m.time());
+                if (!k.isEmpty() && (lk == null || !k.equals(lk))) {
                     lk = k;
                     cy += TIME_SEP_H + GAP;
                 }
@@ -1072,7 +1202,7 @@ public class ChatBubbleScreen extends Screen {
         int popupY = input.getY() - popupH - 2;
         if (popupY < msgTop) popupY = input.getY() + input.getHeight() + 2;
 
-        g.fill(popupX, popupY, popupX + popupW, popupY + popupH, 0xEE1E1E1E);
+        g.fill(popupX, popupY, popupX + popupW, popupY + popupH, COLOR_POPUP_BG);
         g.fill(popupX, popupY, popupX + popupW, popupY + 1, COLOR_DIVIDER);
         g.fill(popupX, popupY + popupH - 1, popupX + popupW, popupY + popupH, COLOR_DIVIDER);
 
@@ -1086,10 +1216,96 @@ public class ChatBubbleScreen extends Screen {
                 && mouseY >= ly && mouseY <= ly + font.lineHeight;
             if (hover || i == mentionIdx)
                 g.fill(popupX + 1, ly, popupX + popupW - 1, ly + font.lineHeight,
-                    i == mentionIdx ? 0xFF444444 : 0xFF333333);
+                    i == mentionIdx ? COLOR_POPUP_HOVER : 0xFF333333);
             g.drawString(font, Component.literal(mentionCandidates.get(i)),
                 popupX + 4, ly, 0xFFFFFFFF, false);
         }
+    }
+
+    private void renderEmojiPanel(GuiGraphics g, int mouseX, int mouseY) {
+        if (!showEmojiPanel) return;
+        int sendX = panelX + panelW - PAD - ICON_S;
+
+        boolean isKaomoji = emojiTab == 1;
+        int kCols = 2;
+        int kColW = 90;
+        int pw = isKaomoji ? kCols * kColW + 8 : EMOJI_COLS * EMOJI_SLOT + 8;
+        int px = sendX + ICON_S / 2 - pw / 2;
+        px = Mth.clamp(px, panelX + 2, panelX + panelW - pw - 2);
+        int py = barTop - EMOJI_PANEL_H - 4;
+
+        // Tab bar
+        String[] tabLabels = {"😊 Emoji", "✧ 颜文字"};
+        int tabW = pw / tabLabels.length;
+        g.fill(px, py, px + pw, py + EMOJI_TAB_H + 1, COLOR_TITLE_BG);
+        for (int t = 0; t < tabLabels.length; t++) {
+            int tx = px + t * tabW;
+            if (t == emojiTab) g.fill(tx, py, tx + tabW, py + EMOJI_TAB_H, COLOR_INPUT_BG);
+            g.drawCenteredString(font, Component.literal(tabLabels[t]),
+                tx + tabW / 2, py + (EMOJI_TAB_H - font.lineHeight) / 2, 0xFFFFFFFF);
+        }
+        g.fill(px, py + EMOJI_TAB_H, px + pw, py + EMOJI_TAB_H + 1, COLOR_DIVIDER);
+
+        // Content area
+        int cy = py + EMOJI_TAB_H + 1;
+        int ch = EMOJI_PANEL_H - EMOJI_TAB_H - 1;
+        g.fill(px, cy, px + pw, py + EMOJI_PANEL_H, COLOR_BAR_BG);
+        g.renderOutline(px, py, pw, EMOJI_PANEL_H, COLOR_DIVIDER);
+
+        if (isKaomoji) {
+            renderKaomojiList(g, mouseX, mouseY, px, cy, pw, ch);
+        } else {
+            renderEmojiGrid(g, mouseX, mouseY, px, cy, pw, ch);
+        }
+    }
+
+    private void renderEmojiGrid(GuiGraphics g, int mouseX, int mouseY,
+                                  int px, int cy, int pw, int ch) {
+        int rows = (EMOJI_EMOTES.length + EMOJI_COLS - 1) / EMOJI_COLS;
+        int totalH = rows * EMOJI_SLOT + 4;
+        int maxScroll = Math.max(0, totalH - ch + 4);
+        emojiScroll = Mth.clamp(emojiScroll, 0, maxScroll);
+
+        g.enableScissor(px + 1, cy + 1, px + pw - 1, cy + ch - 1);
+        int sy = cy + 2 - emojiScroll;
+        for (int i = 0; i < EMOJI_EMOTES.length; i++) {
+            int col = i % EMOJI_COLS;
+            int row = i / EMOJI_COLS;
+            int ex = px + 4 + col * EMOJI_SLOT;
+            int ey = sy + row * EMOJI_SLOT;
+            if (ey + EMOJI_SLOT <= cy || ey >= cy + ch) continue;
+            if (mouseX >= ex && mouseX <= ex + EMOJI_SLOT - 1
+                && mouseY >= ey && mouseY <= ey + EMOJI_SLOT - 1)
+                g.fill(ex, ey, ex + EMOJI_SLOT - 1, ey + EMOJI_SLOT - 1, 0xFF444444);
+            g.drawCenteredString(font, Component.literal(EMOJI_EMOTES[i]),
+                ex + EMOJI_SLOT / 2, ey + (EMOJI_SLOT - font.lineHeight) / 2, 0xFFFFFFFF);
+        }
+        g.disableScissor();
+    }
+
+    private void renderKaomojiList(GuiGraphics g, int mouseX, int mouseY,
+                                    int px, int cy, int pw, int ch) {
+        int kCols = 2;
+        int kColW = (pw - 8) / kCols;
+        int totalH = ((KAOMOJI.length + kCols - 1) / kCols) * KAO_ITEM_H + 4;
+        int maxScroll = Math.max(0, totalH - ch + 4);
+        emojiScroll = Mth.clamp(emojiScroll, 0, maxScroll);
+
+        g.enableScissor(px + 1, cy + 1, px + pw - 1, cy + ch - 1);
+        int sy = cy + 2 - emojiScroll;
+        for (int i = 0; i < KAOMOJI.length; i++) {
+            int col = i % kCols;
+            int row = i / kCols;
+            int ex = px + 4 + col * kColW;
+            int ey = sy + row * KAO_ITEM_H;
+            if (ey + KAO_ITEM_H <= cy || ey >= cy + ch) continue;
+            if (mouseX >= ex && mouseX <= ex + kColW - 1
+                && mouseY >= ey && mouseY <= ey + KAO_ITEM_H - 1)
+                g.fill(ex, ey, ex + kColW - 1, ey + KAO_ITEM_H - 1, 0xFF444444);
+            g.drawString(font, Component.literal(KAOMOJI[i]),
+                ex + 2, ey + (KAO_ITEM_H - font.lineHeight) / 2, 0xFFFFFFFF);
+        }
+        g.disableScissor();
     }
 
     private static class ClickableSpan {
