@@ -1,5 +1,39 @@
 # Changelog
 
+## v1.1
+
+**修复**
+- 修复 Xaero 地图连续分享多个不同坐标后坐标丢失
+- 修复 emoji 码点截断导致的宽度测量错误（代理对字符如 😀 使用 `Character.toChars`）
+- 修复睡觉时聊天框无法关闭（阻止原版强制弹框，手动 T 键正常打开/ESC 关闭，醒来恢复原状态）
+- 修复不同存档聊天记录互相覆盖/泄漏（文件名加 hash 防中文世界名碰撞 + 存/读条件修正）
+- 修复醒来时 `setScreen` 跨线程崩溃（`PlayerWakeUpEvent` 服务端线程 → `mc.execute()`）
+
+**新功能**
+- Emoji 表情面板：双标签（😊 Emoji + ✧ 颜文字），点击插入输入框
+- 时间分隔符间隔可配置（`time_separator_minutes`，1/5/10/15/30分钟/关闭，默认 5 分钟）
+
+**UI**
+- 底栏新增 emoji 按钮，设置图标左移，输入框空间优化
+- @补全面板 70% 不透明度，表情面板完全不透明
+
+***
+
+**Fixes**
+- Fixed Xaero map consecutive waypoint shares not displaying (removed aggressive `<>` dedup + changed `consumeEchoBySystemChat` from `contains` to `equals`)
+- Fixed emoji code point truncation causing width measurement errors (surrogate pair characters like 😀 now use `Character.toChars`)
+- Fixed chat screen unclosable during sleep (block vanilla forced open, T key works normally, ESC closes, restores state on wake)
+- Fixed chat history leaking/wrongly overwriting between saves (file name now includes hash to prevent Chinese world name collision + save/load condition fix)
+- Fixed cross-thread crash on wake (`PlayerWakeUpEvent` on server thread → `mc.execute()`)
+
+**New Features**
+- Emoji picker panel: two tabs (😊 Emoji + ✧ Kaomoji), click to insert into input
+- Time separator interval configurable (`time_separator_minutes`, 1/5/10/15/30 min/off, default 5 min)
+
+**UI**
+- Bottom bar: emoji button added, gear icon shifted left, input box width optimized
+- @mention popup 70% opacity, emoji panel fully opaque
+
 ## v1.0
 
 **修复**
