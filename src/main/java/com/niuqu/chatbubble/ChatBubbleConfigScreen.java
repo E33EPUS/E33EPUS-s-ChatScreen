@@ -215,6 +215,7 @@ public class ChatBubbleConfigScreen extends Screen {
 
     @Override
     public void onClose() {
+        ChatBubbleConfig.CLIENT_CONFIG.save();
         if (minecraft != null) minecraft.setScreen(lastScreen);
     }
 

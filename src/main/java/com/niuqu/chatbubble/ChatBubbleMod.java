@@ -19,7 +19,7 @@ public class ChatBubbleMod {
 
         if (dist == Dist.CLIENT) {
             modContainer.registerConfig(net.neoforged.fml.config.ModConfig.Type.CLIENT,
-                ChatBubbleConfig.CLIENT_CONFIG, "e33chat-client.toml");
+                ChatBubbleConfig.CLIENT_CONFIG, "chatbubble-client.toml");
         }
 
         NeoForge.EVENT_BUS.register(new ChatServerListener());
