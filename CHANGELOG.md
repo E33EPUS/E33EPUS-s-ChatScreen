@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.2
+
+**修复**
+- 修复标准服务器（未安装 No Chat Reports）开启 `chat_report_compat` 后，`[头衔] <玩家名>` 格式的服务器前缀/称号无法提取到发送者显示名的问题
+
+**新功能**
+- 消息区域右侧新增滚动条：显示当前位置、点击空白区域翻页、拖拽滑块滚动
+
+***
+
+**Fixes**
+- Fixed server prefix/title extraction for standard servers (without No Chat Reports): when `chat_report_compat` is enabled, prefixes like `[VIP] <PlayerName>` in player chat messages are now correctly extracted to the sender display name
+
+**New Features**
+- Scrollbar on the right side of the message area: shows scroll position, click empty track to page up/down, drag thumb to scroll
+
 ## v1.1
 
 **修复**

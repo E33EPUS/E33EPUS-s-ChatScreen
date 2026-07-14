@@ -30,6 +30,24 @@ public class ChatListenerMixin {
             || rawStr.startsWith("xaero_waypoint_add:")) {
             return;
         }
+
+        if (ChatBubbleConfig.CHAT_REPORT_COMPAT.get()) {
+            String name = gameProfile.getName();
+            String pattern = "<" + name + "> ";
+            int idx = rawStr.indexOf(pattern);
+            if (idx >= 0) {
+                String displayName = (rawStr.substring(0, idx) + name).trim();
+                String cleanContent = rawStr.substring(idx + pattern.length());
+                ChatMessageStore.setPendingMeta(new SenderMeta(
+                    senderId != null ? senderId : new UUID(0, 0),
+                    Component.literal(displayName),
+                    Component.literal(cleanContent),
+                    false
+                ));
+                return;
+            }
+        }
+
         ChatMessageStore.setPendingMeta(new SenderMeta(
             senderId != null ? senderId : new UUID(0, 0),
             Component.literal(gameProfile.getName()),

@@ -85,6 +85,20 @@ public class ChatBubbleScreen extends Screen {
     private boolean showEmojiPanel;
     private int emojiScroll;
     private int emojiTab;
+
+    // Scrollbar
+    private static final int SCROLLBAR_WIDTH = 6;
+    private static final int MIN_THUMB_H = 8;
+    private static final int TRACK_COLOR = 0x1AFFFFFF;
+    private static final int THUMB_COLOR = 0x66FFFFFF;
+    private static final int THUMB_HOVER_COLOR = 0x88FFFFFF;
+    private static final int THUMB_DRAG_COLOR = 0xAAFFFFFF;
+    private boolean scrollbarDragging;
+    private int scrollbarDragStartY;
+    private int scrollbarDragStartOffset;
+    private int messageTotalH;
+    private boolean scrollbarHovered;
+
     private static final int EMOJI_PANEL_H = 132;
     private static final int EMOJI_TAB_H = 18;
     private static final int EMOJI_COLS = 9;
@@ -405,6 +419,32 @@ public class ChatBubbleScreen extends Screen {
             return true;
         }
 
+        // Scrollbar interaction
+        if (button == 0 && maxScroll > 0) {
+            int trackX = panelX + panelW - SCROLLBAR_WIDTH;
+            int effBottom = newMessageCount > 0 ? barTop - NOTIF_H - 1 : msgBottom;
+            if (mouseX >= trackX && mouseX < trackX + SCROLLBAR_WIDTH
+                && mouseY >= msgTop && mouseY < effBottom) {
+                int trackH = effBottom - msgTop;
+                int thumbH = Math.max(MIN_THUMB_H, (int)((long)trackH * trackH / messageTotalH));
+                thumbH = Math.min(thumbH, trackH);
+                int travelRange = trackH - thumbH;
+                int thumbY = msgTop + (int)((long)scrollOffset * travelRange / maxScroll);
+
+                if (mouseY < thumbY) {
+                    scrollOffset = Math.max(0, scrollOffset - trackH);
+                } else if (mouseY > thumbY + thumbH) {
+                    scrollOffset = Math.min(maxScroll, scrollOffset + trackH);
+                } else {
+                    scrollbarDragging = true;
+                    scrollbarDragStartY = (int) mouseY;
+                    scrollbarDragStartOffset = scrollOffset;
+                }
+                scrollToBottom = false;
+                return true;
+            }
+        }
+
         if (commandSuggestions != null && commandSuggestions.mouseClicked((int) mouseX, (int) mouseY, button))
             return true;
 
@@ -473,6 +513,33 @@ public class ChatBubbleScreen extends Screen {
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (scrollbarDragging && maxScroll > 0) {
+            int effBottom = newMessageCount > 0 ? barTop - NOTIF_H - 1 : msgBottom;
+            int trackH = effBottom - msgTop;
+            int thumbH = Math.max(MIN_THUMB_H, (int)((long)trackH * trackH / messageTotalH));
+            thumbH = Math.min(thumbH, trackH);
+            int travelRange = trackH - thumbH;
+            if (travelRange > 0) {
+                int dy = (int) mouseY - scrollbarDragStartY;
+                int newOffset = scrollbarDragStartOffset + (int)((long)dy * maxScroll / travelRange);
+                scrollOffset = Mth.clamp(newOffset, 0, maxScroll);
+            }
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (scrollbarDragging) {
+            scrollbarDragging = false;
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     private boolean handleEmojiClick(int mx, int my) {
@@ -706,6 +773,7 @@ public class ChatBubbleScreen extends Screen {
         totalH += timeSeps * (TIME_SEP_H + GAP);
         int prevMaxScroll = maxScroll;
         maxScroll = Math.max(0, totalH - areaH);
+        this.messageTotalH = totalH;
 
         boolean wasAtBottom = scrollOffset >= prevMaxScroll - 2;
 
@@ -766,7 +834,35 @@ public class ChatBubbleScreen extends Screen {
             if (screenY + h <= msgTop || screenY >= effectiveMsgBottom) continue;
             renderBubble(g, msg, i, screenY, mouseX, mouseY);
         }
+        renderScrollbar(g, mouseX, mouseY, effectiveMsgBottom);
         g.disableScissor();
+    }
+
+    private void renderScrollbar(GuiGraphics g, int mouseX, int mouseY, int effectiveMsgBottom) {
+        if (maxScroll <= 0) return;
+        int trackX = panelX + panelW - SCROLLBAR_WIDTH;
+        int trackTop = msgTop;
+        int trackBottom = effectiveMsgBottom;
+        int trackH = trackBottom - trackTop;
+
+        g.fill(trackX, trackTop, trackX + SCROLLBAR_WIDTH, trackBottom, TRACK_COLOR);
+
+        int thumbH = Math.max(MIN_THUMB_H, (int)((long)trackH * trackH / messageTotalH));
+        thumbH = Math.min(thumbH, trackH);
+
+        int travelRange = trackH - thumbH;
+        int thumbY = trackTop + (int)((long)scrollOffset * travelRange / maxScroll);
+
+        boolean hovering = !scrollbarDragging
+            && mouseX >= trackX && mouseX < trackX + SCROLLBAR_WIDTH
+            && mouseY >= thumbY && mouseY < thumbY + thumbH;
+        scrollbarHovered = hovering || scrollbarDragging;
+
+        int thumbColor = scrollbarDragging ? THUMB_DRAG_COLOR
+                       : scrollbarHovered   ? THUMB_HOVER_COLOR
+                       : THUMB_COLOR;
+
+        g.fill(trackX, thumbY, trackX + SCROLLBAR_WIDTH, thumbY + thumbH, thumbColor);
     }
 
     private void renderTimeSeparator(GuiGraphics g, LocalTime time, int y) {
