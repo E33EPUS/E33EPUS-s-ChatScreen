@@ -35,7 +35,9 @@ public class ChatMessageStore {
     private static final Map<String, PendingMeta> pendingMetas = new HashMap<>();
 
     public record SenderMeta(UUID senderUUID, Component senderName,
-                             Component rawContent, boolean isSystem) {}
+                             Component rawContent, boolean isSystem,
+                             String rawPlayerName,
+                             boolean whisper, String whisperPartner) {}
 
     private static final ThreadLocal<SenderMeta> PENDING_META = new ThreadLocal<>();
 
@@ -49,6 +51,20 @@ public class ChatMessageStore {
 
     private static int pendingEchoCount;
     private static final List<String> pendingEchoTexts = new ArrayList<>();
+
+    private static boolean pendingWhisperEcho;
+    private static boolean suppressNextCapture;
+
+    public static void markPendingWhisperEcho() { pendingWhisperEcho = true; }
+    public static void markSuppressCapture() { suppressNextCapture = true; }
+
+    public static boolean hasPendingWhisperEcho() { return pendingWhisperEcho; }
+    public static void consumeWhisperEcho() { pendingWhisperEcho = false; }
+
+    public static boolean consumeSuppressCapture() {
+        if (suppressNextCapture) { suppressNextCapture = false; return true; }
+        return false;
+    }
 
     public static void incrementPendingEcho(String sentText) {
         pendingEchoCount++;
@@ -112,7 +128,10 @@ public class ChatMessageStore {
         String replyContent,
         String replySender,
         String messageHash,
-        int duplicateCount
+        int duplicateCount,
+        String rawPlayerName,
+        boolean whisper,
+        String whisperPartner
     ) {}
 
     public static class PreviewEntry {
@@ -124,7 +143,7 @@ public class ChatMessageStore {
         }
     }
 
-    public static void addMessage(Component content, UUID senderUUID, Component senderName, boolean isSystem) {
+    public static void addMessage(Component content, UUID senderUUID, Component senderName, boolean isSystem, String rawPlayerName, boolean whisper, String whisperPartner) {
         content = addUnderlineToClicks(content);
         String messageHash = String.valueOf(content.getString().hashCode());
 
@@ -145,7 +164,9 @@ public class ChatMessageStore {
                     LocalTime.now(),
                     last.isOwn(), last.isSystem(),
                     last.replyContent(), last.replySender(), last.messageHash(),
-                    last.duplicateCount() + 1
+                    last.duplicateCount() + 1,
+                    last.rawPlayerName(),
+                    last.whisper(), last.whisperPartner()
                 ));
                 return;
             }
@@ -178,7 +199,10 @@ public class ChatMessageStore {
             replyContent,
             replySender,
             messageHash,
-            1
+            1,
+            rawPlayerName,
+            whisper,
+            whisperPartner
         ));
 
         while (messages.size() > MAX)
@@ -234,6 +258,36 @@ public class ChatMessageStore {
 
     public static List<ChatMessage> getMessages() {
         return messages;
+    }
+
+    public static List<ChatMessage> getWhisperMessages(String partnerName) {
+        List<ChatMessage> result = new ArrayList<>();
+        for (ChatMessage msg : messages) {
+            if (msg.whisper() && partnerName.equals(msg.whisperPartner())) {
+                result.add(msg);
+            }
+        }
+        return result;
+    }
+
+    public static List<ChatMessage> getPublicMessages() {
+        List<ChatMessage> result = new ArrayList<>();
+        for (ChatMessage msg : messages) {
+            if (!msg.whisper()) {
+                result.add(msg);
+            }
+        }
+        return result;
+    }
+
+    public static ChatMessage getLatestWhisperWith(String partnerName) {
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            ChatMessage msg = messages.get(i);
+            if (msg.whisper() && partnerName.equals(msg.whisperPartner())) {
+                return msg;
+            }
+        }
+        return null;
     }
 
     public static int getUnreadCount() {
@@ -369,6 +423,13 @@ public class ChatMessageStore {
                 obj.put("replyContent", msg.replyContent());
                 obj.put("replySender", msg.replySender());
             }
+            if (msg.rawPlayerName() != null && !msg.rawPlayerName().isEmpty()) {
+                obj.put("rawPlayerName", msg.rawPlayerName());
+            }
+            if (msg.whisper()) {
+                obj.put("whisper", true);
+                if (msg.whisperPartner() != null) obj.put("whisperPartner", msg.whisperPartner());
+            }
             list.add(obj);
         }
         try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
@@ -393,8 +454,12 @@ public class ChatMessageStore {
                     boolean isSystem = (Boolean) obj.getOrDefault("isSystem", false);
                     String replyContent = (String) obj.get("replyContent");
                     String replySender = (String) obj.get("replySender");
+                    String rawPlayerName = (String) obj.get("rawPlayerName");
+                    boolean whisper = Boolean.TRUE.equals(obj.get("whisper"));
+                    String whisperPartner = (String) obj.get("whisperPartner");
                     messages.add(new ChatMessage(uuid, senderName, content, time,
-                        isOwn, isSystem, replyContent, replySender, "", 1));
+                        isOwn, isSystem, replyContent, replySender, "", 1, rawPlayerName,
+                        whisper, whisperPartner));
                 } catch (Exception ignored) {}
             }
             while (messages.size() > MAX) messages.remove(0);
@@ -436,7 +501,8 @@ public class ChatMessageStore {
                     messages.set(i, new ChatMessage(
                         msg.senderUUID(), msg.senderName(), msg.content(), msg.time(),
                         msg.isOwn(), msg.isSystem(), quoteContent, quoteSender, msg.messageHash(),
-                        msg.duplicateCount()));
+                        msg.duplicateCount(), msg.rawPlayerName(),
+                        msg.whisper(), msg.whisperPartner()));
                     String playerName = Minecraft.getInstance().player != null
                         ? Minecraft.getInstance().player.getName().getString() : "";
                     if (!msg.isOwn() && !playerName.isEmpty()

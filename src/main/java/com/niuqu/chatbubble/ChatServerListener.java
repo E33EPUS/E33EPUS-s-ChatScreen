@@ -2,6 +2,7 @@ package com.niuqu.chatbubble;
 
 import com.niuqu.chatbubble.packets.ChatMetaPacket;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.network.PacketDistributor;
@@ -34,6 +35,29 @@ public class ChatServerListener {
                 player.getUUID(), messageHash, quoteSender, quoteContent, mentions);
             NetworkHandler.CHANNEL.send(PacketDistributor.ALL.noArg(), meta);
         }
+    }
+
+    @SubscribeEvent
+    public void onCommand(CommandEvent event) {
+        String cmd = event.getParseResults().getReader().getString();
+        String[] parts = cmd.split(" ");
+        if (parts.length < 3) return;
+        String label = parts[0];
+        if (label.startsWith("/")) label = label.substring(1);
+        if (!label.equals("msg") && !label.equals("tell") && !label.equals("w")) return;
+
+        var sender = event.getParseResults().getContext().getSource().getPlayer();
+        if (sender == null) return;
+
+        QuotePending quote = pendingQuotes.remove(sender.getUUID());
+        if (quote == null) return;
+
+        String messageHash = quote.messageHash();
+        ChatMetaPacket meta = new ChatMetaPacket(
+            sender.getUUID(), messageHash,
+            quote.quotedSenderName(), quote.quotedContent(),
+            Collections.emptyList());
+        NetworkHandler.CHANNEL.send(PacketDistributor.ALL.noArg(), meta);
     }
 
     public static void onQuoteReceived(UUID senderUUID, String quotedSenderName,

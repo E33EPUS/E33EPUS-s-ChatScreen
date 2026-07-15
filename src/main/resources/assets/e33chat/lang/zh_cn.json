@@ -26,10 +26,14 @@
   "e33chat.config.time_separator.disable": "关闭",
   "e33chat.context.copy": "复制",
   "e33chat.context.quote": "引用",
+  "e33chat.context.tp": "传送",
+    "e33chat.context.whisper": "私聊",
   "e33chat.toast.copied": "已复制",
   "e33chat.config.mention_highlight": "被@时高亮",
   "e33chat.config.mention_highlight_color": "@高亮边框色",
   "e33chat.sender.system": "系统",
   "e33chat.notif.new_messages": "条新消息",
-  "e33chat.notif.mention": "有人@你"
+  "e33chat.notif.mention": "有人@你",
+  "e33chat.sidebar.public": "世界频道",
+  "e33chat.whisper.mode": "私聊"
 }

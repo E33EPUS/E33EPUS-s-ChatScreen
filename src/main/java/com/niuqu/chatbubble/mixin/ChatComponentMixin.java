@@ -3,6 +3,8 @@ package com.niuqu.chatbubble.mixin;
 import com.niuqu.chatbubble.ChatBubbleConfig;
 import com.niuqu.chatbubble.ChatMessageStore;
 import com.niuqu.chatbubble.ChatMessageStore.SenderMeta;
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 import java.util.UUID;
 import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = ChatComponent.class, priority = 500)
 public class ChatComponentMixin {
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     private String lastText;
     private long lastTime;
@@ -58,10 +61,13 @@ public class ChatComponentMixin {
                 new UUID(0, 0),
                 Component.translatable("e33chat.sender.system"),
                 finalComponent,
-                true
+                true,
+                null,
+                false, null
             );
         }
 
+        if (ChatMessageStore.consumeSuppressCapture()) return;
         if (ChatMessageStore.consumeEchoIfSenderMatches(meta.senderName().getString())) return;
         if (ChatMessageStore.consumeEchoBySystemChat(finalComponent.getString())) return;
 
@@ -74,6 +80,7 @@ public class ChatComponentMixin {
             content = finalComponent;
         }
 
-        ChatMessageStore.addMessage(content, meta.senderUUID(), meta.senderName(), meta.isSystem());
+        LOGGER.info("[E33Chat] Capture | final='" + finalComponent.getString() + "' | content='" + content.getString() + "' | whisper=" + meta.whisper() + " | partner=" + meta.whisperPartner() + " | isSystem=" + meta.isSystem());
+        ChatMessageStore.addMessage(content, meta.senderUUID(), meta.senderName(), meta.isSystem(), meta.rawPlayerName(), meta.whisper(), meta.whisperPartner());
     }
 }

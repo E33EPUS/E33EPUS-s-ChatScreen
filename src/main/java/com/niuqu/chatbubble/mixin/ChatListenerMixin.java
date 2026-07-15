@@ -14,10 +14,50 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 import java.util.UUID;
 
 @Mixin(value = ChatListener.class, priority = 500)
 public class ChatListenerMixin {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    private static String extractWhisperContent(String fullText, String senderName) {
+        if (senderName == null || senderName.isEmpty()) return fullText;
+        int idx = fullText.indexOf(senderName);
+        if (idx < 0) return fullText;
+        String after = fullText.substring(idx + senderName.length());
+        for (String sep : new String[]{": ", "：", " :", " ："}) {
+            int i = after.lastIndexOf(sep);
+            if (i >= 0) return after.substring(i + sep.length());
+        }
+        return after.trim();
+    }
+
+    private static SenderMeta detectWhisperInSystemMessage(String text, String logTag) {
+        var connection = Minecraft.getInstance().player.connection;
+        if (connection == null) return null;
+        for (var info : connection.getOnlinePlayers()) {
+            String name = info.getProfile().getName();
+            int idx = text.indexOf(name);
+            if (idx >= 0 && idx < 30) {
+                if (text.contains("悄悄") || text.contains("whisper") || text.contains("对你说") || text.contains("to you")) {
+                    String content = extractWhisperContent(text, name);
+                    UUID senderId = ChatMessageStore.lookupPlayerUUID(name);
+                    LOGGER.info("[E33Chat] System(" + logTag + ") | text='" + text + "' | name=" + name + " | content='" + content + "'");
+                    return new SenderMeta(
+                        senderId,
+                        Component.literal(name),
+                        Component.literal(content),
+                        false,
+                        name,
+                        true, name
+                    );
+                }
+            }
+        }
+        return null;
+    }
 
     @Inject(method = "handlePlayerChatMessage", at = @At("HEAD"))
     private void onPlayerChat(PlayerChatMessage message, GameProfile gameProfile,
@@ -31,6 +71,20 @@ public class ChatListenerMixin {
             return;
         }
 
+        boolean isWhisper = false;
+        String whisperPartner = null;
+        if (Minecraft.getInstance().level != null) {
+            var registry = Minecraft.getInstance().level.registryAccess()
+                .registryOrThrow(net.minecraft.core.registries.Registries.CHAT_TYPE);
+            var key = registry.getResourceKey(bound.chatType()).orElse(null);
+            if (ChatType.MSG_COMMAND_INCOMING.equals(key)) {
+                isWhisper = true;
+                whisperPartner = gameProfile.getName();
+            } else if (ChatType.MSG_COMMAND_OUTGOING.equals(key)) {
+                isWhisper = true;
+                whisperPartner = bound.targetName() != null ? bound.targetName().getString() : null;
+            }
+        }
         if (ChatBubbleConfig.CHAT_REPORT_COMPAT.get()) {
             String name = gameProfile.getName();
             String pattern = "<" + name + "> ";
@@ -42,17 +96,26 @@ public class ChatListenerMixin {
                     senderId != null ? senderId : new UUID(0, 0),
                     Component.literal(displayName),
                     Component.literal(cleanContent),
-                    false
+                    false,
+                    name,
+                    isWhisper, whisperPartner
                 ));
                 return;
             }
         }
 
+        Component playerContent = raw;
+        if (isWhisper) {
+            playerContent = Component.literal(extractWhisperContent(rawStr, gameProfile.getName()));
+        }
+        LOGGER.info("[E33Chat] PlayerChat | raw='" + rawStr + "' | whisper=" + isWhisper + " | partner=" + whisperPartner + " | content='" + playerContent.getString() + "'");
         ChatMessageStore.setPendingMeta(new SenderMeta(
             senderId != null ? senderId : new UUID(0, 0),
             Component.literal(gameProfile.getName()),
-            raw,
-            false
+            playerContent,
+            false,
+            gameProfile.getName(),
+            isWhisper, whisperPartner
         ));
     }
 
@@ -65,17 +128,53 @@ public class ChatListenerMixin {
             return;
         }
         boolean hasSender = bound.name() != null;
+
+        boolean isWhisper = false;
+        String whisperPartner = null;
+        if (Minecraft.getInstance().level != null) {
+            var registry = Minecraft.getInstance().level.registryAccess()
+                .registryOrThrow(net.minecraft.core.registries.Registries.CHAT_TYPE);
+            var key = registry.getResourceKey(bound.chatType()).orElse(null);
+            if (ChatType.MSG_COMMAND_INCOMING.equals(key)) {
+                isWhisper = true;
+                whisperPartner = hasSender ? bound.name().getString() : null;
+            } else if (ChatType.MSG_COMMAND_OUTGOING.equals(key)) {
+                isWhisper = true;
+                whisperPartner = bound.targetName() != null ? bound.targetName().getString() : null;
+            }
+        }
+        Component disContent = message;
+        if (isWhisper && hasSender) {
+            disContent = Component.literal(extractWhisperContent(msgStr, bound.name().getString()));
+        }
+        LOGGER.info("[E33Chat] Disguised | raw='" + msgStr + "' | whisper=" + isWhisper + " | partner=" + whisperPartner + " | content='" + disContent.getString() + "'");
         ChatMessageStore.setPendingMeta(new SenderMeta(
             new UUID(0, 0),
             hasSender ? bound.name() : Component.translatable("e33chat.sender.system"),
-            message,
-            !hasSender
+            disContent,
+            !hasSender,
+            hasSender ? bound.name().getString() : null,
+            isWhisper, whisperPartner
         ));
     }
 
     @Inject(method = "handleSystemMessage", at = @At("HEAD"))
     private void onSystemChat(Component message, boolean overlay, CallbackInfo ci) {
         if (overlay) return;
+
+        String sysText = message.getString();
+        // Suppress outgoing whisper echo
+        boolean hasEchoFlag = ChatMessageStore.hasPendingWhisperEcho();
+        boolean hasKw = sysText.contains("悄悄") || sysText.contains("whispers") || sysText.contains("whisper");
+        boolean isOutgoing = sysText.startsWith("你") || sysText.startsWith("You");
+        LOGGER.info("[E33Chat] System(echo check) | text='" + sysText + "' | flag=" + hasEchoFlag + " | kw=" + hasKw + " | outgoing=" + isOutgoing);
+        if (hasEchoFlag && hasKw && isOutgoing) {
+            ChatMessageStore.consumeWhisperEcho();
+            LOGGER.info("[E33Chat] System(echo suppressed) | text='" + sysText + "'");
+            ChatMessageStore.markSuppressCapture();
+            return;
+        }
+        LOGGER.info("[E33Chat] System | text='" + sysText + "' | overlay=" + overlay);
 
         if (ChatBubbleConfig.CHAT_REPORT_COMPAT.get()) {
             String text = message.getString();
@@ -103,26 +202,41 @@ public class ChatListenerMixin {
                     senderId,
                     Component.literal(displayName),
                     Component.literal(cleanContent),
-                    false
+                    false,
+                    foundName,
+                    false, null
                 ));
                 return;
             }
+            // Check for whisper in system message
+            SenderMeta wm = detectWhisperInSystemMessage(text, "whisper compat");
+            if (wm != null) { ChatMessageStore.setPendingMeta(wm); return; }
+
             boolean isSystem = !ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE.get();
             ChatMessageStore.setPendingMeta(new SenderMeta(
                 new UUID(0, 0),
                 Component.translatable("e33chat.sender.system"),
                 message,
-                isSystem
+                isSystem,
+                null,
+                false, null
             ));
             return;
         }
+
+        // Check for whisper in system message (non-compat path)
+        String text = message.getString();
+        SenderMeta wm = detectWhisperInSystemMessage(text, "whisper");
+        if (wm != null) { ChatMessageStore.setPendingMeta(wm); return; }
 
         boolean isSystem = !ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE.get();
         ChatMessageStore.setPendingMeta(new SenderMeta(
             new UUID(0, 0),
             Component.translatable("e33chat.sender.system"),
             message,
-            isSystem
+            isSystem,
+            null,
+            false, null
         ));
     }
 }
