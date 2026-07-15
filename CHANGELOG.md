@@ -6,7 +6,7 @@
 - 私聊侧边栏：左侧在线玩家列表，显示头像+名字+最新私聊预览，点击切换私聊模式
 - 侧边栏收起/展开：标题栏左侧汉堡按钮，收起后聊天面板占满
 - 私聊过滤：点击玩家只显示与该玩家的私聊记录，顶部紫色模式指示条；点击"公屏"返回
-- 私聊发件自动填充：切换到玩家私聊时输入框自动填 `/msg <玩家> `
+- 私聊发件隐形拼接：输入框不显示 `/msg`，发送时背后自动拼接，不露破绽
 
 ***
 
@@ -14,7 +14,7 @@
 - Whisper sidebar: online player list on the left with avatar + name + latest whisper preview, click to switch to whisper mode
 - Sidebar toggle: hamburger button at the top-left of the title bar, chat panel fills width when collapsed
 - Whisper filtering: clicking a player shows only whisper messages with them, with a purple mode indicator bar; click "Public" to return
-- Auto-fill for whisper: input box automatically fills `/msg <player> ` when switching to a player's whisper
+- Invisible whisper splicing: `/msg` is prepended behind the scenes on send, never shown in the input box
 
 ## v1.2
 
