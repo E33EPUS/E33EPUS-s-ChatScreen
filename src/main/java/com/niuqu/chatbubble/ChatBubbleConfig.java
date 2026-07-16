@@ -1,5 +1,7 @@
 package com.niuqu.chatbubble;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 public class ChatBubbleConfig {
@@ -24,6 +26,7 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.ConfigValue<String> OTHER_BUBBLE_COLOR;
     public static final ForgeConfigSpec.ConfigValue<String> OWN_TEXT_COLOR;
     public static final ForgeConfigSpec.ConfigValue<String> OTHER_TEXT_COLOR;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> QUICK_CHAT_PHRASES;
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -111,6 +114,13 @@ public class ChatBubbleConfig {
         OTHER_TEXT_COLOR = builder
             .comment("别人的文字颜色 (十六进制 RRGGBB)")
             .define("other_color", "#FFFFFF");
+
+        builder.pop();
+        builder.push("quick_chat");
+
+        QUICK_CHAT_PHRASES = builder
+            .comment("常用语列表")
+            .defineListAllowEmpty("phrases", ArrayList::new, o -> o instanceof String);
 
         builder.pop();
 

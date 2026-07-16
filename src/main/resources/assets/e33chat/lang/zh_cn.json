@@ -4,7 +4,7 @@
   "e33chat.config.title": "ChatBubble 设置",
   "e33chat.config.section.general": "常规选项",
   "e33chat.config.section.compatibility": "兼容性选项",
-  "e33chat.config.theme": "颜色主题",
+  "e33chat.config.theme": "颜色主题 (测试)",
   "e33chat.config.enabled": "启用模组",
   "e33chat.config.red_dot": "红点提示",
   "e33chat.config.hide_chat_icon": "隐藏聊天图标",
@@ -31,6 +31,10 @@
   "e33chat.context.whisper": "私聊",
   "e33chat.toast.copied": "已复制",
 
+  "e33chat.menu.settings": "设置",
+  "e33chat.menu.theme": "主题 (测试)",
+  "e33chat.menu.quick_chat": "常用语",
+
   "e33chat.emoji.tab_emoji": "😊 Emoji",
   "e33chat.emoji.tab_kaomoji": "✧ 颜文字",
 
@@ -40,5 +44,6 @@
   "e33chat.sidebar.public": "世界频道",
   "e33chat.sidebar.search": "查找玩家",
   "e33chat.sidebar.no_players": "无在线玩家",
-  "e33chat.whisper.mode": "私聊"
+  "e33chat.whisper.mode": "私聊",
+  "e33chat.quick_chat.placeholder": "添加常用语..."
 }

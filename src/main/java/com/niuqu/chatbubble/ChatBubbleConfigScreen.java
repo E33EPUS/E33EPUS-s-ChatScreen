@@ -16,7 +16,7 @@ public class ChatBubbleConfigScreen extends Screen {
     private final Screen lastScreen;
 
     private ChatBubbleTheme.Colors c() {
-        return ChatBubbleConfig.THEME.get().colors();
+        return ChatBubbleTheme.DARK.colors();
     }
     private static final int LABEL_X = 40;
     private static final int INPUT_X = 165;
@@ -175,7 +175,7 @@ public class ChatBubbleConfigScreen extends Screen {
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         renderBackground(g);
-        g.drawCenteredString(font, title, width / 2, 14, c().configTitle());
+        g.drawString(font, title, width / 2 - font.width(title) / 2, 14, c().configTitle(), false);
 
         int y = START_Y + 6 - scrollOffset;
 
@@ -234,7 +234,7 @@ public class ChatBubbleConfigScreen extends Screen {
 
     @Override
     public void renderBackground(GuiGraphics g) {
-        g.fill(0, 0, width, height, c().configBg());
+        g.fill(0, 0, width, height, 0xC0101010);
     }
 
     private int calcMaxScroll() {

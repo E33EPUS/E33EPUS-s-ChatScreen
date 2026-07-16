@@ -40,7 +40,7 @@ public class ChatBubbleHudOverlay {
         g.pose().translate(0, 0, 300);
 
         // Strong hint above hotbar — render even when a screen is open
-        if (ChatBubbleConfig.STRONG_HINT_ENABLED.get()) {
+        if (ChatBubbleConfig.STRONG_HINT_ENABLED.get() || ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get()) {
             String hint = ChatMessageStore.getStrongHintText();
             if (hint != null) {
                 int ticks = ChatMessageStore.getStrongHintTicks();
@@ -58,7 +58,7 @@ public class ChatBubbleHudOverlay {
                 alpha = Math.min(alpha, 0xFF);
                 int bgAlpha = alpha / 2;
                 int bgColor = (bgAlpha << 24) | 0x000000;
-                int baseColor = ChatMessageStore.isStrongHintMention() ? c().strongHintMention() : c().strongHintNormal();
+                int baseColor = ChatMessageStore.isStrongHintMention() ? 0xFFFFFF55 : 0xFFFFFFFF;
                 int textColor = (alpha << 24) | baseColor;
                 g.fill(hintX - 6, hintY - 3, hintX + hintW + 6, hintY + mc.font.lineHeight + 3, bgColor);
                 g.drawString(mc.font, hint, hintX, hintY, textColor, false);
@@ -104,7 +104,7 @@ public class ChatBubbleHudOverlay {
                 g.fill(bgX1, topLineY - 2, px + maxTextW + 3, bottomLineY + lineH + 2, bgColor);
                 for (int i = displays.size() - 1; i >= 0; i--) {
                     int lineY = bottomLineY - (displays.size() - 1 - i) * (lineH + gap);
-                    g.drawString(mc.font, displays.get(i), px, lineY, c().previewText(), false);
+                    g.drawString(mc.font, displays.get(i), px, lineY, 0xFFCCCCCC, false);
                 }
             }
         }
@@ -127,7 +127,7 @@ public class ChatBubbleHudOverlay {
             String keyDisplay = "[" + keyName + "]";
             int keyW = mc.font.width(keyDisplay);
             int keyX = keyW > ICON_S ? x : x + (ICON_S - keyW) / 2;
-            g.drawString(mc.font, keyDisplay, keyX, textY, c().previewText(), false);
+            g.drawString(mc.font, keyDisplay, keyX, textY, 0xFFFFFFFF, false);
         }
 
         g.pose().popPose();

@@ -41,7 +41,8 @@ public class ChatListenerMixin {
             String name = info.getProfile().getName();
             int idx = text.indexOf(name);
             if (idx >= 0 && idx < 30) {
-                if (text.contains("悄悄") || text.contains("whisper") || text.contains("对你说") || text.contains("to you")) {
+                if (text.contains("悄悄") || text.contains("whisper") || text.contains("对你说") || text.contains("to you")
+                    || text.contains("私聊") || text.contains("密语") || text.contains("密聊")) {
                     String content = extractWhisperContent(text, name);
                     UUID senderId = ChatMessageStore.lookupPlayerUUID(name);
                     LOGGER.info("[E33Chat] System(" + logTag + ") | text='" + text + "' | name=" + name + " | content='" + content + "'");
@@ -165,10 +166,10 @@ public class ChatListenerMixin {
         String sysText = message.getString();
         // Suppress outgoing whisper echo
         boolean hasEchoFlag = ChatMessageStore.hasPendingWhisperEcho();
-        boolean hasKw = sysText.contains("悄悄") || sysText.contains("whispers") || sysText.contains("whisper");
-        boolean isOutgoing = sysText.startsWith("你") || sysText.startsWith("You");
-        LOGGER.info("[E33Chat] System(echo check) | text='" + sysText + "' | flag=" + hasEchoFlag + " | kw=" + hasKw + " | outgoing=" + isOutgoing);
-        if (hasEchoFlag && hasKw && isOutgoing) {
+        boolean hasKw = sysText.contains("悄悄") || sysText.contains("whispers") || sysText.contains("whisper")
+            || sysText.contains("私聊") || sysText.contains("密语") || sysText.contains("密聊");
+        LOGGER.info("[E33Chat] System(echo check) | text='" + sysText + "' | flag=" + hasEchoFlag + " | kw=" + hasKw);
+        if (hasEchoFlag && hasKw) {
             ChatMessageStore.consumeWhisperEcho();
             LOGGER.info("[E33Chat] System(echo suppressed) | text='" + sysText + "'");
             ChatMessageStore.markSuppressCapture();
