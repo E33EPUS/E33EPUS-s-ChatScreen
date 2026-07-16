@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -81,13 +82,18 @@ public class ChatBubbleHudOverlay {
                 int lineH = mc.font.lineHeight;
                 int gap = 2;
 
-                List<String> displays = new ArrayList<>();
+                List<FormattedText> displays = new ArrayList<>();
                 int maxTextW = 0;
                 for (var e : previews) {
-                    String d = mc.font.plainSubstrByWidth(e.text, maxW - 4);
-                    if (!d.equals(e.text)) d += "...";
-                    displays.add(d);
-                    maxTextW = Math.max(maxTextW, mc.font.width(d));
+                    FormattedText trimmed;
+                    if (mc.font.width(e.text) > maxW - 4) {
+                        var cut = mc.font.substrByWidth(e.text, maxW - 4 - mc.font.width("..."));
+                        trimmed = FormattedText.composite(cut, FormattedText.of("..."));
+                    } else {
+                        trimmed = e.text;
+                    }
+                    displays.add(trimmed);
+                    maxTextW = Math.max(maxTextW, mc.font.width(trimmed));
                 }
 
                 int px = x + ICON_S / 2 - maxTextW / 2;
@@ -102,9 +108,10 @@ public class ChatBubbleHudOverlay {
                 int bgAlpha = newestAlpha / 2;
                 int bgColor = (bgAlpha << 24) | 0x000000;
                 g.fill(bgX1, topLineY - 2, px + maxTextW + 3, bottomLineY + lineH + 2, bgColor);
+                var lang = net.minecraft.locale.Language.getInstance();
                 for (int i = displays.size() - 1; i >= 0; i--) {
                     int lineY = bottomLineY - (displays.size() - 1 - i) * (lineH + gap);
-                    g.drawString(mc.font, displays.get(i), px, lineY, 0xFFCCCCCC, false);
+                    g.drawString(mc.font, lang.getVisualOrder(displays.get(i)), px, lineY, 0xFFFFFFFF, false);
                 }
             }
         }

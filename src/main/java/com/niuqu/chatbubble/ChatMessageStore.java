@@ -49,50 +49,76 @@ public class ChatMessageStore {
         return m;
     }
 
-    private static int pendingEchoCount;
-    private static final List<String> pendingEchoTexts = new ArrayList<>();
+    private record PendingEcho(String text, long time) {}
+    private static final List<PendingEcho> pendingEchoes = new ArrayList<>();
 
-    private static boolean pendingWhisperEcho;
+    private static long pendingWhisperEchoTime;
     private static boolean suppressNextCapture;
 
-    public static void markPendingWhisperEcho() { pendingWhisperEcho = true; }
+    public static void markPendingWhisperEcho() { pendingWhisperEchoTime = System.currentTimeMillis(); }
     public static void markSuppressCapture() { suppressNextCapture = true; }
 
-    public static boolean hasPendingWhisperEcho() { return pendingWhisperEcho; }
-    public static void consumeWhisperEcho() { pendingWhisperEcho = false; }
+    public static boolean hasPendingWhisperEcho() {
+        return pendingWhisperEchoTime != 0 && System.currentTimeMillis() - pendingWhisperEchoTime < 10_000;
+    }
+    public static void consumeWhisperEcho() { pendingWhisperEchoTime = 0; }
 
     public static boolean consumeSuppressCapture() {
         if (suppressNextCapture) { suppressNextCapture = false; return true; }
         return false;
     }
 
+    // Echoes not consumed within 10s (e.g. commands with no chat feedback) would
+    // otherwise poison the counter and swallow later self-attributed messages
+    private static void purgeStaleEchoes() {
+        long cutoff = System.currentTimeMillis() - 10_000;
+        pendingEchoes.removeIf(e -> e.time() < cutoff);
+    }
+
     public static void incrementPendingEcho(String sentText) {
-        pendingEchoCount++;
-        pendingEchoTexts.add(sentText);
+        purgeStaleEchoes();
+        pendingEchoes.add(new PendingEcho(sentText, System.currentTimeMillis()));
     }
 
     public static boolean consumeEchoBySystemChat(String incomingText) {
-        if (pendingEchoCount <= 0) return false;
-        for (int i = 0; i < pendingEchoTexts.size(); i++) {
-            if (incomingText.equals(pendingEchoTexts.get(i))) {
-                pendingEchoTexts.remove(i);
-                pendingEchoCount--;
+        purgeStaleEchoes();
+        for (int i = 0; i < pendingEchoes.size(); i++) {
+            if (incomingText.equals(pendingEchoes.get(i).text())) {
+                pendingEchoes.remove(i);
                 return true;
             }
         }
         return false;
     }
 
-    public static boolean consumeEchoIfSenderMatches(String senderName) {
-        if (pendingEchoCount <= 0) return false;
+    public static boolean consumeEchoIfSenderMatches(Component senderName) {
+        purgeStaleEchoes();
+        if (pendingEchoes.isEmpty()) return false;
         var player = net.minecraft.client.Minecraft.getInstance().player;
         if (player == null) return false;
-        if (senderName.contains(player.getName().getString())) {
-            pendingEchoCount--;
-            if (!pendingEchoTexts.isEmpty()) pendingEchoTexts.remove(0);
+        if (senderName.getString().contains(player.getName().getString())) {
+            pendingEchoes.remove(0);
+            updateLatestOwnSenderName(senderName);
             return true;
         }
         return false;
+    }
+
+    // The local echo bubble is created with the bare name before the server's
+    // decorated version (titles/prefixes) is known — patch it when the echo arrives
+    private static void updateLatestOwnSenderName(Component senderName) {
+        for (int i = messages.size() - 1; i >= 0 && i >= messages.size() - 5; i--) {
+            ChatMessage m = messages.get(i);
+            if (!m.isOwn()) continue;
+            if (!m.senderName().getString().equals(senderName.getString())) {
+                messages.set(i, new ChatMessage(
+                    m.senderUUID(), senderName, m.content(), m.time(),
+                    m.isOwn(), m.isSystem(), m.replyContent(), m.replySender(),
+                    m.messageHash(), m.duplicateCount(), m.rawPlayerName(),
+                    m.whisper(), m.whisperPartner()));
+            }
+            return;
+        }
     }
 
     public static UUID lookupPlayerUUID(String name) {
@@ -135,9 +161,9 @@ public class ChatMessageStore {
     ) {}
 
     public static class PreviewEntry {
-        public final String text;
+        public final Component text;
         public int ticks;
-        public PreviewEntry(String text, int ticks) {
+        public PreviewEntry(Component text, int ticks) {
             this.text = text;
             this.ticks = ticks;
         }
@@ -149,7 +175,9 @@ public class ChatMessageStore {
 
         String playerName = net.minecraft.client.Minecraft.getInstance().player != null
             ? net.minecraft.client.Minecraft.getInstance().player.getName().getString() : "";
-        boolean own = senderName != null && senderName.getString().equals(playerName);
+        boolean own = (rawPlayerName != null && !rawPlayerName.isEmpty())
+            ? rawPlayerName.equals(playerName)
+            : senderName != null && senderName.getString().equals(playerName);
 
         if (ChatBubbleConfig.ANTI_SPAM.get() && !messages.isEmpty()) {
             ChatMessage last = messages.get(messages.size() - 1);
@@ -229,10 +257,17 @@ public class ChatMessageStore {
             }
 
             if (ChatBubbleConfig.PREVIEW_ENABLED.get() && !systemToHint && !mentionToHint) {
-                String sender = senderName != null ? senderName.getString() : "";
-                if (sender.isEmpty() && isSystem) sender = Component.translatable("e33chat.sender.system").getString();
-                String preview = sender.isEmpty() ? content.getString() : sender + ": " + content.getString();
-                previews.add(new PreviewEntry(preview, PREVIEW_TICKS));
+                Component previewComp;
+                if (senderName == null || senderName.getString().isEmpty()) {
+                    if (isSystem) {
+                        previewComp = Component.translatable("e33chat.sender.system").copy().append(Component.literal(": ")).append(content);
+                    } else {
+                        previewComp = content;
+                    }
+                } else {
+                    previewComp = Component.empty().append(senderName).append(Component.literal(": ")).append(content);
+                }
+                previews.add(new PreviewEntry(previewComp, PREVIEW_TICKS));
                 while (previews.size() > ChatBubbleConfig.PREVIEW_LINES.get())
                     previews.remove(0);
             }
@@ -246,6 +281,20 @@ public class ChatMessageStore {
         if (whisper && whisperPartner != null && !own) {
             markWhisperUnread(whisperPartner);
         }
+    }
+
+    public static Component sliceStyled(Component src, int start, int end) {
+        MutableComponent out = Component.empty();
+        int[] pos = {0};
+        src.visit((style, text) -> {
+            int s = pos[0], e = s + text.length();
+            pos[0] = e;
+            int from = Math.max(start, s), to = Math.min(end, e);
+            if (from < to)
+                out.append(Component.literal(text.substring(from - s, to - s)).withStyle(style));
+            return Optional.<Object>empty();
+        }, Style.EMPTY);
+        return out;
     }
 
     private static Component addUnderlineToClicks(Component original) {
@@ -346,7 +395,9 @@ public class ChatMessageStore {
     public static Component quoteMessage(int index) {
         if (index < 0 || index >= messages.size()) return Component.literal("");
         ChatMessage msg = messages.get(index);
-        MutableComponent quote = Component.literal("> " + msg.senderName().getString() + ": ");
+        String qName = (msg.rawPlayerName() != null && !msg.rawPlayerName().isEmpty())
+            ? msg.rawPlayerName() : msg.senderName().getString();
+        MutableComponent quote = Component.literal("> " + qName + ": ");
         quote.append(msg.content());
         return quote;
     }
@@ -443,6 +494,7 @@ public class ChatMessageStore {
             var obj = new HashMap<String, Object>();
             obj.put("senderUUID", msg.senderUUID().toString());
             obj.put("senderName", msg.senderName().getString());
+            obj.put("senderNameJson", Component.Serializer.toJson(msg.senderName()));
             obj.put("content", Component.Serializer.toJson(msg.content()));
             obj.put("time", msg.time().format(DateTimeFormatter.ISO_LOCAL_TIME));
             obj.put("isOwn", msg.isOwn());
@@ -474,7 +526,12 @@ public class ChatMessageStore {
             for (Map<String, Object> obj : list) {
                 try {
                     UUID uuid = UUID.fromString((String) obj.get("senderUUID"));
-                    Component senderName = Component.literal((String) obj.get("senderName"));
+                    Component senderName = null;
+                    String snJson = (String) obj.get("senderNameJson");
+                    if (snJson != null) {
+                        try { senderName = Component.Serializer.fromJson(snJson); } catch (Exception ignored2) {}
+                    }
+                    if (senderName == null) senderName = Component.literal((String) obj.get("senderName"));
                     Component content = Component.Serializer.fromJson((String) obj.get("content"));
                     if (content == null) content = Component.literal("");
                     LocalTime time = LocalTime.parse((String) obj.get("time"), DateTimeFormatter.ISO_LOCAL_TIME);

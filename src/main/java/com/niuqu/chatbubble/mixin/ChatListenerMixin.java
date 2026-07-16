@@ -22,6 +22,42 @@ import java.util.UUID;
 public class ChatListenerMixin {
     private static final Logger LOGGER = LogUtils.getLogger();
 
+    // Pulls styled server prefixes out of the decorated line: "[Group]<Steve> hi" -> "[Group]Steve"
+    private static Component extractDecoratedName(Component fullLine, String contentStr,
+                                                  String rawName, Component fallback) {
+        if (contentStr == null || contentStr.isEmpty()) return fallback;
+        String fullStr = fullLine.getString();
+        int idx = fullStr.lastIndexOf(contentStr);
+        if (idx <= 0) return fallback;
+        int a = 0, b = idx;
+        while (a < b && Character.isWhitespace(fullStr.charAt(a))) a++;
+        while (b > a) {
+            char ch = fullStr.charAt(b - 1);
+            if (Character.isWhitespace(ch) || ch == ':' || ch == '：' || ch == '»') b--;
+            else break;
+        }
+        if (a >= b) return fallback;
+        Component nameArea = ChatMessageStore.sliceStyled(fullLine, a, b);
+        String ns = nameArea.getString();
+        if (rawName != null && !rawName.isEmpty()) {
+            String bracketed = "<" + rawName + ">";
+            int p = ns.indexOf(bracketed);
+            if (p >= 0) {
+                var out = Component.empty();
+                if (p > 0) out.append(ChatMessageStore.sliceStyled(nameArea, 0, p));
+                out.append(ChatMessageStore.sliceStyled(nameArea, p + 1, p + 1 + rawName.length()));
+                int tail = p + bracketed.length();
+                if (tail < ns.length()) out.append(ChatMessageStore.sliceStyled(nameArea, tail, ns.length()));
+                return out;
+            }
+            // Team-decorated names sit inside the brackets: "<[Team]Steve>" -> "[Team]Steve"
+            if (ns.length() > 2 && ns.charAt(0) == '<' && ns.charAt(ns.length() - 1) == '>') {
+                return ChatMessageStore.sliceStyled(nameArea, 1, ns.length() - 1);
+            }
+        }
+        return nameArea;
+    }
+
     private static String extractWhisperContent(String fullText, String senderName) {
         if (senderName == null || senderName.isEmpty()) return fullText;
         int idx = fullText.indexOf(senderName);
@@ -45,7 +81,7 @@ public class ChatListenerMixin {
                     || text.contains("私聊") || text.contains("密语") || text.contains("密聊")) {
                     String content = extractWhisperContent(text, name);
                     UUID senderId = ChatMessageStore.lookupPlayerUUID(name);
-                    LOGGER.info("[E33Chat] System(" + logTag + ") | text='" + text + "' | name=" + name + " | content='" + content + "'");
+                    LOGGER.info("[e33chat] System(" + logTag + ") | text='" + text + "' | name=" + name + " | content='" + content + "'");
                     return new SenderMeta(
                         senderId,
                         Component.literal(name),
@@ -90,13 +126,27 @@ public class ChatListenerMixin {
             String name = gameProfile.getName();
             String pattern = "<" + name + "> ";
             int idx = rawStr.indexOf(pattern);
-            if (idx >= 0) {
-                String displayName = (rawStr.substring(0, idx) + name).trim();
-                String cleanContent = rawStr.substring(idx + pattern.length());
+            int contentStart = idx >= 0 ? idx + pattern.length() : -1;
+            int prefixEnd = idx;
+            if (contentStart < 0) {
+                int i2 = rawStr.indexOf(name + "> ");
+                if (i2 > 0) {
+                    int open = rawStr.lastIndexOf('<', i2);
+                    if (open >= 0 && rawStr.indexOf('>', open) == i2 + name.length()) {
+                        contentStart = i2 + name.length() + 2;
+                        prefixEnd = open;
+                    }
+                }
+            }
+            if (contentStart >= 0) {
+                String cleanContent = rawStr.substring(contentStart);
+                Component displayName = extractDecoratedName(raw, cleanContent, name,
+                    Component.literal((rawStr.substring(0, prefixEnd) + name).trim()));
+                Component contentComp = ChatMessageStore.sliceStyled(raw, contentStart, rawStr.length());
                 ChatMessageStore.setPendingMeta(new SenderMeta(
                     senderId != null ? senderId : new UUID(0, 0),
-                    Component.literal(displayName),
-                    Component.literal(cleanContent),
+                    displayName,
+                    contentComp,
                     false,
                     name,
                     isWhisper, whisperPartner
@@ -106,13 +156,17 @@ public class ChatListenerMixin {
         }
 
         Component playerContent = raw;
+        Component senderName = Component.literal(gameProfile.getName());
         if (isWhisper) {
             playerContent = Component.literal(extractWhisperContent(rawStr, gameProfile.getName()));
+        } else {
+            Component fullLine = bound.decorate(raw);
+            senderName = extractDecoratedName(fullLine, rawStr, gameProfile.getName(), senderName);
         }
-        LOGGER.info("[E33Chat] PlayerChat | raw='" + rawStr + "' | whisper=" + isWhisper + " | partner=" + whisperPartner + " | content='" + playerContent.getString() + "'");
+        LOGGER.info("[e33chat] PlayerChat | raw='" + rawStr + "' | whisper=" + isWhisper + " | partner=" + whisperPartner + " | sender='" + senderName.getString() + "' | content='" + playerContent.getString() + "'");
         ChatMessageStore.setPendingMeta(new SenderMeta(
             senderId != null ? senderId : new UUID(0, 0),
-            Component.literal(gameProfile.getName()),
+            senderName,
             playerContent,
             false,
             gameProfile.getName(),
@@ -145,13 +199,17 @@ public class ChatListenerMixin {
             }
         }
         Component disContent = message;
+        Component disSender = hasSender ? bound.name() : Component.translatable("e33chat.sender.system");
         if (isWhisper && hasSender) {
             disContent = Component.literal(extractWhisperContent(msgStr, bound.name().getString()));
+        } else if (hasSender) {
+            Component fullLine = bound.decorate(message);
+            disSender = extractDecoratedName(fullLine, msgStr, bound.name().getString(), disSender);
         }
-        LOGGER.info("[E33Chat] Disguised | raw='" + msgStr + "' | whisper=" + isWhisper + " | partner=" + whisperPartner + " | content='" + disContent.getString() + "'");
+        LOGGER.info("[e33chat] Disguised | raw='" + msgStr + "' | whisper=" + isWhisper + " | partner=" + whisperPartner + " | sender='" + disSender.getString() + "' | content='" + disContent.getString() + "'");
         ChatMessageStore.setPendingMeta(new SenderMeta(
             new UUID(0, 0),
-            hasSender ? bound.name() : Component.translatable("e33chat.sender.system"),
+            disSender,
             disContent,
             !hasSender,
             hasSender ? bound.name().getString() : null,
@@ -168,14 +226,14 @@ public class ChatListenerMixin {
         boolean hasEchoFlag = ChatMessageStore.hasPendingWhisperEcho();
         boolean hasKw = sysText.contains("悄悄") || sysText.contains("whispers") || sysText.contains("whisper")
             || sysText.contains("私聊") || sysText.contains("密语") || sysText.contains("密聊");
-        LOGGER.info("[E33Chat] System(echo check) | text='" + sysText + "' | flag=" + hasEchoFlag + " | kw=" + hasKw);
+        LOGGER.info("[e33chat] System(echo check) | text='" + sysText + "' | flag=" + hasEchoFlag + " | kw=" + hasKw);
         if (hasEchoFlag && hasKw) {
             ChatMessageStore.consumeWhisperEcho();
-            LOGGER.info("[E33Chat] System(echo suppressed) | text='" + sysText + "'");
+            LOGGER.info("[e33chat] System(echo suppressed) | text='" + sysText + "'");
             ChatMessageStore.markSuppressCapture();
             return;
         }
-        LOGGER.info("[E33Chat] System | text='" + sysText + "' | overlay=" + overlay);
+        LOGGER.info("[e33chat] System | text='" + sysText + "' | overlay=" + overlay);
 
         if (ChatBubbleConfig.CHAT_REPORT_COMPAT.get()) {
             String text = message.getString();
@@ -194,15 +252,32 @@ public class ChatListenerMixin {
                         break;
                     }
                 }
+                // Prefix inside the brackets: "<[Title]Steve> msg"
+                if (foundName == null) {
+                    for (var info : connection.getOnlinePlayers()) {
+                        String name = info.getProfile().getName();
+                        int idx = text.indexOf(name + "> ");
+                        if (idx <= 0) continue;
+                        int open = text.lastIndexOf('<', idx);
+                        if (open >= 0 && text.indexOf('>', open) == idx + name.length()) {
+                            foundName = name;
+                            nameStart = open;
+                            contentStart = idx + name.length() + 2;
+                            break;
+                        }
+                    }
+                }
             }
             if (foundName != null) {
                 UUID senderId = ChatMessageStore.lookupPlayerUUID(foundName);
-                String displayName = (text.substring(0, nameStart) + foundName).trim();
                 String cleanContent = text.substring(contentStart);
+                Component displayName = extractDecoratedName(message, cleanContent, foundName,
+                    Component.literal((text.substring(0, nameStart) + foundName).trim()));
+                Component contentComp = ChatMessageStore.sliceStyled(message, contentStart, text.length());
                 ChatMessageStore.setPendingMeta(new SenderMeta(
                     senderId,
-                    Component.literal(displayName),
-                    Component.literal(cleanContent),
+                    displayName,
+                    contentComp,
                     false,
                     foundName,
                     false, null

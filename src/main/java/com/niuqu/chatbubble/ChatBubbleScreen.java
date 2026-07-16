@@ -780,7 +780,9 @@ public class ChatBubbleScreen extends Screen {
                 int avatarY = msg.replyContent() != null ? r[1] - font.lineHeight - 2 : r[1] - NAME_H;
                 if (mouseX >= avatarX && mouseX <= avatarX + AVATAR
                     && mouseY >= avatarY && mouseY <= avatarY + AVATAR) {
-                    String mention = "@" + msg.senderName().getString() + " ";
+                    String mentionName = (msg.rawPlayerName() != null && !msg.rawPlayerName().isEmpty())
+                        ? msg.rawPlayerName() : msg.senderName().getString();
+                    String mention = "@" + mentionName + " ";
                     input.setValue(input.getValue() + mention);
                     input.moveCursorToEnd();
                     return true;
@@ -1358,12 +1360,18 @@ public class ChatBubbleScreen extends Screen {
 
         if (!msg.senderName().getString().isEmpty() && msg.replyContent() == null) {
             int maxNameW = panelW - AVATAR - PAD * 2 - 20;
-            Component displayName = msg.senderName();
-            if (font.width(displayName) > maxNameW)
-                displayName = Component.literal(font.plainSubstrByWidth(displayName.getString(), maxNameW - font.width("...")) + "...");
-            int nameW = font.width(displayName);
+            Component sn = msg.senderName();
+            net.minecraft.util.FormattedCharSequence nameSeq;
+            if (font.width(sn) > maxNameW) {
+                var cut = font.substrByWidth(sn, maxNameW - font.width("..."));
+                nameSeq = net.minecraft.locale.Language.getInstance().getVisualOrder(
+                    net.minecraft.network.chat.FormattedText.composite(cut, net.minecraft.network.chat.FormattedText.of("...")));
+            } else {
+                nameSeq = sn.getVisualOrderText();
+            }
+            int nameW = font.width(nameSeq);
             int startX = own ? (bubbleX + bubbleW - nameW) : bubbleX;
-            g.drawString(font, displayName, startX, nameY, c().nameColor(), false);
+            g.drawString(font, nameSeq, startX, nameY, c().nameColor(), false);
         }
 
         int bubbleY = baseY + (msg.replyContent() != null ? font.lineHeight + 2 : NAME_H);
@@ -2010,8 +2018,10 @@ public class ChatBubbleScreen extends Screen {
         if (replyTargetIndex >= 0) {
             ChatMessageStore.ChatMessage target = ChatMessageStore.getMessageAt(replyTargetIndex);
             if (target != null) {
-                ChatMessageStore.setPendingReply(target.content().getString(), target.senderName().getString());
-                QuoteSyncPacket.send(target.senderName().getString(), target.content().getString(), displayText);
+                String quoteSender = (target.rawPlayerName() != null && !target.rawPlayerName().isEmpty())
+                    ? target.rawPlayerName() : target.senderName().getString();
+                ChatMessageStore.setPendingReply(target.content().getString(), quoteSender);
+                QuoteSyncPacket.send(quoteSender, target.content().getString(), displayText);
             }
             replyTargetIndex = -1;
         }
@@ -2022,14 +2032,17 @@ public class ChatBubbleScreen extends Screen {
             minecraft.player.connection.sendChat(text);
         minecraft.gui.getChat().addRecentChat(text);
 
-        com.mojang.logging.LogUtils.getLogger().info("[E33Chat] Send | cmd='" + text + "' | display='" + displayText + "' | whisperTarget=" + whisperTarget);
+        com.mojang.logging.LogUtils.getLogger().info("[e33chat] Send | cmd='" + text + "' | display='" + displayText + "' | whisperTarget=" + whisperTarget);
         ChatMessageStore.addMessage(Component.literal(displayText),
             minecraft.player.getUUID(),
             Component.literal(minecraft.player.getName().getString()),
             false,
             minecraft.player.getName().getString(),
             whisperTarget != null, whisperTarget);
-        ChatMessageStore.incrementPendingEcho(text);
+        boolean expectsChatEcho = !text.startsWith("/")
+            || text.startsWith("/msg ") || text.startsWith("/tell ") || text.startsWith("/w ")
+            || text.startsWith("/me ") || text.startsWith("/say ");
+        if (expectsChatEcho) ChatMessageStore.incrementPendingEcho(text);
         if (whisperTarget != null) ChatMessageStore.markPendingWhisperEcho();
 
         input.setValue("");

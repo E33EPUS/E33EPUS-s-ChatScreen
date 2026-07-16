@@ -68,7 +68,7 @@ public class ChatComponentMixin {
         }
 
         if (ChatMessageStore.consumeSuppressCapture()) return;
-        if (ChatMessageStore.consumeEchoIfSenderMatches(meta.senderName().getString())) return;
+        if (ChatMessageStore.consumeEchoIfSenderMatches(meta.senderName())) return;
         if (ChatMessageStore.consumeEchoBySystemChat(finalComponent.getString())) return;
 
         String rawStr = meta.rawContent().getString();
@@ -80,7 +80,7 @@ public class ChatComponentMixin {
             content = finalComponent;
         }
 
-        LOGGER.info("[E33Chat] Capture | final='" + finalComponent.getString() + "' | content='" + content.getString() + "' | whisper=" + meta.whisper() + " | partner=" + meta.whisperPartner() + " | isSystem=" + meta.isSystem());
+        LOGGER.info("[e33chat] Capture | final='" + finalComponent.getString() + "' | content='" + content.getString() + "' | whisper=" + meta.whisper() + " | partner=" + meta.whisperPartner() + " | isSystem=" + meta.isSystem());
         ChatMessageStore.addMessage(content, meta.senderUUID(), meta.senderName(), meta.isSystem(), meta.rawPlayerName(), meta.whisper(), meta.whisperPartner());
     }
 }
