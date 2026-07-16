@@ -46,23 +46,23 @@ public enum ChatBubbleTheme {
                 0xFFFFFFFF, 0xFFFFAA00, 0xFFFFFFFF, 0xC0101010
             );
             case LIGHT -> new Colors(
-                0xEEF0F0F0, 0xFFE0E0E0, 0xFFE8E8E8,
-                0xFFE8E8E8, 0xFFD8D8D8, 0xFFCCDDFF, 0xFFCCCCCC,
-                0xFFCCCCCC, 0xFFFFFFFF,
-                0xFF1A1A1A, 0xFF666666, 0xFF999999,
-                0xFF0066CC, 0xFF888888,
-                0xDDEEEEEE, 0xDDCCCCCC, 0xFF1A1A1A,
-                0xFFF0F0F0, 0xFFBBDDFF, 0xFF1A1A1A,
-                0xFFCCCCCC,
-                0xFF2266CC, 0xAA9966CC,
-                0xCCFFFFFF, 0xFF1A1A1A,
-                0x00333333, 0x00666666,
-                0xFFCCCCCC, 0xFFAAAAAA, 0xFF666666,
-                0xFF888888, 0xFF3366CC, 0xFFCC6600,
+                0xEEFBFFD6, 0xFFF2F6CD, 0xFFF2F6CD,
+                0xFFEDF1C8, 0xFFE5E9C0, 0xFFCCDDFF, 0xFFD5D9B0,
+                0xFFD5D9B0, 0xFFFFFFFF,
+                0xFF3D3D29, 0xFF707056, 0xFF9E9E88,
+                0xFF3366BB, 0xFF9E9E88,
+                0xDDF2F6CD, 0xDDD5D9B0, 0xFF3D3D29,
+                0xFFF2F6CD, 0xFFBBDDFF, 0xFF3D3D29,
+                0xFFD5D9B0,
+                0xFF3366BB, 0xAA9966CC,
+                0xCC3D3D29, 0xFFFBFFD6,
+                0x00A0A08C, 0x00707056,
+                0xFFD5D9B0, 0xFFC0C495, 0xFF707056,
+                0xFF9E9E88, 0xFF3366BB, 0xFFCC6600,
                 0xFFCC0000, 0xFFFF2222,
-                0xFF1A1A1A, 0xFFCC8800,
-                0xFF1A1A1A,
-                0xFF0066CC, 0xFF0066CC, 0xFF333333, 0xC0F0F0F0
+                0xFF3D3D29, 0xFFCC6600,
+                0xFF3D3D29,
+                0xFF3366BB, 0xFF3366BB, 0xFF3D3D29, 0xC0EDF1C8
             );
         };
     }
