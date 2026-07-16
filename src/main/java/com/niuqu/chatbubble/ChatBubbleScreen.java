@@ -5,7 +5,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.renderer.GameRenderer;
@@ -31,7 +30,7 @@ public class ChatBubbleScreen extends Screen {
     private int panelX, panelW;
     private static final int TITLE_H = 24;
     private int titleY, msgTop, msgBottom, barTop;
-    private static final int PAD = 10;
+    private static final int PAD = 8;
     private static final int AVATAR = 20;
     private static final int BUBBLE_PAD_X = 6;
     private static final int BUBBLE_PAD_Y = 4;
@@ -41,7 +40,7 @@ public class ChatBubbleScreen extends Screen {
     private static final int BAR_H = 26;
     private static final int SIDEBAR_W = 90;
     private static final int SIDEBAR_ITEM_H = 22;
-    private static final int SIDEBAR_AVATAR_S = 20;
+    private static final int SIDEBAR_ICON_S = 20;
     private static final int COLOR_SIDEBAR_BG = 0xFF1A1A1A;
     private static final int COLOR_SIDEBAR_ITEM_HOVER = 0xFF2A2A2A;
     private static final int COLOR_SIDEBAR_ITEM_SELECTED = 0xFF3A3A3A;
@@ -53,6 +52,9 @@ public class ChatBubbleScreen extends Screen {
     private static final ResourceLocation TEX_SEND = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/send");
     private static final ResourceLocation TEX_EMOJI = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/emoji");
     private static final ResourceLocation TEX_MENU = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/menu");
+    private static final ResourceLocation TEX_PUBLIC_ICON = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/public_icon");
+    private static final ResourceLocation TEX_PRIVATE_TIP = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/private_tip");
+    private static final ResourceLocation TEX_NO_ONLINE = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/no_online");
     private static boolean iconsLoaded;
 
     private static final int COLOR_NAME = 0xFFCCCCCC;
@@ -95,18 +97,21 @@ public class ChatBubbleScreen extends Screen {
     private int sidebarScrollOffset;
     private EditBox sidebarSearchBox;
 
+    // Sidebar animation
+    private long sidebarAnimStart;
+    private boolean sidebarTargetOpen;
+    private boolean sidebarAnimating;
+
     // Scrollbar
     private static final int SCROLLBAR_WIDTH = 6;
     private static final int MIN_THUMB_H = 8;
-    private static final int TRACK_COLOR = 0x1AFFFFFF;
-    private static final int THUMB_COLOR = 0x66FFFFFF;
-    private static final int THUMB_HOVER_COLOR = 0x88FFFFFF;
-    private static final int THUMB_DRAG_COLOR = 0xAAFFFFFF;
     private boolean scrollbarDragging;
     private int scrollbarDragStartY;
     private int scrollbarDragStartOffset;
     private int messageTotalH;
     private boolean scrollbarHovered;
+    private float scrollbarAlpha;
+    private static final int SCROLLBAR_HOVER_ZONE = 20;
 
     private static final int EMOJI_PANEL_H = 132;
     private static final int EMOJI_TAB_H = 18;
@@ -203,7 +208,16 @@ public class ChatBubbleScreen extends Screen {
         closing = false;
 
         panelW = Math.max(200, (int) (width * 0.4));
-        panelX = sidebarOpen ? SIDEBAR_W : 0;
+        if (sidebarOpen) {
+            panelX = 0;
+            sidebarTargetOpen = true;
+            sidebarAnimating = true;
+            sidebarAnimStart = net.minecraft.Util.getMillis();
+        } else {
+            panelX = 0;
+            sidebarAnimating = false;
+            sidebarTargetOpen = false;
+        }
         if (panelX + panelW > width) panelW = width - panelX;
         titleY = 0;
         msgTop = titleY + TITLE_H + 1;
@@ -242,13 +256,13 @@ public class ChatBubbleScreen extends Screen {
         sidebarSearchBox.setVisible(sidebarOpen);
         sidebarSearchBox.setCanLoseFocus(true);
         sidebarSearchBox.setResponder(s -> sidebarScrollOffset = 0);
+        if (sidebarOpen) sidebarSearchBox.setX(2 - SIDEBAR_W);
         addRenderableWidget(sidebarSearchBox);
 
         setInitialFocus(input);
     }
 
     private void rebuildLayout() {
-        panelX = sidebarOpen ? SIDEBAR_W : 0;
         panelW = Math.max(200, (int)(width * 0.4));
         if (panelX + panelW > width) panelW = width - panelX;
         titleY = 0;
@@ -273,6 +287,39 @@ public class ChatBubbleScreen extends Screen {
     private String getDisplayTitle() {
         if (whisperPartner != null) return whisperPartner;
         return Component.translatable("e33chat.sidebar.public").getString();
+    }
+
+    private float getSidebarAnimProgress() {
+        if (!sidebarAnimating) return sidebarOpen ? 1f : 0f;
+        long elapsed = net.minecraft.Util.getMillis() - sidebarAnimStart;
+        float t = Mth.clamp((float) elapsed / ANIM_MS, 0f, 1f);
+        float progress = 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
+        return sidebarTargetOpen ? progress : 1.0f - progress;
+    }
+
+    private int getSidebarScreenX() {
+        return (int)((getSidebarAnimProgress() - 1.0f) * SIDEBAR_W);
+    }
+
+    private void tickSidebarAnimation() {
+        if (!sidebarAnimating) return;
+        long elapsed = net.minecraft.Util.getMillis() - sidebarAnimStart;
+        float t = Mth.clamp((float) elapsed / ANIM_MS, 0f, 1f);
+        if (t >= 1f) {
+            sidebarAnimating = false;
+            sidebarOpen = sidebarTargetOpen;
+            panelX = sidebarOpen ? SIDEBAR_W : 0;
+            sidebarSearchBox.setX(2);
+            sidebarSearchBox.setVisible(sidebarOpen);
+            if (!sidebarOpen && sidebarSearchBox.isFocused()) setFocused(input);
+            rebuildLayout();
+            return;
+        }
+        float progress = getSidebarAnimProgress();
+        panelX = (int)(SIDEBAR_W * progress);
+        sidebarSearchBox.setX(2 + getSidebarScreenX());
+        sidebarSearchBox.setVisible(progress > 0.01f);
+        rebuildLayout();
     }
 
     private static final int SIDEBAR_SEARCH_H = 14;
@@ -304,8 +351,18 @@ public class ChatBubbleScreen extends Screen {
         int pubBg = isPublic ? COLOR_SIDEBAR_ITEM_SELECTED
             : (mouseX >= 0 && mouseX <= SIDEBAR_W && mouseY >= y && mouseY <= y + itemH ? COLOR_SIDEBAR_ITEM_HOVER : 0);
         if (pubBg != 0) g.fill(0, y, SIDEBAR_W, y + itemH, pubBg);
+        drawTextureIcon(g, TEX_PUBLIC_ICON, 2, y + 1, SIDEBAR_ICON_S);
+        int nameX = 2 + SIDEBAR_ICON_S + 3;
         String publicLabel = Component.translatable("e33chat.sidebar.public").getString();
-        g.drawString(font, Component.literal(publicLabel), 4, y + (itemH - font.lineHeight) / 2, 0xFFFFFFFF, false);
+        g.drawString(font, Component.literal(publicLabel), nameX, y + 1, 0xFFFFFFFF, false);
+        ChatMessageStore.ChatMessage latestPub = ChatMessageStore.getLatestPublicMessage();
+        if (latestPub != null) {
+            int previewMaxW = SIDEBAR_W - nameX - 4;
+            String preview = latestPub.content().getString();
+            String previewDisplay = font.plainSubstrByWidth(preview, previewMaxW - font.width("..."));
+            if (!previewDisplay.equals(preview)) previewDisplay += "...";
+            g.drawString(font, Component.literal(previewDisplay), nameX, y + 1 + font.lineHeight, 0xFF888888, false);
+        }
         y += itemH + 2;
 
         if (minecraft.player != null && minecraft.player.connection != null) {
@@ -322,6 +379,15 @@ public class ChatBubbleScreen extends Screen {
                 if (!filter.isEmpty() && !name.toLowerCase().contains(filter)) continue;
                 totalH += itemH + 2;
             }
+
+            if (totalH == 0) {
+                int iconS = 32;
+                drawTextureIcon(g, TEX_NO_ONLINE, (SIDEBAR_W - iconS) / 2, startY + 8, iconS);
+                String noPlayers = Component.translatable("e33chat.sidebar.no_players").getString();
+                int textW = font.width(noPlayers);
+                g.drawString(font, Component.literal(noPlayers),
+                    (SIDEBAR_W - textW) / 2, startY + 8 + iconS + 4, 0xFF888888, false);
+            } else {
             int maxSideScroll = Math.max(0, totalH - (visibleBottom - startY));
             if (sidebarScrollOffset > maxSideScroll) sidebarScrollOffset = maxSideScroll;
 
@@ -339,10 +405,10 @@ public class ChatBubbleScreen extends Screen {
                     if (itemBg != 0) g.fill(0, scrollY, SIDEBAR_W, scrollY + itemH, itemBg);
 
                     ResourceLocation skin = getSkin(info.getProfile().getId());
-                    PlayerFaceRenderer.draw(g, skin, 2, scrollY + 1, SIDEBAR_AVATAR_S);
+                    drawPlayerHead(g, skin, 3, scrollY + 2, 18, 20);
 
-                    int nameX = 2 + SIDEBAR_AVATAR_S + 3;
-                    int maxNameW = SIDEBAR_W - nameX - 4;
+                    int tipW = ChatMessageStore.hasUnreadWhisper(name) ? 16 : 0;
+                    int maxNameW = SIDEBAR_W - nameX - 4 - tipW - 2;
                     String displayName = font.plainSubstrByWidth(name, maxNameW - font.width("..."));
                     if (!displayName.equals(name)) displayName += "...";
                     g.drawString(font, Component.literal(displayName), nameX, scrollY + 1, 0xFFFFFFFF, false);
@@ -354,10 +420,17 @@ public class ChatBubbleScreen extends Screen {
                         if (!previewDisplay.equals(preview)) previewDisplay += "...";
                         g.drawString(font, Component.literal(previewDisplay), nameX, scrollY + 1 + font.lineHeight, 0xFF888888, false);
                     }
+
+                    if (ChatMessageStore.hasUnreadWhisper(name)) {
+                        int tipX = SIDEBAR_W - 16 - 2;
+                        int tipY = scrollY + 3 + (int)(Math.abs(Math.sin(System.currentTimeMillis() / 300.0)) * 3);
+                        drawTextureIcon(g, TEX_PRIVATE_TIP, tipX, tipY, 16);
+                    }
                 }
                 scrollY += itemH + 2;
             }
             g.disableScissor();
+            }
         }
     }
 
@@ -472,7 +545,8 @@ public class ChatBubbleScreen extends Screen {
             mentionIdx = Mth.clamp(mentionIdx - (int) delta, 0, mentionCandidates.size() - 1);
             return true;
         }
-        if (sidebarOpen && mouseX >= 0 && mouseX <= SIDEBAR_W) {
+        int sidebarX = getSidebarScreenX();
+        if ((sidebarOpen || sidebarAnimating) && mouseX >= sidebarX && mouseX <= sidebarX + SIDEBAR_W) {
             sidebarScrollOffset = Mth.clamp(sidebarScrollOffset - (int)(delta * 20), 0, 10000);
             return true;
         }
@@ -509,7 +583,8 @@ public class ChatBubbleScreen extends Screen {
         }
 
         // Sidebar clicks
-        if (sidebarOpen && button == 0 && mouseX >= 0 && mouseX <= SIDEBAR_W) {
+        int sidebarX = getSidebarScreenX();
+        if ((sidebarOpen || sidebarAnimating) && button == 0 && mouseX >= sidebarX && mouseX <= sidebarX + SIDEBAR_W) {
             // Search box
             int searchY = 2;
             int searchH = SIDEBAR_SEARCH_H;
@@ -542,6 +617,7 @@ public class ChatBubbleScreen extends Screen {
                     if (!filter.isEmpty() && !name.toLowerCase().contains(filter)) continue;
                     if (mouseY >= scrollY && mouseY <= scrollY + SIDEBAR_ITEM_H) {
                         whisperPartner = name;
+                        ChatMessageStore.clearUnreadWhisper(name);
                         sidebarSearchBox.setValue("");
                         setFocused(input);
                         scrollToBottom = true;
@@ -621,10 +697,16 @@ public class ChatBubbleScreen extends Screen {
 
         if (button == 0) {
             if (isMouseOverHamburger(mouseX, mouseY)) {
-                sidebarOpen = !sidebarOpen;
-                sidebarSearchBox.setVisible(sidebarOpen);
-                if (!sidebarOpen && sidebarSearchBox.isFocused()) setFocused(input);
-                rebuildLayout();
+                if (sidebarAnimating) {
+                    sidebarTargetOpen = !sidebarTargetOpen;
+                    long elapsed = net.minecraft.Util.getMillis() - sidebarAnimStart;
+                    float currentT = Mth.clamp((float) elapsed / ANIM_MS, 0f, 1f);
+                    sidebarAnimStart = net.minecraft.Util.getMillis() - (long)((1.0f - currentT) * ANIM_MS);
+                } else {
+                    sidebarTargetOpen = !sidebarOpen;
+                    sidebarAnimating = true;
+                    sidebarAnimStart = net.minecraft.Util.getMillis();
+                }
                 return true;
             }
             if (mouseX >= panelX + panelW - 18 && mouseX <= panelX + panelW - 6
@@ -844,6 +926,7 @@ public class ChatBubbleScreen extends Screen {
                 minecraft.player.connection.sendCommand("tp " + name);
             } else if (my >= menuY + CTX_ITEM_H + 2 && my <= menuY + CTX_ITEM_H * 2 + 2) {
                 whisperPartner = name;
+                ChatMessageStore.clearUnreadWhisper(name);
                 if (sidebarSearchBox != null) sidebarSearchBox.setValue("");
                 setFocused(input);
                 scrollToBottom = true;
@@ -854,6 +937,8 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        tickSidebarAnimation();
+
         float anim = getAnimProgress();
         int panelOffset = (int) ((anim - 1.0f) * panelW);
 
@@ -861,8 +946,6 @@ public class ChatBubbleScreen extends Screen {
         int overlayAlpha = (int) (0.94f * anim * 160) << 24;
         if (overlayAlpha != 0)
             g.fill(panelX + panelW + panelOffset, 0, width, height, overlayAlpha | 0x000000);
-
-        if (sidebarOpen) renderSidebar(g, mouseX, mouseY);
 
         // Panel contents slide in from left
         g.pose().pushPose();
@@ -890,6 +973,19 @@ public class ChatBubbleScreen extends Screen {
         g.disableScissor();
 
         g.pose().popPose();
+
+        // Sidebar on top of chat panel, with its own slide animation
+        // When closing, sidebar follows the chat panel's close animation
+        if (sidebarOpen || sidebarAnimating) {
+            g.pose().pushPose();
+            int sidebarOffset = closing
+                ? (int)((getAnimProgress() - 1.0f) * SIDEBAR_W)
+                : getSidebarScreenX();
+            g.pose().translate(sidebarOffset, 0, 0);
+            renderSidebar(g, mouseX - sidebarOffset, mouseY);
+            g.pose().popPose();
+            if (closing) sidebarSearchBox.setX(2 + sidebarOffset);
+        }
 
         super.render(g, mouseX, mouseY, partialTick);
     }
@@ -1039,12 +1135,23 @@ public class ChatBubbleScreen extends Screen {
 
     private void renderScrollbar(GuiGraphics g, int mouseX, int mouseY, int effectiveMsgBottom) {
         if (maxScroll <= 0) return;
+
+        // Fade in when mouse is near right edge, fade out otherwise
+        boolean inZone = mouseX >= panelX + panelW - SCROLLBAR_HOVER_ZONE
+            && mouseX <= panelX + panelW
+            && mouseY >= msgTop && mouseY < effectiveMsgBottom;
+        float target = (inZone || scrollbarDragging) ? 1f : 0f;
+        scrollbarAlpha += (target - scrollbarAlpha) * 0.15f;
+        if (Math.abs(scrollbarAlpha - target) < 0.005f) scrollbarAlpha = target;
+        if (scrollbarAlpha <= 0.005f && !scrollbarDragging) return;
+
         int trackX = panelX + panelW - SCROLLBAR_WIDTH;
         int trackTop = msgTop;
         int trackBottom = effectiveMsgBottom;
         int trackH = trackBottom - trackTop;
 
-        g.fill(trackX, trackTop, trackX + SCROLLBAR_WIDTH, trackBottom, TRACK_COLOR);
+        int trackColor = ((int)(0x1A * scrollbarAlpha) << 24) | 0x00FFFFFF;
+        g.fill(trackX, trackTop, trackX + SCROLLBAR_WIDTH, trackBottom, trackColor);
 
         int thumbH = Math.max(MIN_THUMB_H, (int)((long)trackH * trackH / messageTotalH));
         thumbH = Math.min(thumbH, trackH);
@@ -1057,9 +1164,8 @@ public class ChatBubbleScreen extends Screen {
             && mouseY >= thumbY && mouseY < thumbY + thumbH;
         scrollbarHovered = hovering || scrollbarDragging;
 
-        int thumbColor = scrollbarDragging ? THUMB_DRAG_COLOR
-                       : scrollbarHovered   ? THUMB_HOVER_COLOR
-                       : THUMB_COLOR;
+        int thumbBase = scrollbarDragging ? 0xAA : scrollbarHovered ? 0x88 : 0x66;
+        int thumbColor = ((int)(thumbBase * scrollbarAlpha) << 24) | 0x00FFFFFF;
 
         g.fill(trackX, thumbY, trackX + SCROLLBAR_WIDTH, thumbY + thumbH, thumbColor);
     }
@@ -1159,7 +1265,7 @@ public class ChatBubbleScreen extends Screen {
                 bubbleY + BUBBLE_PAD_Y + li * font.lineHeight, fg, fbP);
 
         ResourceLocation skin = getSkin(msg.senderUUID());
-        PlayerFaceRenderer.draw(g, skin, avatarX, avatarY, AVATAR);
+        drawPlayerHead(g, skin, avatarX, avatarY, 20, 22);
 
         if (msg.duplicateCount() > 1) {
             String label = "x" + msg.duplicateCount();
@@ -1545,6 +1651,9 @@ public class ChatBubbleScreen extends Screen {
         loadIconTexture(TEX_SEND, "assets/e33chat/textures/gui/send.png");
         loadIconTexture(TEX_EMOJI, "assets/e33chat/textures/gui/emoji.png");
         loadIconTexture(TEX_MENU, "assets/e33chat/textures/gui/menu.png");
+        loadIconTexture(TEX_PUBLIC_ICON, "assets/e33chat/textures/gui/public_icon.png");
+        loadIconTexture(TEX_PRIVATE_TIP, "assets/e33chat/textures/gui/private_tip.png");
+        loadIconTexture(TEX_NO_ONLINE, "assets/e33chat/textures/gui/no_online.png");
     }
 
     private void loadIconTexture(ResourceLocation loc, String classpath) {
@@ -1568,6 +1677,14 @@ public class ChatBubbleScreen extends Screen {
     }
 
     private static final UUID NIL_UUID = new UUID(0, 0);
+
+    private void drawPlayerHead(GuiGraphics g, ResourceLocation skin, int x, int y, int baseSize, int hatSize) {
+        RenderSystem.enableBlend();
+        g.blit(skin, x, y, baseSize, baseSize, 8.0F, 8.0F, 8, 8, 64, 64);
+        int hatOff = (hatSize - baseSize) / 2;
+        g.blit(skin, x - hatOff, y - hatOff, hatSize, hatSize, 40.0F, 8.0F, 8, 8, 64, 64);
+        RenderSystem.disableBlend();
+    }
 
     private ResourceLocation getSkin(UUID uuid) {
         if (uuid == null || uuid.equals(NIL_UUID))

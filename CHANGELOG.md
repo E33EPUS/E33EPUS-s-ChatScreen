@@ -1,5 +1,41 @@
 # Changelog
 
+## v1.4
+
+**新功能**
+- 侧边栏搜索框：按名字筛选在线玩家
+- 右键头像菜单：传送 + 私聊快捷操作
+- 侧边栏无在线玩家插画
+- 私聊未读闪烁提示：侧边栏玩家列表紫色闪烁标记
+- 侧边栏滑入/滑出动画（ease-out cubic）
+- 公屏最新消息预览显示在侧边栏"世界频道"行
+- 消息预览宽度可配置（`preview_width`，50-400px）
+
+**修复**
+- 私聊输入框不再穿帮——`/msg` 拼接完全在背后完成
+- 私聊消息不再泄漏到公屏——系统回显三层拦截（标记→检测→吞除）
+- 私聊回复不再复读——本地显示与服务端转发完全隔离
+- 引用私聊消息不再错位——全量索引追踪，不受过滤视图影响
+- NCR 兼容开关开启/关闭均可正确处理私聊
+
+***
+
+**New Features**
+- Sidebar search box: filter online players by name
+- Avatar right-click menu: Teleport + Whisper quick actions
+- No online players illustration in sidebar
+- Unread whisper blinking indicator: purple pulsing dot in sidebar player list
+- Sidebar slide-in/out animation (ease-out cubic)
+- Latest public message preview under "Public" entry in sidebar
+- Configurable message preview width (`preview_width`, 50-400px)
+
+**Fixes**
+- Input box no longer exposes `/msg` — command splicing is fully behind-the-scenes
+- Whisper messages no longer leak to public chat — three-layer system echo suppression
+- Whisper replies no longer echo back — local display fully isolated from server forwarding
+- Quoting whisper messages no longer mis-tracks — global index tracking unaffected by filtered views
+- NCR compat on/off both handle whispers correctly
+
 ## v1.3
 
 **新功能**

@@ -242,6 +242,10 @@ public class ChatMessageStore {
                 strongHintIsMention = false;
             }
         }
+
+        if (whisper && whisperPartner != null && !own) {
+            markWhisperUnread(whisperPartner);
+        }
     }
 
     private static Component addUnderlineToClicks(Component original) {
@@ -288,6 +292,30 @@ public class ChatMessageStore {
             }
         }
         return null;
+    }
+
+    public static ChatMessage getLatestPublicMessage() {
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            ChatMessage msg = messages.get(i);
+            if (!msg.whisper()) {
+                return msg;
+            }
+        }
+        return null;
+    }
+
+    private static final Set<String> unreadWhisperPartners = new java.util.HashSet<>();
+
+    public static void markWhisperUnread(String partner) {
+        if (partner != null) unreadWhisperPartners.add(partner);
+    }
+
+    public static void clearUnreadWhisper(String partner) {
+        unreadWhisperPartners.remove(partner);
+    }
+
+    public static boolean hasUnreadWhisper(String partner) {
+        return unreadWhisperPartners.contains(partner);
     }
 
     public static int getUnreadCount() {
