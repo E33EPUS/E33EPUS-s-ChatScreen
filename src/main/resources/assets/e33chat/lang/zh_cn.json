@@ -34,6 +34,7 @@
   "e33chat.notif.new_messages": "条新消息",
   "e33chat.notif.mention": "有人@你",
   "e33chat.sidebar.public": "世界频道",
+  "e33chat.sidebar.search": "查找玩家",
   "e33chat.sidebar.no_players": "无在线玩家",
   "e33chat.whisper.mode": "私聊"
 }

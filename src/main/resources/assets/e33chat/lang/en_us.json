@@ -34,6 +34,7 @@
   "e33chat.notif.new_messages": " new messages",
   "e33chat.notif.mention": "You were mentioned",
   "e33chat.sidebar.public": "Public",
+  "e33chat.sidebar.search": "Search players",
   "e33chat.sidebar.no_players": "No Online Players",
   "e33chat.whisper.mode": "Whisper"
 }

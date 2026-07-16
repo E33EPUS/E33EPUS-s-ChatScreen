@@ -342,7 +342,7 @@ public class ChatBubbleScreen extends Screen {
             g.renderOutline(sbx - 1, sby, sbw + 1, sbh, 0xFF666666);
         if (sidebarSearchBox.getValue().isEmpty() && !sidebarSearchBox.isFocused()) {
             int textY = sby + (sbh - font.lineHeight) / 2;
-            g.drawString(font, Component.literal("查找玩家"), sbx + 2, textY, 0xFF888888, false);
+            g.drawString(font, Component.translatable("e33chat.sidebar.search"), sbx + 2, textY, 0xFF888888, false);
         }
         y = sby + sbh + 3;
 
