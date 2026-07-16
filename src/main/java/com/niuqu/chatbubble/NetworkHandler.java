@@ -14,8 +14,8 @@ public class NetworkHandler {
         CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(ChatBubbleMod.MODID, "main"),
             () -> PROTOCOL,
-            PROTOCOL::equals,
-            PROTOCOL::equals
+            NetworkRegistry.acceptMissingOr(PROTOCOL),
+            NetworkRegistry.acceptMissingOr(PROTOCOL)
         );
 
         CHANNEL.messageBuilder(QuoteSyncPacket.class, 0)

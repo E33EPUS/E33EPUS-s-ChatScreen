@@ -12,6 +12,7 @@
 - 私聊回显旗标同样 10 秒过期——修复自定义私聊格式服务器上残留旗标可能误吞后续收到的私聊
 - 聊天历史现在保存带样式的发送者名（旧存档兼容读取）
 - 玩家名过长截断时保留颜色
+- 网络频道版本校验放宽（`acceptMissingOr`）——连接装了 Forge 但没装本 mod 的服务器不再可能被拒连，"服务端可选"更彻底
 
 **其他**
 - 身份判定（own/@提及/引用）与显示名解耦，装饰名不影响消息归属
@@ -29,6 +30,7 @@
 - Whisper echo flag also expires after 10s — fixes stale flag potentially swallowing incoming whispers on servers with custom whisper formats
 - Chat history now saves styled sender names (old saves still load)
 - Long player names keep their colors when truncated
+- Relaxed network channel version check (`acceptMissingOr`) — joining Forge servers without this mod can no longer be rejected, making "server optional" truly hold
 
 **Misc**
 - Identity logic (own/@mention/quote) decoupled from display names — decorated names never affect message attribution
