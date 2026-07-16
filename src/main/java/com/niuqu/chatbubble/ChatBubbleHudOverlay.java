@@ -18,6 +18,10 @@ public class ChatBubbleHudOverlay {
         ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/chat_icon");
     public static boolean iconLoaded;
 
+    private static ChatBubbleTheme.Colors c() {
+        return ChatBubbleConfig.THEME.get().colors();
+    }
+
     public static void render(GuiGraphics g) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options == null) return;
@@ -44,7 +48,7 @@ public class ChatBubbleHudOverlay {
                 alpha = Math.min(alpha, 0xFF);
                 int bgAlpha = alpha / 2;
                 int bgColor = (bgAlpha << 24) | 0x000000;
-                int baseColor = ChatMessageStore.isStrongHintMention() ? 0xFFFF55 : 0xFFFFFF;
+                int baseColor = ChatMessageStore.isStrongHintMention() ? c().strongHintMention() : c().strongHintNormal();
                 int textColor = (alpha << 24) | baseColor;
                 g.fill(hintX - 6, hintY - 3, hintX + hintW + 6, hintY + mc.font.lineHeight + 3, bgColor);
                 g.drawString(mc.font, hint, hintX, hintY, textColor, false);
@@ -90,7 +94,7 @@ public class ChatBubbleHudOverlay {
                 g.fill(bgX1, topLineY - 2, px + maxTextW + 3, bottomLineY + lineH + 2, bgColor);
                 for (int i = displays.size() - 1; i >= 0; i--) {
                     int lineY = bottomLineY - (displays.size() - 1 - i) * (lineH + gap);
-                    g.drawString(mc.font, displays.get(i), px, lineY, 0xFFFFFFFF, false);
+                    g.drawString(mc.font, displays.get(i), px, lineY, c().previewText(), false);
                 }
             }
         }
@@ -108,7 +112,7 @@ public class ChatBubbleHudOverlay {
                 int dotX = x + ICON_S - RED_DOT_R;
                 int dotY = iconY + RED_DOT_R;
                 int dotColor = ChatMessageStore.hasUnreadMention(mc.player.getName().getString())
-                    ? 0xFFFF4444 : 0xFFFF0000;
+                    ? c().redDotMention() : c().redDot();
                 g.fill(dotX - RED_DOT_R, dotY - RED_DOT_R, dotX + RED_DOT_R, dotY + RED_DOT_R, dotColor);
             }
 
@@ -116,7 +120,7 @@ public class ChatBubbleHudOverlay {
             String keyDisplay = "[" + keyName + "]";
             int keyW = mc.font.width(keyDisplay);
             int keyX = keyW > ICON_S ? x : x + (ICON_S - keyW) / 2;
-            g.drawString(mc.font, keyDisplay, keyX, textY, 0xFFFFFFFF, false);
+            g.drawString(mc.font, keyDisplay, keyX, textY, c().previewText(), false);
         }
 
         g.pose().popPose();

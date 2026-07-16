@@ -4,6 +4,7 @@
   "e33chat.config.title": "ChatBubble Settings",
   "e33chat.config.section.general": "General",
   "e33chat.config.section.compatibility": "Compatibility",
+  "e33chat.config.theme": "Color Theme",
   "e33chat.config.enabled": "Enable Mod",
   "e33chat.config.red_dot": "Red Dot",
   "e33chat.config.hide_chat_icon": "Hide Chat Icon",

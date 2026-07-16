@@ -14,6 +14,10 @@ import net.minecraftforge.common.ForgeConfigSpec;
 
 public class ChatBubbleConfigScreen extends Screen {
     private final Screen lastScreen;
+
+    private ChatBubbleTheme.Colors c() {
+        return ChatBubbleConfig.THEME.get().colors();
+    }
     private static final int LABEL_X = 40;
     private static final int INPUT_X = 165;
     private static final int INPUT_W = 80;
@@ -36,6 +40,7 @@ public class ChatBubbleConfigScreen extends Screen {
     private void buildEntries() {
         if (entries != null) return;
         entries = new ArrayList<>();
+        entries.add(new Entry("e33chat.config.theme", y -> mkThemeButton(y), false));
         entries.add(new Entry("e33chat.config.enabled", y -> mkBoolButton(y, ChatBubbleConfig.ENABLED), false));
         entries.add(new Entry("e33chat.config.red_dot", y -> mkBoolButton(y, ChatBubbleConfig.RED_DOT_ENABLED), false));
         entries.add(new Entry("e33chat.config.hide_chat_icon", y -> mkBoolButton(y, ChatBubbleConfig.HIDE_CHAT_ICON), false));
@@ -78,6 +83,18 @@ public class ChatBubbleConfigScreen extends Screen {
 
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, btn -> onClose())
             .bounds(width / 2 - 100, height - 32, 200, 20).build());
+    }
+
+    private Button mkThemeButton(int y) {
+        var themes = ChatBubbleTheme.values();
+        return Button.builder(
+            Component.literal(ChatBubbleConfig.THEME.get().name()),
+            btn -> {
+                int next = (ChatBubbleConfig.THEME.get().ordinal() + 1) % themes.length;
+                ChatBubbleConfig.THEME.set(themes[next]);
+                btn.setMessage(Component.literal(themes[next].name()));
+            }
+        ).bounds(INPUT_X, y, INPUT_W, 20).build();
     }
 
     private Button mkBoolButton(int y, ForgeConfigSpec.BooleanValue cfg) {
@@ -158,7 +175,7 @@ public class ChatBubbleConfigScreen extends Screen {
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         renderBackground(g);
-        g.drawCenteredString(font, title, width / 2, 14, 0xFFFFFFFF);
+        g.drawCenteredString(font, title, width / 2, 14, c().configTitle());
 
         int y = START_Y + 6 - scrollOffset;
 
@@ -166,7 +183,7 @@ public class ChatBubbleConfigScreen extends Screen {
         int generalHeaderY = START_Y - scrollOffset - 20;
         Component generalHeader = Component.translatable("e33chat.config.section.general");
         if (generalHeaderY > -ROW_H && generalHeaderY < height)
-            g.drawString(font, generalHeader, LABEL_X, generalHeaderY, 0xFFFFAA00, false);
+            g.drawString(font, generalHeader, LABEL_X, generalHeaderY, c().configSection(), false);
 
         String[] previewColors = {
             ChatBubbleConfig.OWN_BUBBLE_COLOR.get(),
@@ -184,13 +201,13 @@ public class ChatBubbleConfigScreen extends Screen {
                     int compatHeaderY = y - 20;
                     Component compatHeader = Component.translatable("e33chat.config.section.compatibility");
                     if (compatHeaderY > -ROW_H && compatHeaderY < height)
-                        g.drawString(font, compatHeader, LABEL_X, compatHeaderY, 0xFFFFAA00, false);
+                        g.drawString(font, compatHeader, LABEL_X, compatHeaderY, c().configSection(), false);
                     compatHeaderDrawn = true;
                 }
                 continue;
             }
             if (y > -ROW_H && y < height)
-                g.drawString(font, Component.translatable(e.labelKey), LABEL_X, y, 0xFFFFFFFF, false);
+                g.drawString(font, Component.translatable(e.labelKey), LABEL_X, y, c().configLabel(), false);
             y += ROW_H;
         }
 
@@ -206,7 +223,7 @@ public class ChatBubbleConfigScreen extends Screen {
 
     private void drawPreview(GuiGraphics g, int y, String hex) {
         int color = ChatBubbleConfig.parseHexColor(hex, 0xFF000000);
-        g.fill(PREVIEW_X, y, PREVIEW_X + 14, y + 14, 0xFF444444);
+        g.fill(PREVIEW_X, y, PREVIEW_X + 14, y + 14, c().iconHover());
         g.fill(PREVIEW_X + 1, y + 1, PREVIEW_X + 13, y + 13, color);
     }
 
@@ -217,7 +234,7 @@ public class ChatBubbleConfigScreen extends Screen {
 
     @Override
     public void renderBackground(GuiGraphics g) {
-        g.fill(0, 0, width, height, 0xC0101010);
+        g.fill(0, 0, width, height, c().configBg());
     }
 
     private int calcMaxScroll() {

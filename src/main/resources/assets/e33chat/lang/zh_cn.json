@@ -4,6 +4,7 @@
   "e33chat.config.title": "ChatBubble 设置",
   "e33chat.config.section.general": "常规选项",
   "e33chat.config.section.compatibility": "兼容性选项",
+  "e33chat.config.theme": "颜色主题",
   "e33chat.config.enabled": "启用模组",
   "e33chat.config.red_dot": "红点提示",
   "e33chat.config.hide_chat_icon": "隐藏聊天图标",

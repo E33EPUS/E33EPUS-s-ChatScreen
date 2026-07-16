@@ -5,6 +5,7 @@ import net.minecraftforge.common.ForgeConfigSpec;
 public class ChatBubbleConfig {
     public static final ForgeConfigSpec CLIENT_CONFIG;
 
+    public static final ForgeConfigSpec.EnumValue<ChatBubbleTheme> THEME;
     public static final ForgeConfigSpec.BooleanValue ENABLED;
     public static final ForgeConfigSpec.BooleanValue RED_DOT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue HIDE_CHAT_ICON;
@@ -28,6 +29,10 @@ public class ChatBubbleConfig {
 
         builder.comment("ChatBubble 聊天界面设置");
         builder.push("general");
+
+        THEME = builder
+            .comment("颜色主题：DARK = 深色（默认），LIGHT = 浅色")
+            .defineEnum("theme", ChatBubbleTheme.DARK);
 
         ENABLED = builder
             .comment("启用自定义聊天浮层（关闭后恢复原版聊天）")

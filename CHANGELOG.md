@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.5
+
+**新功能**
+- 颜色主题切换：深色（默认）/ 浅色，配置界面一键切换
+- 新增 `ChatBubbleTheme` 主题系统，所有 UI 颜色集中管理
+
+***
+
+**New Features**
+- Color theme toggle: Dark (default) / Light, switchable in config screen
+- New `ChatBubbleTheme` system: all UI colors managed in one place
+
 ## v1.4
 
 **新功能**
