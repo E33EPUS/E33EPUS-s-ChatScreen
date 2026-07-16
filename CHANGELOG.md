@@ -1,5 +1,39 @@
 # Changelog
 
+## v1.6
+
+**新功能**
+- 服务器称号/前缀显示：插件添加的 `[称号]`/`[群组]` 等前缀现在带原色显示在玩家名旁，玩家消息与系统消息通道均支持，兼容 `[前缀]<名字>` 与 `<[前缀]名字>` 两种格式（提取失败自动回退裸名）
+- 自己的称号自己也可见——服务器回显到达后自动补全到本地气泡
+- 消息预览保留消息原有颜色与样式（称号颜色、mod 彩色文本等）
+
+**修复**
+- 回显记录改为 10 秒过期，且仅对聊天和 `/msg` `/tell` `/w` `/me` `/say` 记账——修复发送无回显指令后计数残留、误吞后续署名为自己的消息
+- 私聊回显旗标同样 10 秒过期——修复自定义私聊格式服务器上残留旗标可能误吞后续收到的私聊
+- 聊天历史现在保存带样式的发送者名（旧存档兼容读取）
+- 玩家名过长截断时保留颜色
+
+**其他**
+- 身份判定（own/@提及/引用）与显示名解耦，装饰名不影响消息归属
+- 日志前缀统一为 `[e33chat]`
+
+***
+
+**New Features**
+- Server title/prefix display: plugin-added prefixes like `[Title]`/`[Group]` now show next to player names with their original colors, on both player and system message channels, supporting both `[Prefix]<Name>` and `<[Prefix]Name>` formats (falls back to bare name if extraction fails)
+- Your own title is now visible to yourself — patched into the local bubble once the server echo arrives
+- Message previews keep original colors and styles (title colors, mod-colored text, etc.)
+
+**Fixes**
+- Pending echoes now expire after 10s and are only tracked for chat and `/msg` `/tell` `/w` `/me` `/say` — fixes stale counters from no-echo commands swallowing later self-attributed messages
+- Whisper echo flag also expires after 10s — fixes stale flag potentially swallowing incoming whispers on servers with custom whisper formats
+- Chat history now saves styled sender names (old saves still load)
+- Long player names keep their colors when truncated
+
+**Misc**
+- Identity logic (own/@mention/quote) decoupled from display names — decorated names never affect message attribution
+- Log prefix unified to `[e33chat]`
+
 ## v1.5
 
 **新功能**
