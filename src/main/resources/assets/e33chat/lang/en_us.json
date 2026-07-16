@@ -30,6 +30,9 @@
   "e33chat.context.whisper": "Whisper",
   "e33chat.toast.copied": "Copied",
 
+  "e33chat.emoji.tab_emoji": "😊 Emoji",
+  "e33chat.emoji.tab_kaomoji": "✧ Kaomoji",
+
   "e33chat.sender.system": "System",
   "e33chat.notif.new_messages": " new messages",
   "e33chat.notif.mention": "You were mentioned",

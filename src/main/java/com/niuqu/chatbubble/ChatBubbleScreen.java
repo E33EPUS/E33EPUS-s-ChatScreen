@@ -1529,7 +1529,10 @@ public class ChatBubbleScreen extends Screen {
         int py = barTop - EMOJI_PANEL_H - 4;
 
         // Tab bar
-        String[] tabLabels = {"😊 Emoji", "✧ 颜文字"};
+        String[] tabLabels = {
+            Component.translatable("e33chat.emoji.tab_emoji").getString(),
+            Component.translatable("e33chat.emoji.tab_kaomoji").getString()
+        };
         int tabW = pw / tabLabels.length;
         g.fill(px, py, px + pw, py + EMOJI_TAB_H + 1, COLOR_TITLE_BG);
         for (int t = 0; t < tabLabels.length; t++) {
