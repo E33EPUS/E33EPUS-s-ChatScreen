@@ -14,9 +14,19 @@ public class ChatBubbleHudOverlay {
 
     private static final int ICON_S = 16;
     private static final int RED_DOT_R = 4;
-    public static final ResourceLocation TEX_CHAT_ICON =
-        ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/chat_icon");
-    public static boolean iconLoaded;
+    private static ChatBubbleTheme loadedTheme;
+
+    private static ResourceLocation chatIconTex() {
+        String theme = ChatBubbleConfig.THEME.get().name().toLowerCase();
+        return ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/" + theme + "/chat_icon");
+    }
+
+    private static void ensureIconLoaded() {
+        var theme = ChatBubbleConfig.THEME.get();
+        if (loadedTheme == theme) return;
+        loadIconTexture();
+        loadedTheme = theme;
+    }
 
     private static ChatBubbleTheme.Colors c() {
         return ChatBubbleConfig.THEME.get().colors();
@@ -101,10 +111,7 @@ public class ChatBubbleHudOverlay {
 
         // Chat bubble icon (hidden if hide_chat_icon enabled)
         if (!ChatBubbleConfig.HIDE_CHAT_ICON.get()) {
-            if (!iconLoaded) {
-                loadIconTexture();
-                iconLoaded = true;
-            }
+            ensureIconLoaded();
             drawIcon(g, x, iconY);
 
             // Red dot
@@ -137,12 +144,12 @@ public class ChatBubbleHudOverlay {
 
     private static void loadIconTexture() {
         try (java.io.InputStream in = ChatBubbleHudOverlay.class.getClassLoader()
-                .getResourceAsStream("assets/e33chat/textures/gui/chat_icon.png")) {
+                .getResourceAsStream("assets/e33chat/textures/gui/" + ChatBubbleConfig.THEME.get().name().toLowerCase() + "/chat_icon.png")) {
             if (in != null) {
                 com.mojang.blaze3d.platform.NativeImage img = com.mojang.blaze3d.platform.NativeImage.read(in);
                 net.minecraft.client.renderer.texture.DynamicTexture tex =
                     new net.minecraft.client.renderer.texture.DynamicTexture(img);
-                Minecraft.getInstance().getTextureManager().register(TEX_CHAT_ICON, tex);
+                Minecraft.getInstance().getTextureManager().register(chatIconTex(), tex);
             }
         } catch (Exception e) { e.printStackTrace(); }
     }
@@ -151,15 +158,15 @@ public class ChatBubbleHudOverlay {
         var mc = Minecraft.getInstance();
         AbstractTexture abstractTex;
         try {
-            abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
+            abstractTex = mc.getTextureManager().getTexture(chatIconTex());
         } catch (Exception e) {
             // Texture lost (F3+T resource reload), reload it
             loadIconTexture();
-            abstractTex = mc.getTextureManager().getTexture(TEX_CHAT_ICON);
+            abstractTex = mc.getTextureManager().getTexture(chatIconTex());
         }
         RenderSystem.setShaderTexture(0, abstractTex.getId());
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.enableBlend();
-        g.blit(TEX_CHAT_ICON, x, y, 0, 0, ICON_S, ICON_S, ICON_S, ICON_S);
+        g.blit(chatIconTex(), x, y, 0, 0, ICON_S, ICON_S, ICON_S, ICON_S);
     }
 }

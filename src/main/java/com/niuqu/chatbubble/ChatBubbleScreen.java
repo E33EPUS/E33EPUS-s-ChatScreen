@@ -48,14 +48,19 @@ public class ChatBubbleScreen extends Screen {
 
     private static final int INPUT_H = 14;
     private static final int ICON_S = 14;
-    private static final ResourceLocation TEX_GEAR = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/settings");
-    private static final ResourceLocation TEX_SEND = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/send");
-    private static final ResourceLocation TEX_EMOJI = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/emoji");
-    private static final ResourceLocation TEX_MENU = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/menu");
-    private static final ResourceLocation TEX_PUBLIC_ICON = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/public_icon");
-    private static final ResourceLocation TEX_PRIVATE_TIP = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/private_tip");
-    private static final ResourceLocation TEX_NO_ONLINE = ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/no_online");
-    private static boolean iconsLoaded;
+    private static ChatBubbleTheme loadedTheme;
+
+    private static ResourceLocation iconTex(String name) {
+        String theme = ChatBubbleConfig.THEME.get().name().toLowerCase();
+        return ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/" + theme + "/" + name);
+    }
+
+    private static void ensureIconsLoaded() {
+        var theme = ChatBubbleConfig.THEME.get();
+        if (loadedTheme == theme) return;
+        loadIconTextures();
+        loadedTheme = theme;
+    }
 
 
 
@@ -236,10 +241,7 @@ public class ChatBubbleScreen extends Screen {
             false, false, 0, 8, true, ChatBubbleTheme.alphaBlend(c().panelBg(), 0xDD));
         commandSuggestions.updateCommandInfo();
 
-        if (!iconsLoaded) {
-            loadIconTextures();
-            iconsLoaded = true;
-        }
+        ensureIconsLoaded();
 
         sidebarSearchBox = new EditBox(font, 2, 4, SIDEBAR_W - 5, SIDEBAR_SEARCH_H, Component.literal(""));
         sidebarSearchBox.setMaxLength(20);
@@ -344,7 +346,7 @@ public class ChatBubbleScreen extends Screen {
         int pubBg = isPublic ? c().sidebarItemSelected()
             : (mouseX >= 0 && mouseX <= SIDEBAR_W && mouseY >= y && mouseY <= y + itemH ? c().sidebarItemHover() : 0);
         if (pubBg != 0) g.fill(0, y, SIDEBAR_W, y + itemH, pubBg);
-        drawTextureIcon(g, TEX_PUBLIC_ICON, 2, y + 1, SIDEBAR_ICON_S);
+        drawTextureIcon(g, iconTex("public_icon"), 2, y + 1, SIDEBAR_ICON_S);
         int nameX = 2 + SIDEBAR_ICON_S + 3;
         String publicLabel = Component.translatable("e33chat.sidebar.public").getString();
         g.drawString(font, Component.literal(publicLabel), nameX, y + 1, c().textPrimary(), false);
@@ -375,7 +377,7 @@ public class ChatBubbleScreen extends Screen {
 
             if (totalH == 0) {
                 int iconS = 32;
-                drawTextureIcon(g, TEX_NO_ONLINE, (SIDEBAR_W - iconS) / 2, startY + 8, iconS);
+                drawTextureIcon(g, iconTex("no_online"), (SIDEBAR_W - iconS) / 2, startY + 8, iconS);
                 String noPlayers = Component.translatable("e33chat.sidebar.no_players").getString();
                 int textW = font.width(noPlayers);
                 g.drawString(font, Component.literal(noPlayers),
@@ -417,7 +419,7 @@ public class ChatBubbleScreen extends Screen {
                     if (ChatMessageStore.hasUnreadWhisper(name)) {
                         int tipX = SIDEBAR_W - 16 - 2;
                         int tipY = scrollY + 3 + (int)(Math.abs(Math.sin(System.currentTimeMillis() / 300.0)) * 3);
-                        drawTextureIcon(g, TEX_PRIVATE_TIP, tipX, tipY, 16);
+                        drawTextureIcon(g, iconTex("private_tip"), tipX, tipY, 16);
                     }
                 }
                 scrollY += itemH + 2;
@@ -992,7 +994,7 @@ public class ChatBubbleScreen extends Screen {
         int menuY = ty + (TITLE_H - ICON_S) / 2;
         boolean hoverMenu = mouseX >= menuX && mouseX <= menuX + ICON_S && mouseY >= menuY && mouseY <= menuY + ICON_S;
         if (hoverMenu) g.fill(menuX - 1, menuY - 1, menuX + ICON_S + 1, menuY + ICON_S + 1, c().iconHover());
-        drawTextureIcon(g, TEX_MENU, menuX, menuY, ICON_S);
+        drawTextureIcon(g, iconTex("menu"), menuX, menuY, ICON_S);
 
         String title = getDisplayTitle();
         int titleW = font.width(title);
@@ -1628,37 +1630,39 @@ public class ChatBubbleScreen extends Screen {
         boolean hoverGear = mouseX >= gearX && mouseX <= gearX + ICON_S
             && mouseY >= iconY && mouseY <= iconY + ICON_S;
         if (hoverGear) g.fill(gearX - 1, iconY - 1, gearX + ICON_S + 1, iconY + ICON_S + 1, c().iconHover());
-        drawTextureIcon(g, TEX_GEAR, gearX, iconY, ICON_S);
+        drawTextureIcon(g, iconTex("settings"), gearX, iconY, ICON_S);
 
         // Emoji icon (between input and send)
         boolean hoverEmoji = mouseX >= emojiX && mouseX <= emojiX + ICON_S
             && mouseY >= iconY && mouseY <= iconY + ICON_S;
         if (hoverEmoji || showEmojiPanel) g.fill(emojiX - 1, iconY - 1, emojiX + ICON_S + 1, iconY + ICON_S + 1, c().iconHover());
-        drawTextureIcon(g, TEX_EMOJI, emojiX, iconY, ICON_S);
+        drawTextureIcon(g, iconTex("emoji"), emojiX, iconY, ICON_S);
 
         // Send icon (right)
         boolean hoverSend = mouseX >= sendX && mouseX <= sendX + ICON_S
             && mouseY >= iconY && mouseY <= iconY + ICON_S;
         if (hoverSend) g.fill(sendX - 1, iconY - 1, sendX + ICON_S + 1, iconY + ICON_S + 1, c().iconHover());
-        drawTextureIcon(g, TEX_SEND, sendX, iconY, ICON_S);
+        drawTextureIcon(g, iconTex("send"), sendX, iconY, ICON_S);
     }
 
-    private void loadIconTextures() {
-        loadIconTexture(TEX_GEAR, "assets/e33chat/textures/gui/settings.png");
-        loadIconTexture(TEX_SEND, "assets/e33chat/textures/gui/send.png");
-        loadIconTexture(TEX_EMOJI, "assets/e33chat/textures/gui/emoji.png");
-        loadIconTexture(TEX_MENU, "assets/e33chat/textures/gui/menu.png");
-        loadIconTexture(TEX_PUBLIC_ICON, "assets/e33chat/textures/gui/public_icon.png");
-        loadIconTexture(TEX_PRIVATE_TIP, "assets/e33chat/textures/gui/private_tip.png");
-        loadIconTexture(TEX_NO_ONLINE, "assets/e33chat/textures/gui/no_online.png");
+    private static void loadIconTextures() {
+        String theme = ChatBubbleConfig.THEME.get().name().toLowerCase();
+        String base = "assets/e33chat/textures/gui/" + theme + "/";
+        loadIconTexture(iconTex("settings"), base + "settings.png");
+        loadIconTexture(iconTex("send"), base + "send.png");
+        loadIconTexture(iconTex("emoji"), base + "emoji.png");
+        loadIconTexture(iconTex("menu"), base + "menu.png");
+        loadIconTexture(iconTex("public_icon"), base + "public_icon.png");
+        loadIconTexture(iconTex("private_tip"), base + "private_tip.png");
+        loadIconTexture(iconTex("no_online"), base + "no_online.png");
     }
 
-    private void loadIconTexture(ResourceLocation loc, String classpath) {
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream(classpath)) {
+    private static void loadIconTexture(ResourceLocation loc, String classpath) {
+        try (InputStream in = ChatBubbleScreen.class.getClassLoader().getResourceAsStream(classpath)) {
             if (in != null) {
                 NativeImage img = NativeImage.read(in);
                 DynamicTexture tex = new DynamicTexture(img);
-                minecraft.getTextureManager().register(loc, tex);
+                Minecraft.getInstance().getTextureManager().register(loc, tex);
             }
         } catch (Exception e) {
             e.printStackTrace();
