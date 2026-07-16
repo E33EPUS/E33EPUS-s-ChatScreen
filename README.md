@@ -1,30 +1,33 @@
 # E33EPUS's ChatScreen
 
-A simple mod that replaces the vanilla chat HUD.
+Rebuilds the vanilla chat HUD in chat-app style.
 
 Client required, server optional.
 
-## Features
+## Vanilla Improvements
 
-- Messages as bubbles with player heads, chat-app style
-- Whisper sidebar: click a player to chat privately — `/msg` spliced behind the scenes, never shown
-- Server titles/prefixes displayed next to player names with original colors
-- Dark / Light color themes
-- Quick chat panel: save common phrases, click to fill the input
-- Emoji & kaomoji picker
-- `@` autocomplete popup; left-click a head to @, right-click a head to teleport/whisper
+- Messages as bubbles with player heads
+- Whisper sidebar: click a player's head to chat privately
+- Per-world chat history (`.minecraft/e33chat/history/`)
+- Input text preserved when closing chat
+- Anti-spam merging
+
+## Highlights
+
 - Right-click a message: copy / quote reply
-- Popup hints for system / @mention / quote, message preview at bottom-left
-- Per-world chat history (saved to `.minecraft/e33chat/history/`), anti-spam merging, input preserved when closing chat
-- More to come
+- Left-click a player head to @ them, right-click to teleport / whisper
+- Popup hints for system / @mention / quote, message preview at bottom-left of screen
+- Quick chat panel: save common phrases, auto-fill on use
+- Emoji & kaomoji picker
+- TIP: type `@` to open an autocomplete popup
 
 ## Config
 
-Config file: `config/e33chat-client.toml`
+Config file: `chatbubble-client.toml`
 
-Themes, custom bubble/text colors, preview lines, animations, popup hints, and more.
+Theme switching, custom bubble / text colors, preview lines, animations, popup hints, and more.
 
-If your server uses "No Chat Reports", turn on the compat option in config.
+**If your server uses a "No Chat Reports" plugin, turn on the compat option in config**
 
 ## License
 
