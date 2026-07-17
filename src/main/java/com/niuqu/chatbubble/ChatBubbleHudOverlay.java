@@ -40,31 +40,7 @@ public class ChatBubbleHudOverlay {
         g.pose().pushPose();
         g.pose().translate(0, 0, 300);
 
-        // Strong hint above hotbar — render even when a screen is open
-        if (ChatBubbleConfig.STRONG_HINT_ENABLED.get() || ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get()) {
-            String hint = ChatMessageStore.getStrongHintText();
-            if (hint != null) {
-                int ticks = ChatMessageStore.getStrongHintTicks();
-                int screenW = mc.getWindow().getGuiScaledWidth();
-                int hintW = mc.font.width(hint);
-                int hintX = (screenW - hintW) / 2;
-                int hintY = mc.getWindow().getGuiScaledHeight() - 22 - 30 - mc.font.lineHeight;
-                int alpha;
-                if (ticks > 50)
-                    alpha = (ChatMessageStore.STRONG_HINT_DURATION - ticks) * 0xFF / 10;
-                else if (ticks > 10)
-                    alpha = 0xFF;
-                else
-                    alpha = ticks * 0xFF / 10;
-                alpha = Math.min(alpha, 0xFF);
-                int bgAlpha = alpha / 2;
-                int bgColor = (bgAlpha << 24) | 0x000000;
-                int baseColor = ChatMessageStore.isStrongHintMention() ? 0xFFFFFF55 : 0xFFFFFFFF;
-                int textColor = (alpha << 24) | baseColor;
-                g.fill(hintX - 6, hintY - 3, hintX + hintW + 6, hintY + mc.font.lineHeight + 3, bgColor);
-                g.drawString(mc.font, hint, hintX, hintY, textColor, false);
-            }
-        }
+        if (mc.screen == null) renderStrongHint(g);
 
         if (mc.screen != null) { g.pose().popPose(); return; }
 
@@ -138,6 +114,35 @@ public class ChatBubbleHudOverlay {
         }
 
         g.pose().popPose();
+    }
+
+    // On 1.21.1 screens draw over the HUD pass, so when a screen is open this is
+    // invoked again from ScreenEvent.Render.Post to keep the hint visible on top
+    public static void renderStrongHint(GuiGraphics g) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.options == null) return;
+        if (!ChatBubbleConfig.STRONG_HINT_ENABLED.get() && !ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get()) return;
+        String hint = ChatMessageStore.getStrongHintText();
+        if (hint == null) return;
+        int ticks = ChatMessageStore.getStrongHintTicks();
+        int screenW = mc.getWindow().getGuiScaledWidth();
+        int hintW = mc.font.width(hint);
+        int hintX = (screenW - hintW) / 2;
+        int hintY = mc.getWindow().getGuiScaledHeight() - 22 - 30 - mc.font.lineHeight;
+        int alpha;
+        if (ticks > 50)
+            alpha = (ChatMessageStore.STRONG_HINT_DURATION - ticks) * 0xFF / 10;
+        else if (ticks > 10)
+            alpha = 0xFF;
+        else
+            alpha = ticks * 0xFF / 10;
+        alpha = Math.min(alpha, 0xFF);
+        int bgAlpha = alpha / 2;
+        int bgColor = (bgAlpha << 24) | 0x000000;
+        int baseColor = ChatMessageStore.isStrongHintMention() ? 0xFFFFFF55 : 0xFFFFFFFF;
+        int textColor = (alpha << 24) | baseColor;
+        g.fill(hintX - 6, hintY - 3, hintX + hintW + 6, hintY + mc.font.lineHeight + 3, bgColor);
+        g.drawString(mc.font, hint, hintX, hintY, textColor, false);
     }
 
     public static boolean isMouseOverIcon(double mx, double my) {

@@ -487,14 +487,23 @@ public class ChatMessageStore {
         return new File(Minecraft.getInstance().gameDirectory, "e33chat/history/" + safe + "_" + hash + ".json");
     }
 
-    private static String toJsonSafe(Component c) {
+    // Save fires on the tick after leaving the world (level already null) — fall back to
+    // the connection registries, then static builtins, so styles survive the quit-to-title save
+    private static net.minecraft.core.HolderLookup.Provider registries() {
         var level = Minecraft.getInstance().level;
-        if (level == null) return c.getString();
+        if (level != null) return level.registryAccess();
+        var conn = Minecraft.getInstance().getConnection();
+        if (conn != null) return conn.registryAccess();
+        return net.minecraft.core.RegistryAccess.fromRegistryOfRegistries(
+            net.minecraft.core.registries.BuiltInRegistries.REGISTRY);
+    }
+
+    private static String toJsonSafe(Component c) {
         try {
-            return Component.Serializer.toJson(c, level.registryAccess());
+            return Component.Serializer.toJson(c, registries());
         } catch (Exception e) {
             try {
-                return Component.Serializer.toJson(Component.literal(c.getString()), level.registryAccess());
+                return Component.Serializer.toJson(Component.literal(c.getString()), registries());
             } catch (Exception e2) {
                 return c.getString();
             }
@@ -503,10 +512,8 @@ public class ChatMessageStore {
 
     private static Component fromJsonSafe(String json) {
         if (json == null) return null;
-        var level = Minecraft.getInstance().level;
-        if (level == null) return null;
         try {
-            return Component.Serializer.fromJson(json, level.registryAccess());
+            return Component.Serializer.fromJson(json, registries());
         } catch (Exception e) {
             return null;
         }

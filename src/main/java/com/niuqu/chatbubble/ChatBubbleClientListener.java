@@ -90,6 +90,12 @@ public class ChatBubbleClientListener {
     }
 
     @SubscribeEvent
+    public void onScreenRender(ScreenEvent.Render.Post event) {
+        if (!ChatBubbleConfig.ENABLED.get()) return;
+        ChatBubbleHudOverlay.renderStrongHint(event.getGuiGraphics());
+    }
+
+    @SubscribeEvent
     public void onClientTick(ClientTickEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();
         String key;
