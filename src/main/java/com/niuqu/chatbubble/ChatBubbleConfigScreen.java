@@ -2,6 +2,7 @@ package com.niuqu.chatbubble;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
@@ -18,50 +19,75 @@ public class ChatBubbleConfigScreen extends Screen {
     private ChatBubbleTheme.Colors c() {
         return ChatBubbleTheme.DARK.colors();
     }
-    private static final int LABEL_X = 40;
-    private static final int INPUT_X = 165;
-    private static final int INPUT_W = 80;
-    private static final int PREVIEW_X = 255;
-    private static final int ROW_H = 28;
-    private static final int START_Y = 38;
 
+    private static final int ROW_H = 28;
+    private static final int START_Y = 40;
+    private static final int CAT_X = 24;
+    private static final int CAT_W = 86;
+    private static final int CAT_ROW_H = 22;
+    private static final int INPUT_W = 90;
+
+    private int dividerX, optLabelX, inputX, previewX;
+    private int selectedCat;
     private int scrollOffset;
     private final List<AbstractWidget> scrollWidgets = new ArrayList<>();
-    private int previewStartIdx = -1;
 
     private interface WidgetFactory {
         AbstractWidget create(int y);
     }
 
-    private record Entry(String labelKey, WidgetFactory factory, boolean isGap) {}
+    private record Opt(String key, WidgetFactory factory, Supplier<String> previewColor) {}
 
-    private List<Entry> entries;
+    private record Cat(String key, List<Opt> opts) {}
 
-    private void buildEntries() {
-        if (entries != null) return;
-        entries = new ArrayList<>();
-        entries.add(new Entry("e33chat.config.theme", y -> mkThemeButton(y), false));
-        entries.add(new Entry("e33chat.config.enabled", y -> mkBoolButton(y, ChatBubbleConfig.ENABLED), false));
-        entries.add(new Entry("e33chat.config.red_dot", y -> mkBoolButton(y, ChatBubbleConfig.RED_DOT_ENABLED), false));
-        entries.add(new Entry("e33chat.config.hide_chat_icon", y -> mkBoolButton(y, ChatBubbleConfig.HIDE_CHAT_ICON), false));
-        entries.add(new Entry("e33chat.config.animation", y -> mkBoolButton(y, ChatBubbleConfig.ANIMATION_ENABLED), false));
-        entries.add(new Entry("e33chat.config.strong_hint", y -> mkBoolButton(y, ChatBubbleConfig.STRONG_HINT_ENABLED), false));
-        entries.add(new Entry("e33chat.config.mention_strong_hint", y -> mkBoolButton(y, ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED), false));
-        entries.add(new Entry("e33chat.config.anti_spam", y -> mkBoolButton(y, ChatBubbleConfig.ANTI_SPAM), false));
-        entries.add(new Entry("e33chat.config.chat_history", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_HISTORY_ENABLED), false));
-        entries.add(new Entry("e33chat.config.preview_enabled", y -> mkBoolButton(y, ChatBubbleConfig.PREVIEW_ENABLED), false));
-        entries.add(new Entry("e33chat.config.preview_lines", this::mkCycleButton, false));
-        entries.add(new Entry("e33chat.config.time_separator", this::mkTimeSepButton, false));
-        entries.add(new Entry("e33chat.config.preview_width", y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set), false));
-        previewStartIdx = entries.size();
-        entries.add(new Entry("e33chat.config.own_bubble_color", y -> mkHexBox(y, ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), ChatBubbleConfig.OWN_BUBBLE_COLOR::set), false));
-        entries.add(new Entry("e33chat.config.other_bubble_color", y -> mkHexBox(y, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get(), ChatBubbleConfig.OTHER_BUBBLE_COLOR::set), false));
-        entries.add(new Entry("e33chat.config.own_text_color", y -> mkHexBox(y, ChatBubbleConfig.OWN_TEXT_COLOR.get(), ChatBubbleConfig.OWN_TEXT_COLOR::set), false));
-        entries.add(new Entry("e33chat.config.other_text_color", y -> mkHexBox(y, ChatBubbleConfig.OTHER_TEXT_COLOR.get(), ChatBubbleConfig.OTHER_TEXT_COLOR::set), false));
-        entries.add(new Entry("e33chat.config.bubble_corner_radius", y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get()), 0, 10, ChatBubbleConfig.BUBBLE_CORNER_RADIUS::set), false));
-        entries.add(new Entry(null, null, true)); // section gap
-        entries.add(new Entry("e33chat.config.system_chat_as_bubble", y -> mkBoolButton(y, ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE), false));
-        entries.add(new Entry("e33chat.config.chat_report_compat", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_REPORT_COMPAT), false));
+    private List<Cat> cats;
+
+    private void buildCats() {
+        if (cats != null) return;
+        cats = new ArrayList<>();
+
+        List<Opt> appearance = new ArrayList<>();
+        appearance.add(new Opt("e33chat.config.theme", this::mkThemeButton, null));
+        appearance.add(new Opt("e33chat.config.own_bubble_color",
+            y -> mkHexBox(y, ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), ChatBubbleConfig.OWN_BUBBLE_COLOR::set),
+            ChatBubbleConfig.OWN_BUBBLE_COLOR::get));
+        appearance.add(new Opt("e33chat.config.other_bubble_color",
+            y -> mkHexBox(y, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get(), ChatBubbleConfig.OTHER_BUBBLE_COLOR::set),
+            ChatBubbleConfig.OTHER_BUBBLE_COLOR::get));
+        appearance.add(new Opt("e33chat.config.own_text_color",
+            y -> mkHexBox(y, ChatBubbleConfig.OWN_TEXT_COLOR.get(), ChatBubbleConfig.OWN_TEXT_COLOR::set),
+            ChatBubbleConfig.OWN_TEXT_COLOR::get));
+        appearance.add(new Opt("e33chat.config.other_text_color",
+            y -> mkHexBox(y, ChatBubbleConfig.OTHER_TEXT_COLOR.get(), ChatBubbleConfig.OTHER_TEXT_COLOR::set),
+            ChatBubbleConfig.OTHER_TEXT_COLOR::get));
+        appearance.add(new Opt("e33chat.config.bubble_corner_radius",
+            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get()), 0, 10, ChatBubbleConfig.BUBBLE_CORNER_RADIUS::set), null));
+        appearance.add(new Opt("e33chat.config.animation", y -> mkBoolButton(y, ChatBubbleConfig.ANIMATION_ENABLED), null));
+        cats.add(new Cat("e33chat.config.cat.appearance", appearance));
+
+        List<Opt> notifications = new ArrayList<>();
+        notifications.add(new Opt("e33chat.config.red_dot", y -> mkBoolButton(y, ChatBubbleConfig.RED_DOT_ENABLED), null));
+        notifications.add(new Opt("e33chat.config.hide_chat_icon", y -> mkBoolButton(y, ChatBubbleConfig.HIDE_CHAT_ICON), null));
+        notifications.add(new Opt("e33chat.config.preview_enabled", y -> mkBoolButton(y, ChatBubbleConfig.PREVIEW_ENABLED), null));
+        notifications.add(new Opt("e33chat.config.preview_lines", this::mkCycleButton, null));
+        notifications.add(new Opt("e33chat.config.preview_width",
+            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set), null));
+        notifications.add(new Opt("e33chat.config.strong_hint", y -> mkBoolButton(y, ChatBubbleConfig.STRONG_HINT_ENABLED), null));
+        notifications.add(new Opt("e33chat.config.mention_strong_hint", y -> mkBoolButton(y, ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED), null));
+        cats.add(new Cat("e33chat.config.cat.notifications", notifications));
+
+        List<Opt> behavior = new ArrayList<>();
+        behavior.add(new Opt("e33chat.config.enabled", y -> mkBoolButton(y, ChatBubbleConfig.ENABLED), null));
+        behavior.add(new Opt("e33chat.config.anti_spam", y -> mkBoolButton(y, ChatBubbleConfig.ANTI_SPAM), null));
+        behavior.add(new Opt("e33chat.config.chat_history", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_HISTORY_ENABLED), null));
+        behavior.add(new Opt("e33chat.config.time_separator", this::mkTimeSepButton, null));
+        behavior.add(new Opt("e33chat.config.system_chat_as_bubble", y -> mkBoolButton(y, ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE), null));
+        cats.add(new Cat("e33chat.config.cat.behavior", behavior));
+
+        List<Opt> compat = new ArrayList<>();
+        compat.add(new Opt("e33chat.config.chat_report_compat", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_REPORT_COMPAT), null));
+        compat.add(new Opt("e33chat.config.debug_log", y -> mkBoolButton(y, ChatBubbleConfig.DEBUG_LOG), null));
+        cats.add(new Cat("e33chat.config.cat.compat", compat));
     }
 
     public ChatBubbleConfigScreen(Screen lastScreen) {
@@ -71,19 +97,33 @@ public class ChatBubbleConfigScreen extends Screen {
 
     @Override
     protected void init() {
-        buildEntries();
+        buildCats();
         scrollWidgets.clear();
+
+        dividerX = CAT_X + CAT_W + 12;
+        optLabelX = dividerX + 14;
+        previewX = width - 26;
+        inputX = previewX - 8 - INPUT_W;
+
         scrollOffset = Mth.clamp(scrollOffset, 0, calcMaxScroll());
 
         int y = START_Y - scrollOffset;
-        for (Entry e : entries) {
-            if (e.isGap) { y += 12; continue; }
-            scrollWidgets.add(addRenderableWidget(e.factory.create(y)));
+        for (Opt opt : cats.get(selectedCat).opts()) {
+            scrollWidgets.add(addRenderableWidget(opt.factory().create(y)));
             y += ROW_H;
         }
 
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, btn -> onClose())
             .bounds(width / 2 - 100, height - 32, 200, 20).build());
+    }
+
+    private void switchCategory(int idx) {
+        if (idx == selectedCat) return;
+        selectedCat = idx;
+        scrollOffset = 0;
+        setFocused(null);
+        clearWidgets();
+        init();
     }
 
     private Button mkThemeButton(int y) {
@@ -95,7 +135,7 @@ public class ChatBubbleConfigScreen extends Screen {
                 ChatBubbleConfig.THEME.set(themes[next]);
                 btn.setMessage(Component.literal(themes[next].name()));
             }
-        ).bounds(INPUT_X, y, INPUT_W, 20).build();
+        ).bounds(inputX, y, INPUT_W, 20).build();
     }
 
     private Button mkBoolButton(int y, ForgeConfigSpec.BooleanValue cfg) {
@@ -107,7 +147,7 @@ public class ChatBubbleConfigScreen extends Screen {
                 cfg.set(nv);
                 btn.setMessage(nv ? CommonComponents.OPTION_ON : CommonComponents.OPTION_OFF);
             }
-        ).bounds(INPUT_X, y, INPUT_W, 20).build();
+        ).bounds(inputX, y, INPUT_W, 20).build();
     }
 
     private Button mkCycleButton(int y) {
@@ -119,7 +159,7 @@ public class ChatBubbleConfigScreen extends Screen {
                 ChatBubbleConfig.PREVIEW_LINES.set(v);
                 btn.setMessage(Component.literal(String.valueOf(v)));
             }
-        ).bounds(INPUT_X, y, INPUT_W, 20).build();
+        ).bounds(inputX, y, INPUT_W, 20).build();
     }
 
     private static final int[] TIME_SEP_PRESETS = {1, 5, 10, 15, 30, 0};
@@ -140,11 +180,11 @@ public class ChatBubbleConfigScreen extends Screen {
             String nl = next == 0 ? Component.translatable("e33chat.config.time_separator.disable").getString()
                 : next + " " + Component.translatable("e33chat.config.time_separator.minute").getString();
             btn.setMessage(Component.literal(nl));
-        }).bounds(INPUT_X, y, INPUT_W, 20).build();
+        }).bounds(inputX, y, INPUT_W, 20).build();
     }
 
     private EditBox mkHexBox(int y, String initial, java.util.function.Consumer<String> onChange) {
-        EditBox box = new EditBox(font, INPUT_X, y, INPUT_W, 20, Component.literal(""));
+        EditBox box = new EditBox(font, inputX, y, INPUT_W, 20, Component.literal(""));
         box.setValue(initial);
         box.setMaxLength(7);
         box.setResponder(s -> {
@@ -160,7 +200,7 @@ public class ChatBubbleConfigScreen extends Screen {
     }
 
     private EditBox mkIntBox(int y, String initial, int min, int max, java.util.function.Consumer<Integer> onChange) {
-        EditBox box = new EditBox(font, INPUT_X, y, INPUT_W, 20, Component.literal(""));
+        EditBox box = new EditBox(font, inputX, y, INPUT_W, 20, Component.literal(""));
         box.setValue(initial);
         box.setMaxLength(3);
         box.setResponder(s -> {
@@ -178,54 +218,62 @@ public class ChatBubbleConfigScreen extends Screen {
         renderBackground(g);
         g.drawString(font, title, width / 2 - font.width(title) / 2, 14, c().configTitle(), false);
 
-        int y = START_Y + 6 - scrollOffset;
+        // Category column
+        for (int i = 0; i < cats.size(); i++) {
+            int cy = START_Y + i * CAT_ROW_H;
+            boolean sel = i == selectedCat;
+            boolean hover = mouseX >= CAT_X && mouseX <= CAT_X + CAT_W && mouseY >= cy && mouseY <= cy + CAT_ROW_H;
+            if (sel || hover)
+                g.fill(CAT_X, cy, CAT_X + CAT_W, cy + CAT_ROW_H, c().iconHover());
+            if (sel)
+                g.fill(CAT_X, cy, CAT_X + 2, cy + CAT_ROW_H, c().configTitle());
+            Component label = Component.translatable(cats.get(i).key());
+            g.drawString(font, label, CAT_X + 8, cy + (CAT_ROW_H - 8) / 2,
+                sel ? c().configTitle() : c().configLabel(), false);
+        }
 
-        // Section header: general
-        int generalHeaderY = START_Y - scrollOffset - 20;
-        Component generalHeader = Component.translatable("e33chat.config.section.general");
-        if (generalHeaderY > -ROW_H && generalHeaderY < height)
-            g.drawString(font, generalHeader, LABEL_X, generalHeaderY, c().configSection(), false);
+        // Divider between categories and options
+        g.fill(dividerX, START_Y - 6, dividerX + 1, height - 44, c().divider());
 
-        String[] previewColors = {
-            ChatBubbleConfig.OWN_BUBBLE_COLOR.get(),
-            ChatBubbleConfig.OTHER_BUBBLE_COLOR.get(),
-            ChatBubbleConfig.OWN_TEXT_COLOR.get(),
-            ChatBubbleConfig.OTHER_TEXT_COLOR.get()
-        };
-        int previewIdx = 0;
-
-        boolean compatHeaderDrawn = false;
-        for (Entry e : entries) {
-            if (e.isGap) {
-                y += 12;
-                if (!compatHeaderDrawn) {
-                    int compatHeaderY = y - 20;
-                    Component compatHeader = Component.translatable("e33chat.config.section.compatibility");
-                    if (compatHeaderY > -ROW_H && compatHeaderY < height)
-                        g.drawString(font, compatHeader, LABEL_X, compatHeaderY, c().configSection(), false);
-                    compatHeaderDrawn = true;
-                }
-                continue;
+        // Option rows
+        String tooltipKey = null;
+        int y = START_Y - scrollOffset;
+        for (Opt opt : cats.get(selectedCat).opts()) {
+            if (y > -ROW_H && y < height) {
+                g.drawString(font, Component.translatable(opt.key()), optLabelX, y + 6, c().configLabel(), false);
+                if (opt.previewColor() != null)
+                    drawPreview(g, y + 3, opt.previewColor().get());
+                if (mouseX >= optLabelX - 4 && mouseX <= inputX - 10 && mouseY >= y && mouseY <= y + 20)
+                    tooltipKey = opt.key() + ".desc";
             }
-            if (y > -ROW_H && y < height)
-                g.drawString(font, Component.translatable(e.labelKey), LABEL_X, y, c().configLabel(), false);
             y += ROW_H;
         }
 
-        // Color previews
-        int py = START_Y + previewStartIdx * ROW_H + 4 - scrollOffset;
-        for (String hex : previewColors) {
-            drawPreview(g, py, hex);
-            py += ROW_H;
-        }
-
         super.render(g, mouseX, mouseY, partialTick);
+
+        if (tooltipKey != null) {
+            g.renderTooltip(font, font.split(Component.translatable(tooltipKey), 190), mouseX, mouseY);
+        }
     }
 
     private void drawPreview(GuiGraphics g, int y, String hex) {
         int color = ChatBubbleConfig.parseHexColor(hex, 0xFF000000);
-        g.fill(PREVIEW_X, y, PREVIEW_X + 14, y + 14, c().iconHover());
-        g.fill(PREVIEW_X + 1, y + 1, PREVIEW_X + 13, y + 13, color);
+        g.fill(previewX, y, previewX + 14, y + 14, c().iconHover());
+        g.fill(previewX + 1, y + 1, previewX + 13, y + 13, color);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            for (int i = 0; i < cats.size(); i++) {
+                int cy = START_Y + i * CAT_ROW_H;
+                if (mouseX >= CAT_X && mouseX <= CAT_X + CAT_W && mouseY >= cy && mouseY <= cy + CAT_ROW_H) {
+                    switchCategory(i);
+                    return true;
+                }
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
@@ -239,11 +287,7 @@ public class ChatBubbleConfigScreen extends Screen {
     }
 
     private int calcMaxScroll() {
-        int total = 0;
-        for (Entry e : entries) {
-            if (e.isGap) total += 12;
-            else total += ROW_H;
-        }
+        int total = cats.get(selectedCat).opts().size() * ROW_H;
         return Math.max(0, START_Y + total - (height - 42));
     }
 
@@ -255,12 +299,9 @@ public class ChatBubbleConfigScreen extends Screen {
         scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
 
         int y = START_Y - scrollOffset;
-        int wi = 0;
-        for (Entry e : entries) {
-            if (e.isGap) { y += 12; continue; }
-            if (wi < scrollWidgets.size())
-                scrollWidgets.get(wi).setY(y);
-            wi++;
+        List<Opt> opts = cats.get(selectedCat).opts();
+        for (int i = 0; i < opts.size() && i < scrollWidgets.size(); i++) {
+            scrollWidgets.get(i).setY(y);
             y += ROW_H;
         }
         return true;

@@ -32,104 +32,127 @@ public class ChatBubbleConfig {
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
-        builder.comment("ChatBubble 聊天界面设置");
+        builder.comment("E33Chat client settings");
         builder.push("general");
 
         THEME = builder
-            .comment("颜色主题：DARK = 深色（默认），LIGHT = 浅色")
+            .comment("Color theme: DARK (default) or LIGHT")
+            .translation("e33chat.config.theme")
             .defineEnum("theme", ChatBubbleTheme.DARK);
 
         ENABLED = builder
-            .comment("启用自定义聊天浮层（关闭后恢复原版聊天）")
+            .comment("Enable the custom chat overlay (disable to restore vanilla chat)")
+            .translation("e33chat.config.enabled")
             .define("enabled", true);
 
         RED_DOT_ENABLED = builder
-            .comment("HUD 图标上显示未读红点")
+            .comment("Show an unread red dot on the HUD chat icon")
+            .translation("e33chat.config.red_dot")
             .define("red_dot", true);
 
         HIDE_CHAT_ICON = builder
-            .comment("隐藏聊天HUD图标（红点等一并隐藏）")
+            .comment("Hide the HUD chat icon (including the red dot)")
+            .translation("e33chat.config.hide_chat_icon")
             .define("hide_chat_icon", false);
 
         ANIMATION_ENABLED = builder
-            .comment("聊天框打开/关闭动画")
+            .comment("Chat screen open/close animation")
+            .translation("e33chat.config.animation")
             .define("animation", true);
 
         DEBUG_LOG = builder
-            .comment("消息处理调试日志（排查问题时开启，会把聊天内容写进 latest.log）")
+            .comment("Verbose message-pipeline logging for troubleshooting (writes chat text to latest.log)")
+            .translation("e33chat.config.debug_log")
             .define("debug_log", false);
 
         STRONG_HINT_ENABLED = builder
-            .comment("系统消息在物品栏上方显示强提示（不启用则系统消息进入消息预览）")
+            .comment("Show system messages as a strong hint above the hotbar (otherwise they go to the message preview)")
+            .translation("e33chat.config.strong_hint")
             .define("strong_hint", true);
 
         MENTION_STRONG_HINT_ENABLED = builder
-            .comment("被别人 @ 或引用时在物品栏上方显示强提示")
+            .comment("Show a strong hint above the hotbar when you are @mentioned or quoted")
+            .translation("e33chat.config.mention_strong_hint")
             .define("mention_strong_hint", true);
 
         SYSTEM_CHAT_AS_BUBBLE = builder
-            .comment("系统消息以气泡形式显示在聊天框中")
+            .comment("Render system messages as chat bubbles")
+            .translation("e33chat.config.system_chat_as_bubble")
             .define("system_chat_as_bubble", false);
 
         ANTI_SPAM = builder
-            .comment("防刷屏")
+            .comment("Collapse consecutive identical messages into one bubble with a counter")
+            .translation("e33chat.config.anti_spam")
             .define("anti_spam", true);
 
         CHAT_REPORT_COMPAT = builder
-            .comment("禁用聊天举报后兼容 <玩家名> 消息格式")
+            .comment("Parse '<name> message' lines back into player bubbles on servers that convert",
+                     "player chat to system messages (No Chat Reports, FreedomChat, etc.)")
+            .translation("e33chat.config.chat_report_compat")
             .define("chat_report_compat", false);
 
         CHAT_HISTORY_ENABLED = builder
-            .comment("保留每个存档的聊天记录（退出后恢复）")
+            .comment("Keep per-world chat history (restored when you rejoin)")
+            .translation("e33chat.config.chat_history")
             .define("chat_history", false);
 
         PREVIEW_ENABLED = builder
-            .comment("在 HUD 图标上方显示最近消息预览")
+            .comment("Show a recent-message preview above the HUD icon")
+            .translation("e33chat.config.preview_enabled")
             .define("preview_enabled", true);
 
         PREVIEW_LINES = builder
-            .comment("消息预览行数（1-8）")
+            .comment("Preview line count (1-8)")
+            .translation("e33chat.config.preview_lines")
             .defineInRange("preview_lines", 3, 1, 8);
 
         PREVIEW_WIDTH = builder
-            .comment("消息预览宽度（像素，50-400）")
+            .comment("Preview width in pixels (50-400)")
+            .translation("e33chat.config.preview_width")
             .defineInRange("preview_width", 200, 50, 400);
 
         TIME_SEPARATOR_MINUTES = builder
-            .comment("时间分隔符间隔（分钟，0=关闭，1-60）。默认5分钟")
+            .comment("Minutes between time separators in the chat list (0 = off, 1-60)")
+            .translation("e33chat.config.time_separator")
             .defineInRange("time_separator_minutes", 5, 0, 60);
 
         builder.pop();
         builder.push("bubble");
 
         OWN_BUBBLE_COLOR = builder
-            .comment("自己的气泡颜色 (十六进制 RRGGBB)")
+            .comment("Your bubble color (hex RRGGBB)")
+            .translation("e33chat.config.own_bubble_color")
             .define("own_color", "#1E90FF");
 
         OTHER_BUBBLE_COLOR = builder
-            .comment("别人的气泡颜色 (十六进制 RRGGBB)")
+            .comment("Other players' bubble color (hex RRGGBB)")
+            .translation("e33chat.config.other_bubble_color")
             .define("other_color", "#4A4A4A");
 
         BUBBLE_CORNER_RADIUS = builder
-            .comment("气泡圆角半径（0=直角，0-10）")
+            .comment("Bubble corner radius (0 = square, max 10)")
+            .translation("e33chat.config.bubble_corner_radius")
             .defineInRange("corner_radius", 4, 0, 10);
 
         builder.pop();
         builder.push("text");
 
         OWN_TEXT_COLOR = builder
-            .comment("自己的文字颜色 (十六进制 RRGGBB)")
+            .comment("Your text color (hex RRGGBB)")
+            .translation("e33chat.config.own_text_color")
             .define("own_color", "#FFFFFF");
 
         OTHER_TEXT_COLOR = builder
-            .comment("别人的文字颜色 (十六进制 RRGGBB)")
+            .comment("Other players' text color (hex RRGGBB)")
+            .translation("e33chat.config.other_text_color")
             .define("other_color", "#FFFFFF");
 
         builder.pop();
         builder.push("quick_chat");
 
         QUICK_CHAT_PHRASES = builder
-            .comment("常用语列表")
+            .comment("Quick chat phrase list")
+            .translation("e33chat.config.quick_chat_phrases")
             .defineListAllowEmpty("phrases", ArrayList::new, o -> o instanceof String);
 
         builder.pop();
