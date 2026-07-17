@@ -1416,11 +1416,19 @@ public class ChatBubbleScreen extends Screen {
     private void renderLineWithClicks(GuiGraphics g, FormattedCharSequence line,
                                        int x, int y, int color,
                                        net.minecraft.network.chat.Style fallback) {
-        g.drawString(font, line, x, y, color, false);
+        // Strip underline styling before drawing: vanilla renders the underline effect at
+        // z+0.01 (BakedGlyph.Effect), which pierces overlay panels drawn at z=0.
+        // All underlines are repainted below in plain paint order instead
+        FormattedCharSequence stripped = sink -> line.accept((i, st, cp) ->
+            sink.accept(i, st.isUnderlined() ? st.withUnderlined(false) : st, cp));
+        g.drawString(font, stripped, x, y, color, false);
 
         final int[] pos = {0};
         final int[] spanStart = {-1};
         final net.minecraft.network.chat.Style[] spanStyle = {null};
+        final int[] ulStart = {-1};
+        final int[] ulColor = {0};
+        final java.util.List<int[]> ulRuns = new java.util.ArrayList<>();
         final int beforeCount = clickableSpans.size();
 
         line.accept((index, style, codePoint) -> {
@@ -1440,6 +1448,19 @@ public class ChatBubbleScreen extends Screen {
                     spanStart[0] = -1; spanStyle[0] = null;
                 }
             }
+            // Underlined text without a click event (e.g. Xaero's waypoint share styling)
+            // still needs its underline repainted; clickable spans get theirs below
+            boolean ul = style.isUnderlined() && style.getClickEvent() == null;
+            int col = style.getColor() != null ? 0xFF000000 | style.getColor().getValue() : color;
+            if (ul && ulStart[0] < 0) {
+                ulStart[0] = pos[0]; ulColor[0] = col;
+            } else if (ul && col != ulColor[0]) {
+                ulRuns.add(new int[]{ulStart[0], pos[0], ulColor[0]});
+                ulStart[0] = pos[0]; ulColor[0] = col;
+            } else if (!ul && ulStart[0] >= 0) {
+                ulRuns.add(new int[]{ulStart[0], pos[0], ulColor[0]});
+                ulStart[0] = -1;
+            }
             pos[0] += charW;
             return true;
         });
@@ -1447,11 +1468,15 @@ public class ChatBubbleScreen extends Screen {
             clickableSpans.add(new ClickableSpan(x + spanStart[0], y,
                 pos[0] - spanStart[0], font.lineHeight, spanStyle[0]));
         }
+        if (ulStart[0] >= 0) {
+            ulRuns.add(new int[]{ulStart[0], pos[0], ulColor[0]});
+        }
         if (clickableSpans.size() == beforeCount && fallback != null && fallback.getClickEvent() != null) {
             clickableSpans.add(new ClickableSpan(x, y, pos[0], font.lineHeight, fallback.withUnderlined(true)));
         }
-        // Vanilla's underline effect renders at z+0.01 and pokes through overlay panels
-        // drawn at z=0 — draw our own underline in plain paint order instead
+        for (int[] r : ulRuns) {
+            g.fill(x + r[0], y + font.lineHeight - 1, x + r[1], y + font.lineHeight, r[2]);
+        }
         for (int i = beforeCount; i < clickableSpans.size(); i++) {
             ClickableSpan s = clickableSpans.get(i);
             int uc = s.style.getColor() != null ? 0xFF000000 | s.style.getColor().getValue() : color;
