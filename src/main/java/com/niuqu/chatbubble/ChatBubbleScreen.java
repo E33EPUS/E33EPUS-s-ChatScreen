@@ -239,7 +239,7 @@ public class ChatBubbleScreen extends Screen {
         int sendX = panelX + panelW - PAD - ICON_S + 2;
         int inputW = sendX - ICON_S - 8 - inputX;
 
-        input = new EditBox(font, inputX, ibY + 2, inputW, INPUT_H, Component.literal(""));
+        input = new EditBox(font, inputX, ibY + 3, inputW, INPUT_H, Component.literal(""));
         input.setMaxLength(256);
         input.setBordered(false);
         int editColor = ChatBubbleConfig.THEME.get() == ChatBubbleTheme.LIGHT
@@ -258,7 +258,7 @@ public class ChatBubbleScreen extends Screen {
 
         ensureIconsLoaded();
 
-        sidebarSearchBox = new EditBox(font, 2, 4, SIDEBAR_W - 5, SIDEBAR_SEARCH_H, Component.literal(""));
+        sidebarSearchBox = new EditBox(font, 2, 5, SIDEBAR_W - 5, SIDEBAR_SEARCH_H, Component.literal(""));
         sidebarSearchBox.setMaxLength(20);
         sidebarSearchBox.setBordered(false);
         sidebarSearchBox.setTextColor(editColor);
@@ -298,7 +298,7 @@ public class ChatBubbleScreen extends Screen {
         if (input != null) {
             input.setX(inputX);
             input.setWidth(inputW);
-            input.setY(ibY + 2);
+            input.setY(ibY + 3);
         }
 
     }
@@ -350,7 +350,7 @@ public class ChatBubbleScreen extends Screen {
         int y = 2;
         int itemH = SIDEBAR_ITEM_H;
 
-        // Search box background (anchor at y=2, EditBox shifted down 2px to center text)
+        // Search box background (anchor at y=2, EditBox shifted down 3px = (14-8)/2 to center text)
         int sbx = 2;
         int sby = 2;
         int sbw = SIDEBAR_W - 5;
@@ -360,8 +360,7 @@ public class ChatBubbleScreen extends Screen {
         if (hoverSearch || sidebarSearchBox.isFocused())
             g.renderOutline(sbx - 1, sby, sbw + 1, sbh, c().textMuted());
         if (sidebarSearchBox.getValue().isEmpty() && !sidebarSearchBox.isFocused()) {
-            int textY = sby + (sbh - font.lineHeight) / 2;
-            g.drawString(font, Component.translatable("e33chat.sidebar.search"), sbx + 2, textY, c().textMuted(), false);
+            g.drawString(font, Component.translatable("e33chat.sidebar.search"), sbx, sby + 3, c().textMuted(), false);
         }
         y = sby + sbh + 3;
 
@@ -1451,6 +1450,13 @@ public class ChatBubbleScreen extends Screen {
         if (clickableSpans.size() == beforeCount && fallback != null && fallback.getClickEvent() != null) {
             clickableSpans.add(new ClickableSpan(x, y, pos[0], font.lineHeight, fallback.withUnderlined(true)));
         }
+        // Vanilla's underline effect renders at z+0.01 and pokes through overlay panels
+        // drawn at z=0 — draw our own underline in plain paint order instead
+        for (int i = beforeCount; i < clickableSpans.size(); i++) {
+            ClickableSpan s = clickableSpans.get(i);
+            int uc = s.style.getColor() != null ? 0xFF000000 | s.style.getColor().getValue() : color;
+            g.fill(s.x, y + font.lineHeight - 1, s.x + s.w, y + font.lineHeight, uc);
+        }
     }
 
     private net.minecraft.network.chat.Style findClickStyle(net.minecraft.network.chat.Component c) {
@@ -1782,11 +1788,11 @@ public class ChatBubbleScreen extends Screen {
             g.renderOutline(inputX, inputY, inputW, inputH, c().textMuted());
         if (quickChatInput.getValue().isEmpty() && !quickChatInput.isFocused())
             g.drawString(font, Component.translatable("e33chat.quick_chat.placeholder"),
-                inputX + 3, inputY + 4, c().textMuted(), false);
+                inputX + 2, inputY + 3, c().textMuted(), false);
 
         quickChatInput.setX(inputX + 2);
         quickChatInput.setWidth(inputW - 4);
-        quickChatInput.setY(inputY + 1);
+        quickChatInput.setY(inputY + 3);
         quickChatInput.setHeight(inputH - 2);
         quickChatInput.setVisible(true);
     }
@@ -1902,7 +1908,7 @@ public class ChatBubbleScreen extends Screen {
 
         int iconY = barTop + (BAR_H - ICON_S) / 2;
 
-        // Input background (anchor at layout position, EditBox shifted down 2px to center text)
+        // Input background (anchor at layout position, EditBox shifted down 3px = (14-8)/2 to center text)
         int ibX = inputX;
         int ibY = inputY;
         int ibW = input.getWidth();
@@ -2037,13 +2043,18 @@ public class ChatBubbleScreen extends Screen {
             }
         }
 
+        // Vanilla doesn't echo commands into chat — only real chat and whispers get a local bubble
+        boolean localBubble = !text.startsWith("/") || whisperTarget != null;
+
         if (replyTargetIndex >= 0) {
-            ChatMessageStore.ChatMessage target = ChatMessageStore.getMessageAt(replyTargetIndex);
-            if (target != null) {
-                String quoteSender = (target.rawPlayerName() != null && !target.rawPlayerName().isEmpty())
-                    ? target.rawPlayerName() : target.senderName().getString();
-                ChatMessageStore.setPendingReply(target.content().getString(), quoteSender);
-                QuoteSyncPacket.send(quoteSender, target.content().getString(), displayText);
+            if (localBubble) {
+                ChatMessageStore.ChatMessage target = ChatMessageStore.getMessageAt(replyTargetIndex);
+                if (target != null) {
+                    String quoteSender = (target.rawPlayerName() != null && !target.rawPlayerName().isEmpty())
+                        ? target.rawPlayerName() : target.senderName().getString();
+                    ChatMessageStore.setPendingReply(target.content().getString(), quoteSender);
+                    QuoteSyncPacket.send(quoteSender, target.content().getString(), displayText);
+                }
             }
             replyTargetIndex = -1;
         }
@@ -2054,17 +2065,16 @@ public class ChatBubbleScreen extends Screen {
             minecraft.player.connection.sendChat(text);
         minecraft.gui.getChat().addRecentChat(text);
 
-        ChatMessageStore.debugLog("[e33chat] Send | cmd='" + text + "' | display='" + displayText + "' | whisperTarget=" + whisperTarget);
-        ChatMessageStore.addMessage(Component.literal(displayText),
-            minecraft.player.getUUID(),
-            Component.literal(minecraft.player.getName().getString()),
-            false,
-            minecraft.player.getName().getString(),
-            whisperTarget != null, whisperTarget);
-        boolean expectsChatEcho = !text.startsWith("/")
-            || text.startsWith("/msg ") || text.startsWith("/tell ") || text.startsWith("/w ")
-            || text.startsWith("/me ") || text.startsWith("/say ");
-        if (expectsChatEcho) ChatMessageStore.incrementPendingEcho(text);
+        ChatMessageStore.debugLog("[e33chat] Send | cmd='" + text + "' | display='" + displayText + "' | whisperTarget=" + whisperTarget + " | localBubble=" + localBubble);
+        if (localBubble) {
+            ChatMessageStore.addMessage(Component.literal(displayText),
+                minecraft.player.getUUID(),
+                Component.literal(minecraft.player.getName().getString()),
+                false,
+                minecraft.player.getName().getString(),
+                whisperTarget != null, whisperTarget);
+            ChatMessageStore.incrementPendingEcho(text);
+        }
         if (whisperTarget != null) ChatMessageStore.markPendingWhisperEcho();
 
         input.setValue("");

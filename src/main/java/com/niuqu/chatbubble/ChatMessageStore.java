@@ -172,7 +172,6 @@ public class ChatMessageStore {
     }
 
     public static void addMessage(Component content, UUID senderUUID, Component senderName, boolean isSystem, String rawPlayerName, boolean whisper, String whisperPartner) {
-        content = addUnderlineToClicks(content);
         String messageHash = String.valueOf(content.getString().hashCode());
 
         String playerName = net.minecraft.client.Minecraft.getInstance().player != null
@@ -297,18 +296,6 @@ public class ChatMessageStore {
             return Optional.<Object>empty();
         }, Style.EMPTY);
         return out;
-    }
-
-    private static Component addUnderlineToClicks(Component original) {
-        MutableComponent result = Component.empty();
-        original.visit((style, text) -> {
-            Style newStyle = style.getClickEvent() != null
-                ? style.withUnderlined(true)
-                : style;
-            result.append(Component.literal(text).withStyle(newStyle));
-            return Optional.<Object>empty();
-        }, Style.EMPTY);
-        return result;
     }
 
     public static List<ChatMessage> getMessages() {
