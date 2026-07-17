@@ -99,7 +99,7 @@ public class ChatBubbleConfig {
 
         OWN_BUBBLE_COLOR = builder
             .comment("自己的气泡颜色 (十六进制 RRGGBB)")
-            .define("own_color", "#95EC69");
+            .define("own_color", "#1E90FF");
 
         OTHER_BUBBLE_COLOR = builder
             .comment("别人的气泡颜色 (十六进制 RRGGBB)")
@@ -114,7 +114,7 @@ public class ChatBubbleConfig {
 
         OWN_TEXT_COLOR = builder
             .comment("自己的文字颜色 (十六进制 RRGGBB)")
-            .define("own_color", "#0A0A0A");
+            .define("own_color", "#FFFFFF");
 
         OTHER_TEXT_COLOR = builder
             .comment("别人的文字颜色 (十六进制 RRGGBB)")

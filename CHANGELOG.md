@@ -6,6 +6,13 @@
 - 圆角气泡：SDF shader 实现，边缘逐像素抗锯齿，任意 GUI 缩放下均平滑
 - 新配置项"气泡圆角半径"（0-10，默认 4，0 = 原来的方角）
 - shader 加载失败时自动回退方角渲染，不影响使用
+- 昵称类插件支持：消息归属额外尝试匹配 tab 列表显示名（覆盖"聊天名=tab名"的常见配置，未在真实昵称服实测）
+- "点击私聊"事件归属：识别插件挂在名字上的 `/tell`/`/msg` 点击事件，从中拿到真实档案名——昵称服上的零猜测归属通道
+- 名字匹配兼容 `§` 颜色码（提供原始/剥离双版本候选）
+- 默认配色更新：自己的气泡 #1E90FF 蓝底白字（仅对新生成的配置生效）
+
+**修复**
+- 聊天历史保存加固：单条消息序列化失败自动降级为纯文本，不再可能因一条异常消息丢失整个历史
 
 ***
 
@@ -13,6 +20,13 @@
 - Rounded bubble corners: SDF shader with per-pixel anti-aliased edges, smooth at any GUI scale
 - New config option "Bubble Corner Radius" (0-10, default 4, 0 = classic square corners)
 - Automatically falls back to square rendering if the shader fails to load
+- Nickname plugin support: message attribution also tries tab-list display names (covers the common "chat name = tab name" setup; not yet field-tested on real nickname servers)
+- "Click to whisper" attribution: reads the real profile name from `/tell`/`/msg` click events plugins attach to sender names — a zero-guess attribution channel on nickname servers
+- Name matching tolerates `§` color codes (raw and stripped candidate variants)
+- New default colors: own bubble #1E90FF with white text (applies to fresh configs only)
+
+**Fixes**
+- Chat history saving hardened: a message that fails to serialize degrades to plain text instead of aborting the save — one bad message can no longer wipe the whole history
 
 ## v1.6
 

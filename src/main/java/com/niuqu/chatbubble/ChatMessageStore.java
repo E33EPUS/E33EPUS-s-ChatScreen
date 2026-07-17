@@ -96,7 +96,16 @@ public class ChatMessageStore {
         if (pendingEchoes.isEmpty()) return false;
         var player = net.minecraft.client.Minecraft.getInstance().player;
         if (player == null) return false;
-        if (senderName.getString().contains(player.getName().getString())) {
+        String s = senderName.getString();
+        boolean match = s.contains(player.getName().getString());
+        if (!match && player.connection != null) {
+            var info = player.connection.getPlayerInfo(player.getUUID());
+            if (info != null && info.getTabListDisplayName() != null) {
+                String tab = info.getTabListDisplayName().getString().trim();
+                match = !tab.isEmpty() && s.contains(tab);
+            }
+        }
+        if (match) {
             pendingEchoes.remove(0);
             updateLatestOwnSenderName(senderName);
             return true;
@@ -119,18 +128,6 @@ public class ChatMessageStore {
             }
             return;
         }
-    }
-
-    public static UUID lookupPlayerUUID(String name) {
-        var player = net.minecraft.client.Minecraft.getInstance().player;
-        if (player == null) return new UUID(0, 0);
-        var connection = player.connection;
-        if (connection == null) return new UUID(0, 0);
-        for (var info : connection.getOnlinePlayers()) {
-            if (info.getProfile().getName().equals(name))
-                return info.getProfile().getId();
-        }
-        return new UUID(0, 0);
     }
 
     public static boolean isRecentDuplicate(String content) {
@@ -485,32 +482,42 @@ public class ChatMessageStore {
         return new File(Minecraft.getInstance().gameDirectory, "e33chat/history/" + safe + "_" + hash + ".json");
     }
 
+    private static String toJsonSafe(Component c) {
+        try {
+            return Component.Serializer.toJson(c);
+        } catch (Exception e) {
+            return Component.Serializer.toJson(Component.literal(c.getString()));
+        }
+    }
+
     private static void saveMessages(String worldKey) {
         if (messages.isEmpty()) return;
         File f = getHistoryFile(worldKey);
         f.getParentFile().mkdirs();
         List<Object> list = new ArrayList<>();
         for (ChatMessage msg : messages) {
-            var obj = new HashMap<String, Object>();
-            obj.put("senderUUID", msg.senderUUID().toString());
-            obj.put("senderName", msg.senderName().getString());
-            obj.put("senderNameJson", Component.Serializer.toJson(msg.senderName()));
-            obj.put("content", Component.Serializer.toJson(msg.content()));
-            obj.put("time", msg.time().format(DateTimeFormatter.ISO_LOCAL_TIME));
-            obj.put("isOwn", msg.isOwn());
-            obj.put("isSystem", msg.isSystem());
-            if (msg.replyContent() != null) {
-                obj.put("replyContent", msg.replyContent());
-                obj.put("replySender", msg.replySender());
-            }
-            if (msg.rawPlayerName() != null && !msg.rawPlayerName().isEmpty()) {
-                obj.put("rawPlayerName", msg.rawPlayerName());
-            }
-            if (msg.whisper()) {
-                obj.put("whisper", true);
-                if (msg.whisperPartner() != null) obj.put("whisperPartner", msg.whisperPartner());
-            }
-            list.add(obj);
+            try {
+                var obj = new HashMap<String, Object>();
+                obj.put("senderUUID", msg.senderUUID().toString());
+                obj.put("senderName", msg.senderName().getString());
+                obj.put("senderNameJson", toJsonSafe(msg.senderName()));
+                obj.put("content", toJsonSafe(msg.content()));
+                obj.put("time", msg.time().format(DateTimeFormatter.ISO_LOCAL_TIME));
+                obj.put("isOwn", msg.isOwn());
+                obj.put("isSystem", msg.isSystem());
+                if (msg.replyContent() != null) {
+                    obj.put("replyContent", msg.replyContent());
+                    obj.put("replySender", msg.replySender());
+                }
+                if (msg.rawPlayerName() != null && !msg.rawPlayerName().isEmpty()) {
+                    obj.put("rawPlayerName", msg.rawPlayerName());
+                }
+                if (msg.whisper()) {
+                    obj.put("whisper", true);
+                    if (msg.whisperPartner() != null) obj.put("whisperPartner", msg.whisperPartner());
+                }
+                list.add(obj);
+            } catch (Exception ignored) {}
         }
         try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
             GSON.toJson(list, w);
