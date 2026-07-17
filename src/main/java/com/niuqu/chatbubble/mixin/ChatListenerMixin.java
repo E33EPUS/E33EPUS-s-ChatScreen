@@ -14,13 +14,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import com.mojang.logging.LogUtils;
-import org.slf4j.Logger;
 import java.util.UUID;
 
 @Mixin(value = ChatListener.class, priority = 500)
 public class ChatListenerMixin {
-    private static final Logger LOGGER = LogUtils.getLogger();
 
     // Pulls styled server prefixes out of the decorated line: "[Group]<Steve> hi" -> "[Group]Steve"
     private static Component extractDecoratedName(Component fullLine, String contentStr,
@@ -138,7 +135,7 @@ public class ChatListenerMixin {
         String profile = sender.getProfile().getName();
         Component displayName = cleanNameArea(message, 0, b, tellName[0], Component.literal(profile));
         Component content = ChatMessageStore.sliceStyled(message, contentStart, text.length());
-        LOGGER.info("[e33chat] System(tell click) | text='" + text + "' | name=" + profile + " | display='" + displayName.getString() + "' | content='" + content.getString() + "'");
+        ChatMessageStore.debugLog("[e33chat] System(tell click) | text='" + text + "' | name=" + profile + " | display='" + displayName.getString() + "' | content='" + content.getString() + "'");
         return new SenderMeta(
             sender.getProfile().getId(),
             displayName,
@@ -173,7 +170,7 @@ public class ChatListenerMixin {
                         || text.contains("私聊") || text.contains("密语") || text.contains("密聊")) {
                         String content = extractWhisperContent(text, cand);
                         UUID senderId = info.getProfile().getId();
-                        LOGGER.info("[e33chat] System(" + logTag + ") | text='" + text + "' | name=" + cand + " | content='" + content + "'");
+                        ChatMessageStore.debugLog("[e33chat] System(" + logTag + ") | text='" + text + "' | name=" + cand + " | content='" + content + "'");
                         return new SenderMeta(
                             senderId,
                             Component.literal(cand),
@@ -256,7 +253,7 @@ public class ChatListenerMixin {
             Component fullLine = bound.decorate(raw);
             senderName = extractDecoratedName(fullLine, rawStr, gameProfile.getName(), senderName);
         }
-        LOGGER.info("[e33chat] PlayerChat | raw='" + rawStr + "' | whisper=" + isWhisper + " | partner=" + whisperPartner + " | sender='" + senderName.getString() + "' | content='" + playerContent.getString() + "'");
+        ChatMessageStore.debugLog("[e33chat] PlayerChat | raw='" + rawStr + "' | whisper=" + isWhisper + " | partner=" + whisperPartner + " | sender='" + senderName.getString() + "' | content='" + playerContent.getString() + "'");
         ChatMessageStore.setPendingMeta(new SenderMeta(
             senderId != null ? senderId : new UUID(0, 0),
             senderName,
@@ -299,7 +296,7 @@ public class ChatListenerMixin {
             Component fullLine = bound.decorate(message);
             disSender = extractDecoratedName(fullLine, msgStr, bound.name().getString(), disSender);
         }
-        LOGGER.info("[e33chat] Disguised | raw='" + msgStr + "' | whisper=" + isWhisper + " | partner=" + whisperPartner + " | sender='" + disSender.getString() + "' | content='" + disContent.getString() + "'");
+        ChatMessageStore.debugLog("[e33chat] Disguised | raw='" + msgStr + "' | whisper=" + isWhisper + " | partner=" + whisperPartner + " | sender='" + disSender.getString() + "' | content='" + disContent.getString() + "'");
         ChatMessageStore.setPendingMeta(new SenderMeta(
             new UUID(0, 0),
             disSender,
@@ -319,14 +316,14 @@ public class ChatListenerMixin {
         boolean hasEchoFlag = ChatMessageStore.hasPendingWhisperEcho();
         boolean hasKw = sysText.contains("悄悄") || sysText.contains("whispers") || sysText.contains("whisper")
             || sysText.contains("私聊") || sysText.contains("密语") || sysText.contains("密聊");
-        LOGGER.info("[e33chat] System(echo check) | text='" + sysText + "' | flag=" + hasEchoFlag + " | kw=" + hasKw);
+        ChatMessageStore.debugLog("[e33chat] System(echo check) | text='" + sysText + "' | flag=" + hasEchoFlag + " | kw=" + hasKw);
         if (hasEchoFlag && hasKw) {
             ChatMessageStore.consumeWhisperEcho();
-            LOGGER.info("[e33chat] System(echo suppressed) | text='" + sysText + "'");
+            ChatMessageStore.debugLog("[e33chat] System(echo suppressed) | text='" + sysText + "'");
             ChatMessageStore.markSuppressCapture();
             return;
         }
-        LOGGER.info("[e33chat] System | text='" + sysText + "' | overlay=" + overlay);
+        ChatMessageStore.debugLog("[e33chat] System | text='" + sysText + "' | overlay=" + overlay);
 
         if (ChatBubbleConfig.CHAT_REPORT_COMPAT.get()) {
             String text = message.getString();

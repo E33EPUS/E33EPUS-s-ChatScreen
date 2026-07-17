@@ -91,6 +91,11 @@ public class ChatMessageStore {
         return false;
     }
 
+    public static void debugLog(String msg) {
+        if (ChatBubbleConfig.DEBUG_LOG.get())
+            com.mojang.logging.LogUtils.getLogger().info(msg);
+    }
+
     public static boolean consumeEchoIfSenderMatches(Component senderName) {
         purgeStaleEchoes();
         if (pendingEchoes.isEmpty()) return false;

@@ -2054,7 +2054,7 @@ public class ChatBubbleScreen extends Screen {
             minecraft.player.connection.sendChat(text);
         minecraft.gui.getChat().addRecentChat(text);
 
-        com.mojang.logging.LogUtils.getLogger().info("[e33chat] Send | cmd='" + text + "' | display='" + displayText + "' | whisperTarget=" + whisperTarget);
+        ChatMessageStore.debugLog("[e33chat] Send | cmd='" + text + "' | display='" + displayText + "' | whisperTarget=" + whisperTarget);
         ChatMessageStore.addMessage(Component.literal(displayText),
             minecraft.player.getUUID(),
             Component.literal(minecraft.player.getName().getString()),

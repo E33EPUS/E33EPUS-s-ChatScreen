@@ -14,6 +14,9 @@
 **修复**
 - 聊天历史保存加固：单条消息序列化失败自动降级为纯文本，不再可能因一条异常消息丢失整个历史
 
+**其他**
+- 消息处理调试日志改为配置开关 `debug_log`（默认关闭）——正式版不再把聊天内容写入 latest.log，排查问题时可在配置文件中开启
+
 ***
 
 **New Features**
@@ -27,6 +30,9 @@
 
 **Fixes**
 - Chat history saving hardened: a message that fails to serialize degrades to plain text instead of aborting the save — one bad message can no longer wipe the whole history
+
+**Misc**
+- Message-pipeline debug logging is now gated behind the `debug_log` config option (off by default) — release builds no longer write chat content to latest.log; enable it in the config file when troubleshooting
 
 ## v1.6
 

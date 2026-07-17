@@ -3,8 +3,6 @@ package com.niuqu.chatbubble.mixin;
 import com.niuqu.chatbubble.ChatBubbleConfig;
 import com.niuqu.chatbubble.ChatMessageStore;
 import com.niuqu.chatbubble.ChatMessageStore.SenderMeta;
-import com.mojang.logging.LogUtils;
-import org.slf4j.Logger;
 import java.util.UUID;
 import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.gui.GuiGraphics;
@@ -18,8 +16,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = ChatComponent.class, priority = 500)
 public class ChatComponentMixin {
-    private static final Logger LOGGER = LogUtils.getLogger();
-
     private String lastText;
     private long lastTime;
 
@@ -80,7 +76,7 @@ public class ChatComponentMixin {
             content = finalComponent;
         }
 
-        LOGGER.info("[e33chat] Capture | final='" + finalComponent.getString() + "' | content='" + content.getString() + "' | whisper=" + meta.whisper() + " | partner=" + meta.whisperPartner() + " | isSystem=" + meta.isSystem());
+        ChatMessageStore.debugLog("[e33chat] Capture | final='" + finalComponent.getString() + "' | content='" + content.getString() + "' | whisper=" + meta.whisper() + " | partner=" + meta.whisperPartner() + " | isSystem=" + meta.isSystem());
         ChatMessageStore.addMessage(content, meta.senderUUID(), meta.senderName(), meta.isSystem(), meta.rawPlayerName(), meta.whisper(), meta.whisperPartner());
     }
 }

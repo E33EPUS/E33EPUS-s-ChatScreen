@@ -28,6 +28,7 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.ConfigValue<String> OWN_TEXT_COLOR;
     public static final ForgeConfigSpec.ConfigValue<String> OTHER_TEXT_COLOR;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> QUICK_CHAT_PHRASES;
+    public static final ForgeConfigSpec.BooleanValue DEBUG_LOG;
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -53,6 +54,10 @@ public class ChatBubbleConfig {
         ANIMATION_ENABLED = builder
             .comment("聊天框打开/关闭动画")
             .define("animation", true);
+
+        DEBUG_LOG = builder
+            .comment("消息处理调试日志（排查问题时开启，会把聊天内容写进 latest.log）")
+            .define("debug_log", false);
 
         STRONG_HINT_ENABLED = builder
             .comment("系统消息在物品栏上方显示强提示（不启用则系统消息进入消息预览）")
