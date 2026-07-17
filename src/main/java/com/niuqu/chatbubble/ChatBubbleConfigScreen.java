@@ -58,6 +58,7 @@ public class ChatBubbleConfigScreen extends Screen {
         entries.add(new Entry("e33chat.config.other_bubble_color", y -> mkHexBox(y, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get(), ChatBubbleConfig.OTHER_BUBBLE_COLOR::set), false));
         entries.add(new Entry("e33chat.config.own_text_color", y -> mkHexBox(y, ChatBubbleConfig.OWN_TEXT_COLOR.get(), ChatBubbleConfig.OWN_TEXT_COLOR::set), false));
         entries.add(new Entry("e33chat.config.other_text_color", y -> mkHexBox(y, ChatBubbleConfig.OTHER_TEXT_COLOR.get(), ChatBubbleConfig.OTHER_TEXT_COLOR::set), false));
+        entries.add(new Entry("e33chat.config.bubble_corner_radius", y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get()), 0, 10, ChatBubbleConfig.BUBBLE_CORNER_RADIUS::set), false));
         entries.add(new Entry(null, null, true)); // section gap
         entries.add(new Entry("e33chat.config.system_chat_as_bubble", y -> mkBoolButton(y, ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE), false));
         entries.add(new Entry("e33chat.config.chat_report_compat", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_REPORT_COMPAT), false));

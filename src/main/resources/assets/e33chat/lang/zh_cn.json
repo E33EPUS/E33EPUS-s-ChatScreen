@@ -13,6 +13,7 @@
   "e33chat.config.other_bubble_color": "别人的气泡色",
   "e33chat.config.own_text_color": "自己的文字色",
   "e33chat.config.other_text_color": "别人的文字色",
+  "e33chat.config.bubble_corner_radius": "气泡圆角半径",
   "e33chat.config.strong_hint": "系统消息强提示",
   "e33chat.config.mention_strong_hint": "被@/引用时强提示",
   "e33chat.config.system_chat_as_bubble": "系统消息渲染为聊天气泡",

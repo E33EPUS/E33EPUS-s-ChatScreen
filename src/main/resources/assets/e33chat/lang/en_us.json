@@ -13,6 +13,7 @@
   "e33chat.config.other_bubble_color": "Others' Bubble Color",
   "e33chat.config.own_text_color": "Own Text Color",
   "e33chat.config.other_text_color": "Others' Text Color",
+  "e33chat.config.bubble_corner_radius": "Bubble Corner Radius",
   "e33chat.config.strong_hint": "Strong System Hint",
   "e33chat.config.mention_strong_hint": "Mention Strong Hint",
   "e33chat.config.system_chat_as_bubble": "Render System Chat as Bubble",

@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.7
+
+**新功能**
+- 圆角气泡：SDF shader 实现，边缘逐像素抗锯齿，任意 GUI 缩放下均平滑
+- 新配置项"气泡圆角半径"（0-10，默认 4，0 = 原来的方角）
+- shader 加载失败时自动回退方角渲染，不影响使用
+
+***
+
+**New Features**
+- Rounded bubble corners: SDF shader with per-pixel anti-aliased edges, smooth at any GUI scale
+- New config option "Bubble Corner Radius" (0-10, default 4, 0 = classic square corners)
+- Automatically falls back to square rendering if the shader fails to load
+
 ## v1.6
 
 **新功能**

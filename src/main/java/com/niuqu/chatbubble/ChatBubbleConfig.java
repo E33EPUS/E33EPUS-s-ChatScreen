@@ -24,6 +24,7 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.IntValue TIME_SEPARATOR_MINUTES;
     public static final ForgeConfigSpec.ConfigValue<String> OWN_BUBBLE_COLOR;
     public static final ForgeConfigSpec.ConfigValue<String> OTHER_BUBBLE_COLOR;
+    public static final ForgeConfigSpec.IntValue BUBBLE_CORNER_RADIUS;
     public static final ForgeConfigSpec.ConfigValue<String> OWN_TEXT_COLOR;
     public static final ForgeConfigSpec.ConfigValue<String> OTHER_TEXT_COLOR;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> QUICK_CHAT_PHRASES;
@@ -103,6 +104,10 @@ public class ChatBubbleConfig {
         OTHER_BUBBLE_COLOR = builder
             .comment("别人的气泡颜色 (十六进制 RRGGBB)")
             .define("other_color", "#4A4A4A");
+
+        BUBBLE_CORNER_RADIUS = builder
+            .comment("气泡圆角半径（0=直角，0-10）")
+            .defineInRange("corner_radius", 4, 0, 10);
 
         builder.pop();
         builder.push("text");

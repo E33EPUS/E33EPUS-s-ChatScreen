@@ -973,8 +973,7 @@ public class ChatBubbleScreen extends Screen {
                     showQuickChatPanel = true;
                     quickChatScrollOffset = 0;
                     quickChatInput.setValue("");
-                    setFocused(quickChatInput);
-                    quickChatInput.setFocused(true);
+                    setFocused(input);
                     break;
             }
         }
@@ -1384,7 +1383,8 @@ public class ChatBubbleScreen extends Screen {
             ? ChatBubbleConfig.parseHexColor(ChatBubbleConfig.OWN_TEXT_COLOR.get(), 0xFF0A0A0A)
             : ChatBubbleConfig.parseHexColor(ChatBubbleConfig.OTHER_TEXT_COLOR.get(), c().textPrimary());
 
-        g.fill(bubbleX, bubbleY, bubbleX + bubbleW, bubbleY + bubbleH, bg);
+        RoundRectRenderer.fill(g, bubbleX, bubbleY, bubbleX + bubbleW, bubbleY + bubbleH,
+            ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get(), bg);
 
         net.minecraft.network.chat.Style fbP = findClickStyle(msg.content());
         for (int li = 0; li < lines.size(); li++)
@@ -1736,7 +1736,7 @@ public class ChatBubbleScreen extends Screen {
         int totalPhrases = phrases.size();
         int phraseAreaRight = px + QUICK_CHAT_W - 4;
         boolean hasScrollbar = totalPhrases > QUICK_CHAT_MAX_VISIBLE;
-        int textMaxW = hasScrollbar ? QUICK_CHAT_W - 20 : QUICK_CHAT_W - 16;
+        int textMaxW = (hasScrollbar ? QUICK_CHAT_W - 20 : QUICK_CHAT_W - 16) - 14;
         int hoverRight = hasScrollbar ? px + QUICK_CHAT_W - 8 : px + QUICK_CHAT_W - 4;
         if (hasScrollbar) {
             int trackX = phraseAreaRight;
@@ -1763,6 +1763,11 @@ public class ChatBubbleScreen extends Screen {
                 && mouseY >= rowY && mouseY <= rowY + QUICK_CHAT_ROW_H;
             if (hover) g.fill(px + 4, rowY, hoverRight, rowY + QUICK_CHAT_ROW_H, c().iconHover());
             g.drawString(font, Component.literal(display), px + 6, rowY + 2, c().textPrimary(), false);
+            int delX = hoverRight - 13;
+            int delY = rowY + 1;
+            boolean hoverDel = mouseX >= delX && mouseX <= delX + 12 && mouseY >= delY && mouseY <= delY + 12;
+            g.fill(delX, delY, delX + 12, delY + 12, hoverDel ? c().closeHoverBg() : c().closeBg());
+            g.drawString(font, Component.literal("✕"), delX + 6 - font.width("✕") / 2, delY + 2, c().closeText(), false);
         }
 
         // Input box with border
@@ -1800,6 +1805,7 @@ public class ChatBubbleScreen extends Screen {
         if (mx < px || mx > px + QUICK_CHAT_W || my < py || my > py + panelH) {
             showQuickChatPanel = false;
             quickChatInput.setVisible(false);
+            setFocused(input);
             return false;
         }
 
@@ -1809,16 +1815,32 @@ public class ChatBubbleScreen extends Screen {
         int endIdx = Math.min(startIdx + QUICK_CHAT_MAX_VISIBLE, phrases.size());
         for (int i = startIdx; i < endIdx; i++) {
             int rowY = listY + (i - startIdx) * QUICK_CHAT_ROW_H;
+            int delX = hoverRight - 13;
+            int delY = rowY + 1;
+            if (mx >= delX && mx <= delX + 12 && my >= delY && my <= delY + 12) {
+                java.util.ArrayList<String> list = new java.util.ArrayList<>(phrases);
+                list.remove(i);
+                ChatBubbleConfig.QUICK_CHAT_PHRASES.set(list);
+                quickChatScrollOffset = Math.min(quickChatScrollOffset,
+                    Math.max(0, list.size() - QUICK_CHAT_MAX_VISIBLE));
+                return true;
+            }
             if (mx >= px + 4 && mx <= hoverRight
                 && my >= rowY && my <= rowY + QUICK_CHAT_ROW_H) {
                 input.setValue(phrases.get(i));
                 input.moveCursorToEnd();
                 showQuickChatPanel = false;
                 quickChatInput.setVisible(false);
+                setFocused(input);
                 return true;
             }
         }
-        return false;
+        if (quickChatInput.mouseClicked(mx, my, 0)) {
+            setFocused(quickChatInput);
+            return true;
+        }
+        setFocused(input);
+        return true;
     }
 
     private void renderEmojiGrid(GuiGraphics g, int mouseX, int mouseY,
