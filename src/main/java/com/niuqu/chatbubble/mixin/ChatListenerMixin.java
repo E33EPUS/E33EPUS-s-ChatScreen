@@ -85,7 +85,8 @@ public class ChatListenerMixin {
             String key = tc.getKey();
             return key.startsWith("chat.type.advancement.")
                 || key.startsWith("death.")
-                || key.startsWith("multiplayer.player.");
+                || key.startsWith("multiplayer.player.")
+                || key.startsWith("commands.");
         }
         return false;
     }
@@ -99,6 +100,7 @@ public class ChatListenerMixin {
         final int[] pos = {0};
         final int[] range = {-1, -1};
         final String[] tellName = {null};
+        final String[] clickedText = {null};
         message.visit((style, str) -> {
             int s = pos[0], e = s + str.length();
             pos[0] = e;
@@ -116,6 +118,7 @@ public class ChatListenerMixin {
                             tellName[0] = n;
                             range[0] = s;
                             range[1] = e;
+                            clickedText[0] = str;
                         }
                         break;
                     }
@@ -134,6 +137,15 @@ public class ChatListenerMixin {
             }
         }
         if (sender == null) return null;
+
+        // The clicked segment must actually be the sender's displayed name — feedback like
+        // "杀死了E33EPUS" carries a whole-line /tell click whose first segment is not a name
+        String clicked = clickedText[0].replaceAll("§.", "").trim();
+        boolean clickedIsName = false;
+        for (String cand : nameCandidates(sender)) {
+            if (!cand.isEmpty() && clicked.contains(cand)) { clickedIsName = true; break; }
+        }
+        if (!clickedIsName) return null;
 
         int b = range[1];
         if (b < text.length() && text.charAt(b) == '>') b++;
