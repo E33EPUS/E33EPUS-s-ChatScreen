@@ -1,9 +1,10 @@
 {
   "e33chat.screen.title": "聊天",
-  "e33chat.title.fallback": "聊天栏",
+
   "e33chat.config.title": "ChatBubble 设置",
   "e33chat.config.section.general": "常规选项",
   "e33chat.config.section.compatibility": "兼容性选项",
+  "e33chat.config.theme": "颜色主题 (测试)",
   "e33chat.config.enabled": "启用模组",
   "e33chat.config.red_dot": "红点提示",
   "e33chat.config.hide_chat_icon": "隐藏聊天图标",
@@ -12,12 +13,13 @@
   "e33chat.config.other_bubble_color": "别人的气泡色",
   "e33chat.config.own_text_color": "自己的文字色",
   "e33chat.config.other_text_color": "别人的文字色",
+  "e33chat.config.bubble_corner_radius": "气泡圆角半径",
   "e33chat.config.strong_hint": "系统消息强提示",
   "e33chat.config.mention_strong_hint": "被@/引用时强提示",
   "e33chat.config.system_chat_as_bubble": "系统消息渲染为聊天气泡",
   "e33chat.config.anti_spam": "防刷屏",
-  "e33chat.config.chat_report_compat": "\"禁用聊天举报\"模组兼容",
   "e33chat.config.chat_history": "保留聊天记录",
+  "e33chat.config.chat_report_compat": "\"禁用聊天举报\"模组兼容",
   "e33chat.config.preview_enabled": "启用消息预览",
   "e33chat.config.preview_lines": "预览行数",
   "e33chat.config.preview_width": "预览宽度",
@@ -26,10 +28,23 @@
   "e33chat.config.time_separator.disable": "关闭",
   "e33chat.context.copy": "复制",
   "e33chat.context.quote": "引用",
+  "e33chat.context.tp": "传送",
+  "e33chat.context.whisper": "私聊",
   "e33chat.toast.copied": "已复制",
-  "e33chat.config.mention_highlight": "被@时高亮",
-  "e33chat.config.mention_highlight_color": "@高亮边框色",
+
+  "e33chat.menu.settings": "设置",
+  "e33chat.menu.theme": "主题 (测试)",
+  "e33chat.menu.quick_chat": "常用语",
+
+  "e33chat.emoji.tab_emoji": "😊 Emoji",
+  "e33chat.emoji.tab_kaomoji": "✧ 颜文字",
+
   "e33chat.sender.system": "系统",
   "e33chat.notif.new_messages": "条新消息",
-  "e33chat.notif.mention": "有人@你"
+  "e33chat.notif.mention": "有人@你",
+  "e33chat.sidebar.public": "世界频道",
+  "e33chat.sidebar.search": "查找玩家",
+  "e33chat.sidebar.no_players": "无在线玩家",
+  "e33chat.whisper.mode": "私聊",
+  "e33chat.quick_chat.placeholder": "添加常用语..."
 }

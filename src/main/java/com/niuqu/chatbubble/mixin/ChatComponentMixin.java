@@ -16,6 +16,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = ChatComponent.class, priority = 500)
 public class ChatComponentMixin {
+    private String lastText;
+    private long lastTime;
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void onRender(GuiGraphics guiGraphics, int tickCount, int mouseX,
@@ -38,11 +40,10 @@ public class ChatComponentMixin {
         captureMessage(message);
     }
 
-    private String lastText;
-    private long lastTime;
-
     private void captureMessage(Component finalComponent) {
         if (!ChatBubbleConfig.ENABLED.get()) return;
+
+        // 3-arg addMessage calls 1-arg internally — skip the duplicate
         String text = finalComponent.getString();
         long now = System.currentTimeMillis();
         if (text.equals(lastText) && now - lastTime < 100) return;
@@ -51,16 +52,19 @@ public class ChatComponentMixin {
 
         SenderMeta meta = ChatMessageStore.consumePendingMeta();
         if (meta == null) {
-            if (ChatMessageStore.isRecentDuplicate(finalComponent.getString())) return;
+            if (ChatMessageStore.isRecentDuplicate(text)) return;
             meta = new SenderMeta(
                 new UUID(0, 0),
                 Component.translatable("e33chat.sender.system"),
                 finalComponent,
-                true
+                true,
+                null,
+                false, null
             );
         }
 
-        if (ChatMessageStore.consumeEchoIfSenderMatches(meta.senderName().getString())) return;
+        if (ChatMessageStore.consumeSuppressCapture()) return;
+        if (ChatMessageStore.consumeEchoIfSenderMatches(meta.senderName())) return;
         if (ChatMessageStore.consumeEchoBySystemChat(finalComponent.getString())) return;
 
         String rawStr = meta.rawContent().getString();
@@ -72,6 +76,7 @@ public class ChatComponentMixin {
             content = finalComponent;
         }
 
-        ChatMessageStore.addMessage(content, meta.senderUUID(), meta.senderName(), meta.isSystem());
+        ChatMessageStore.debugLog("[e33chat] Capture | final='" + finalComponent.getString() + "' | content='" + content.getString() + "' | whisper=" + meta.whisper() + " | partner=" + meta.whisperPartner() + " | isSystem=" + meta.isSystem());
+        ChatMessageStore.addMessage(content, meta.senderUUID(), meta.senderName(), meta.isSystem(), meta.rawPlayerName(), meta.whisper(), meta.whisperPartner());
     }
 }

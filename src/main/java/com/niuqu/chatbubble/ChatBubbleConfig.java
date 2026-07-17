@@ -1,10 +1,13 @@
 package com.niuqu.chatbubble;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class ChatBubbleConfig {
     public static final ModConfigSpec CLIENT_CONFIG;
 
+    public static final ModConfigSpec.EnumValue<ChatBubbleTheme> THEME;
     public static final ModConfigSpec.BooleanValue ENABLED;
     public static final ModConfigSpec.BooleanValue RED_DOT_ENABLED;
     public static final ModConfigSpec.BooleanValue HIDE_CHAT_ICON;
@@ -21,14 +24,20 @@ public class ChatBubbleConfig {
     public static final ModConfigSpec.IntValue TIME_SEPARATOR_MINUTES;
     public static final ModConfigSpec.ConfigValue<String> OWN_BUBBLE_COLOR;
     public static final ModConfigSpec.ConfigValue<String> OTHER_BUBBLE_COLOR;
+    public static final ModConfigSpec.IntValue BUBBLE_CORNER_RADIUS;
     public static final ModConfigSpec.ConfigValue<String> OWN_TEXT_COLOR;
     public static final ModConfigSpec.ConfigValue<String> OTHER_TEXT_COLOR;
-
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> QUICK_CHAT_PHRASES;
+    public static final ModConfigSpec.BooleanValue DEBUG_LOG;
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
         builder.comment("ChatBubble 聊天界面设置");
         builder.push("general");
+
+        THEME = builder
+            .comment("颜色主题：DARK = 深色（默认），LIGHT = 浅色")
+            .defineEnum("theme", ChatBubbleTheme.DARK);
 
         ENABLED = builder
             .comment("启用自定义聊天浮层（关闭后恢复原版聊天）")
@@ -46,6 +55,9 @@ public class ChatBubbleConfig {
             .comment("聊天框打开/关闭动画")
             .define("animation", true);
 
+        DEBUG_LOG = builder
+            .comment("消息处理调试日志（排查问题时开启，会把聊天内容写进 latest.log）")
+            .define("debug_log", false);
 
         STRONG_HINT_ENABLED = builder
             .comment("系统消息在物品栏上方显示强提示（不启用则系统消息进入消息预览）")
@@ -56,20 +68,20 @@ public class ChatBubbleConfig {
             .define("mention_strong_hint", true);
 
         SYSTEM_CHAT_AS_BUBBLE = builder
-            .comment("系统消息也渲染为聊天气泡（兼容禁用聊天举报的插件服）")
+            .comment("系统消息以气泡形式显示在聊天框中")
             .define("system_chat_as_bubble", false);
 
         ANTI_SPAM = builder
-            .comment("防刷屏——连续相同消息合并为一条，旁白显示重复次数")
+            .comment("防刷屏")
             .define("anti_spam", true);
 
-        CHAT_HISTORY_ENABLED = builder
-            .comment("保留聊天记录——每个存档的聊天记录保存到本地")
-            .define("chat_history", false);
-
         CHAT_REPORT_COMPAT = builder
-            .comment("禁用聊天举报兼容模式——从系统消息中扫描在线玩家名并还原身份（支持服务器前缀/称号）")
+            .comment("禁用聊天举报后兼容 <玩家名> 消息格式")
             .define("chat_report_compat", false);
+
+        CHAT_HISTORY_ENABLED = builder
+            .comment("保留每个存档的聊天记录（退出后恢复）")
+            .define("chat_history", false);
 
         PREVIEW_ENABLED = builder
             .comment("在 HUD 图标上方显示最近消息预览")
@@ -92,22 +104,33 @@ public class ChatBubbleConfig {
 
         OWN_BUBBLE_COLOR = builder
             .comment("自己的气泡颜色 (十六进制 RRGGBB)")
-            .define("own_color", "#95EC69");
+            .define("own_color", "#1E90FF");
 
         OTHER_BUBBLE_COLOR = builder
             .comment("别人的气泡颜色 (十六进制 RRGGBB)")
             .define("other_color", "#4A4A4A");
+
+        BUBBLE_CORNER_RADIUS = builder
+            .comment("气泡圆角半径（0=直角，0-10）")
+            .defineInRange("corner_radius", 4, 0, 10);
 
         builder.pop();
         builder.push("text");
 
         OWN_TEXT_COLOR = builder
             .comment("自己的文字颜色 (十六进制 RRGGBB)")
-            .define("own_color", "#0A0A0A");
+            .define("own_color", "#FFFFFF");
 
         OTHER_TEXT_COLOR = builder
             .comment("别人的文字颜色 (十六进制 RRGGBB)")
             .define("other_color", "#FFFFFF");
+
+        builder.pop();
+        builder.push("quick_chat");
+
+        QUICK_CHAT_PHRASES = builder
+            .comment("常用语列表")
+            .defineListAllowEmpty("phrases", new ArrayList<>(), () -> "", o -> o instanceof String);
 
         builder.pop();
 

@@ -16,6 +16,7 @@ public class ChatBubbleClientSetup {
         NeoForge.EVENT_BUS.register(new ChatBubbleClientListener());
 
         modEventBus.addListener(this::onClientSetup);
+        modEventBus.addListener(RoundRectRenderer::registerShaders);
     }
 
     private void onClientSetup(FMLClientSetupEvent event) {

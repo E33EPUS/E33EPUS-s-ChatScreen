@@ -14,6 +14,10 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class ChatBubbleConfigScreen extends Screen {
     private final Screen lastScreen;
+
+    private ChatBubbleTheme.Colors c() {
+        return ChatBubbleTheme.DARK.colors();
+    }
     private static final int LABEL_X = 40;
     private static final int INPUT_X = 165;
     private static final int INPUT_W = 80;
@@ -36,6 +40,7 @@ public class ChatBubbleConfigScreen extends Screen {
     private void buildEntries() {
         if (entries != null) return;
         entries = new ArrayList<>();
+        entries.add(new Entry("e33chat.config.theme", y -> mkThemeButton(y), false));
         entries.add(new Entry("e33chat.config.enabled", y -> mkBoolButton(y, ChatBubbleConfig.ENABLED), false));
         entries.add(new Entry("e33chat.config.red_dot", y -> mkBoolButton(y, ChatBubbleConfig.RED_DOT_ENABLED), false));
         entries.add(new Entry("e33chat.config.hide_chat_icon", y -> mkBoolButton(y, ChatBubbleConfig.HIDE_CHAT_ICON), false));
@@ -46,13 +51,14 @@ public class ChatBubbleConfigScreen extends Screen {
         entries.add(new Entry("e33chat.config.chat_history", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_HISTORY_ENABLED), false));
         entries.add(new Entry("e33chat.config.preview_enabled", y -> mkBoolButton(y, ChatBubbleConfig.PREVIEW_ENABLED), false));
         entries.add(new Entry("e33chat.config.preview_lines", this::mkCycleButton, false));
-        entries.add(new Entry("e33chat.config.preview_width", y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set), false));
         entries.add(new Entry("e33chat.config.time_separator", this::mkTimeSepButton, false));
+        entries.add(new Entry("e33chat.config.preview_width", y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set), false));
         previewStartIdx = entries.size();
         entries.add(new Entry("e33chat.config.own_bubble_color", y -> mkHexBox(y, ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), ChatBubbleConfig.OWN_BUBBLE_COLOR::set), false));
         entries.add(new Entry("e33chat.config.other_bubble_color", y -> mkHexBox(y, ChatBubbleConfig.OTHER_BUBBLE_COLOR.get(), ChatBubbleConfig.OTHER_BUBBLE_COLOR::set), false));
         entries.add(new Entry("e33chat.config.own_text_color", y -> mkHexBox(y, ChatBubbleConfig.OWN_TEXT_COLOR.get(), ChatBubbleConfig.OWN_TEXT_COLOR::set), false));
         entries.add(new Entry("e33chat.config.other_text_color", y -> mkHexBox(y, ChatBubbleConfig.OTHER_TEXT_COLOR.get(), ChatBubbleConfig.OTHER_TEXT_COLOR::set), false));
+        entries.add(new Entry("e33chat.config.bubble_corner_radius", y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get()), 0, 10, ChatBubbleConfig.BUBBLE_CORNER_RADIUS::set), false));
         entries.add(new Entry(null, null, true)); // section gap
         entries.add(new Entry("e33chat.config.system_chat_as_bubble", y -> mkBoolButton(y, ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE), false));
         entries.add(new Entry("e33chat.config.chat_report_compat", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_REPORT_COMPAT), false));
@@ -81,6 +87,18 @@ public class ChatBubbleConfigScreen extends Screen {
             .bounds(width / 2 - 100, height - 32, 200, 20).build());
     }
 
+    private Button mkThemeButton(int y) {
+        var themes = ChatBubbleTheme.values();
+        return Button.builder(
+            Component.literal(ChatBubbleConfig.THEME.get().name()),
+            btn -> {
+                int next = (ChatBubbleConfig.THEME.get().ordinal() + 1) % themes.length;
+                ChatBubbleConfig.THEME.set(themes[next]);
+                btn.setMessage(Component.literal(themes[next].name()));
+            }
+        ).bounds(INPUT_X, y, INPUT_W, 20).build();
+    }
+
     private Button mkBoolButton(int y, ModConfigSpec.BooleanValue cfg) {
         boolean v = cfg.get();
         return Button.builder(
@@ -105,29 +123,25 @@ public class ChatBubbleConfigScreen extends Screen {
         ).bounds(INPUT_X, y, INPUT_W, 20).build();
     }
 
-    private static final int[] TIME_SEP_VALUES = {1, 5, 10, 15, 30, 0};
+    private static final int[] TIME_SEP_PRESETS = {1, 5, 10, 15, 30, 0};
 
     private Button mkTimeSepButton(int y) {
-        int v = ChatBubbleConfig.TIME_SEPARATOR_MINUTES.get();
-        String label = v == 0
-            ? Component.translatable("e33chat.config.time_separator.disable").getString()
-            : v + Component.translatable("e33chat.config.time_separator.minute").getString();
-        return Button.builder(
-            Component.literal(label),
-            btn -> {
-                int cur = ChatBubbleConfig.TIME_SEPARATOR_MINUTES.get();
-                int idx = 0;
-                for (int i = 0; i < TIME_SEP_VALUES.length; i++) {
-                    if (TIME_SEP_VALUES[i] == cur) { idx = (i + 1) % TIME_SEP_VALUES.length; break; }
+        int cur = ChatBubbleConfig.TIME_SEPARATOR_MINUTES.get();
+        String label = cur == 0 ? Component.translatable("e33chat.config.time_separator.disable").getString()
+            : cur + " " + Component.translatable("e33chat.config.time_separator.minute").getString();
+        return Button.builder(Component.literal(label), btn -> {
+            int idx = -1;
+            for (int i = 0; i < TIME_SEP_PRESETS.length; i++) {
+                if (TIME_SEP_PRESETS[i] == ChatBubbleConfig.TIME_SEPARATOR_MINUTES.get()) {
+                    idx = i; break;
                 }
-                int nv = TIME_SEP_VALUES[idx];
-                ChatBubbleConfig.TIME_SEPARATOR_MINUTES.set(nv);
-                String nl = nv == 0
-                    ? Component.translatable("e33chat.config.time_separator.disable").getString()
-                    : nv + Component.translatable("e33chat.config.time_separator.minute").getString();
-                btn.setMessage(Component.literal(nl));
             }
-        ).bounds(INPUT_X, y, INPUT_W, 20).build();
+            int next = TIME_SEP_PRESETS[(idx + 1) % TIME_SEP_PRESETS.length];
+            ChatBubbleConfig.TIME_SEPARATOR_MINUTES.set(next);
+            String nl = next == 0 ? Component.translatable("e33chat.config.time_separator.disable").getString()
+                : next + " " + Component.translatable("e33chat.config.time_separator.minute").getString();
+            btn.setMessage(Component.literal(nl));
+        }).bounds(INPUT_X, y, INPUT_W, 20).build();
     }
 
     private EditBox mkHexBox(int y, String initial, java.util.function.Consumer<String> onChange) {
@@ -163,7 +177,7 @@ public class ChatBubbleConfigScreen extends Screen {
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         super.render(g, mouseX, mouseY, partialTick);
-        g.drawCenteredString(font, title, width / 2, 14, 0xFFFFFFFF);
+        g.drawString(font, title, width / 2 - font.width(title) / 2, 14, c().configTitle(), false);
 
         int y = START_Y + 6 - scrollOffset;
 
@@ -171,7 +185,7 @@ public class ChatBubbleConfigScreen extends Screen {
         int generalHeaderY = START_Y - scrollOffset - 20;
         Component generalHeader = Component.translatable("e33chat.config.section.general");
         if (generalHeaderY > -ROW_H && generalHeaderY < height)
-            g.drawString(font, generalHeader, LABEL_X, generalHeaderY, 0xFFFFAA00, false);
+            g.drawString(font, generalHeader, LABEL_X, generalHeaderY, c().configSection(), false);
 
         String[] previewColors = {
             ChatBubbleConfig.OWN_BUBBLE_COLOR.get(),
@@ -189,13 +203,13 @@ public class ChatBubbleConfigScreen extends Screen {
                     int compatHeaderY = y - 20;
                     Component compatHeader = Component.translatable("e33chat.config.section.compatibility");
                     if (compatHeaderY > -ROW_H && compatHeaderY < height)
-                        g.drawString(font, compatHeader, LABEL_X, compatHeaderY, 0xFFFFAA00, false);
+                        g.drawString(font, compatHeader, LABEL_X, compatHeaderY, c().configSection(), false);
                     compatHeaderDrawn = true;
                 }
                 continue;
             }
             if (y > -ROW_H && y < height)
-                g.drawString(font, Component.translatable(e.labelKey), LABEL_X, y, 0xFFFFFFFF, false);
+                g.drawString(font, Component.translatable(e.labelKey), LABEL_X, y, c().configLabel(), false);
             y += ROW_H;
         }
 
@@ -209,7 +223,7 @@ public class ChatBubbleConfigScreen extends Screen {
 
     private void drawPreview(GuiGraphics g, int y, String hex) {
         int color = ChatBubbleConfig.parseHexColor(hex, 0xFF000000);
-        g.fill(PREVIEW_X, y, PREVIEW_X + 14, y + 14, 0xFF444444);
+        g.fill(PREVIEW_X, y, PREVIEW_X + 14, y + 14, c().iconHover());
         g.fill(PREVIEW_X + 1, y + 1, PREVIEW_X + 13, y + 13, color);
     }
 

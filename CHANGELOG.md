@@ -1,5 +1,71 @@
 # Changelog
 
+## v1.7
+
+> 同步自 Forge 1.20.1 v1.3–v1.7（一次性补齐五个版本）
+
+**v1.3-v1.4 私聊系统**
+- 私聊侧边栏：在线玩家列表（头像+名字+最新私聊预览），点击进入私聊模式，紫色模式指示条
+- 私聊发送隐形拼接 `/msg`，输入框不穿帮；回显三层拦截，私聊不泄漏公屏、不复读
+- 侧边栏搜索框、右键头像菜单（传送/私聊）、未读私聊紫色闪烁、滑入滑出动画、无人在线插画
+- 公屏最新消息预览显示在"世界频道"行；消息预览宽度可配置（`preview_width`）
+
+**v1.5 主题**
+- 颜色主题切换：深色（默认）/ 浅色，配置界面一键切换
+- 常用语面板（`quick_chat` 配置）
+
+**v1.6 装饰名**
+- 服务器称号/前缀带原色显示在玩家名旁（`[前缀]<名字>` 与 `<[前缀]名字>` 均支持，失败回退裸名）
+- 自己的称号在服务器回显后补全到本地气泡；消息预览保留原有颜色样式
+- 回显记录/私聊回显旗标 10 秒过期，不再误吞后续消息
+- 聊天历史保存带样式的发送者名（旧存档兼容）
+- 网络通道声明为可选——连接未装本 mod 的服务器不再可能被拒连
+
+**v1.7 圆角与昵称**
+- 圆角气泡：SDF shader 逐像素抗锯齿，新配置"气泡圆角半径"（0-10，默认 4），shader 加载失败自动回退方角
+- 昵称插件支持：消息归属尝试 tab 显示名 + `/tell` 点击事件通道 + `§` 颜色码兼容
+- 聊天历史保存加固：单条消息序列化失败降级纯文本，不再丢整个历史
+- 默认配色：自己的气泡 #1E90FF 蓝底白字（仅新配置生效）
+- 调试日志改为 `debug_log` 配置开关（默认关闭）
+
+**NeoForge 1.21.1 适配说明**
+- 私聊类型判定改用 `Holder.is()`（1.21.1 `ChatType.Bound` 记录化）
+- 历史序列化走 `registryAccess`（1.20.5+ Component JSON 要求）
+- 圆角 shader 按 1.21.1 顶点 API 重写提交路径
+
+***
+
+> Synced from Forge 1.20.1 v1.3–v1.7 (five versions in one pass)
+
+**v1.3-v1.4 Whisper System**
+- Whisper sidebar: online player list (avatar + name + latest whisper preview), click to enter whisper mode with purple indicator bar
+- Invisible `/msg` splicing on send; three-layer echo suppression — whispers never leak to public chat or echo back
+- Sidebar search box, avatar right-click menu (Teleport/Whisper), purple unread blink, slide animation, no-players illustration
+- Latest public message preview under the "Public" entry; configurable preview width (`preview_width`)
+
+**v1.5 Themes**
+- Color theme toggle: Dark (default) / Light, switchable in config screen
+- Quick chat phrases panel (`quick_chat` config)
+
+**v1.6 Decorated Names**
+- Server titles/prefixes shown next to player names in original colors (both `[Prefix]<Name>` and `<[Prefix]Name>`, falls back to bare name)
+- Your own title patched into local bubbles once the server echo arrives; previews keep original colors
+- Pending echoes and whisper echo flags expire after 10s — no more swallowed messages
+- Chat history saves styled sender names (old saves still load)
+- Network channel declared optional — joining servers without this mod can no longer be rejected
+
+**v1.7 Rounded Corners & Nicknames**
+- Rounded bubble corners: SDF shader with per-pixel anti-aliasing, new "Bubble Corner Radius" config (0-10, default 4), automatic square fallback if the shader fails to load
+- Nickname plugin support: attribution tries tab-list display names + `/tell` click events + `§` color code tolerance
+- Chat history hardening: a message that fails to serialize degrades to plain text instead of wiping the whole history
+- New default colors: own bubble #1E90FF with white text (fresh configs only)
+- Debug logging gated behind `debug_log` config (off by default)
+
+**NeoForge 1.21.1 Porting Notes**
+- Whisper type detection now uses `Holder.is()` (`ChatType.Bound` is a record in 1.21.1)
+- History serialization goes through `registryAccess` (required for Component JSON since 1.20.5)
+- Rounded-corner shader submission path rewritten for the 1.21.1 vertex API
+
 ## v1.2
 
 > 同步自 Forge 1.20.1 v1.2

@@ -8,12 +8,10 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public class NetworkHandler {
 
-    public static void register() {
-    }
-
     @SubscribeEvent
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("1");
+        // optional: joining servers without this mod must not be rejected
+        PayloadRegistrar registrar = event.registrar("1").optional();
         registrar.playToServer(QuoteSyncPayload.TYPE, QuoteSyncPayload.STREAM_CODEC, QuoteSyncPayload::handleServer);
         registrar.playToClient(ChatMetaPayload.TYPE, ChatMetaPayload.STREAM_CODEC, ChatMetaPayload::handleClient);
     }
