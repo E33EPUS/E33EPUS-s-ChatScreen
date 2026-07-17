@@ -78,9 +78,22 @@ public class ChatListenerMixin {
         if (!stripped.isEmpty()) out.add(stripped);
     }
 
+    // Vanilla broadcasts (advancements/deaths/joins) lead with a clickable player name,
+    // which tell-click would wrongly claim as chat — keep them as system messages
+    private static boolean isVanillaBroadcast(Component message) {
+        if (message.getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents tc) {
+            String key = tc.getKey();
+            return key.startsWith("chat.type.advancement.")
+                || key.startsWith("death.")
+                || key.startsWith("multiplayer.player.");
+        }
+        return false;
+    }
+
     // Plugins attach "click to whisper" events to sender names — the command holds the
     // real profile name, giving deterministic attribution even on nickname servers
     private static SenderMeta detectByTellClick(Component message, String text) {
+        if (isVanillaBroadcast(message)) return null;
         var player = Minecraft.getInstance().player;
         if (player == null || player.connection == null) return null;
         final int[] pos = {0};
