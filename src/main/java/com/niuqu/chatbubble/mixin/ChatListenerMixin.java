@@ -79,15 +79,125 @@ public class ChatListenerMixin {
     }
 
     // Vanilla broadcasts (advancements/deaths/joins) lead with a clickable player name,
-    // which tell-click would wrongly claim as chat — keep them as system messages
+    // which tell-click would wrongly claim as chat — keep them as system messages.
+    // chat.type.admin is the op echo "[Steve: Teleported ...]",
+    // announcement/emote are /say and /me — same trap
     private static boolean isVanillaBroadcast(Component message) {
         if (message.getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents tc) {
             String key = tc.getKey();
             return key.startsWith("chat.type.advancement.")
                 || key.startsWith("death.")
                 || key.startsWith("multiplayer.player.")
-                || key.startsWith("commands.");
+                || key.startsWith("commands.")
+                || key.equals("chat.type.admin")
+                || key.equals("chat.type.announcement")
+                || key.equals("chat.type.emote")
+                || key.startsWith("chat.type.team.");
         }
+        return false;
+    }
+
+    // ===== Layer 0: deterministic routing by vanilla translation key.=====
+    // NCR/FreedomChat stuff the decorated component tree into system packets unchanged,
+    // so the key survives conversion. Unknown keys fall through to the heuristics below.
+
+    private static Component argAsComponent(Object arg) {
+        return arg instanceof Component c ? c : Component.literal(String.valueOf(arg));
+    }
+
+    private static net.minecraft.client.multiplayer.PlayerInfo findOnlinePlayer(String displayName) {
+        var player = Minecraft.getInstance().player;
+        if (player == null || player.connection == null || displayName.isEmpty()) return null;
+        var online = player.connection.getOnlinePlayers();
+        for (var info : online) {
+            for (String cand : nameCandidates(info)) {
+                if (cand.equals(displayName)) return info;
+            }
+        }
+        // Team/plugin decorations wrap the name ("[Title]Steve") — longest match wins
+        // so "Steve2" is never claimed by "Steve". Min length 3 keeps 1-2 char names
+        // from substring-matching random text when the real sender is offline
+        net.minecraft.client.multiplayer.PlayerInfo best = null;
+        int bestLen = 0;
+        for (var info : online) {
+            for (String cand : nameCandidates(info)) {
+                if (cand.length() >= 3 && cand.length() > bestLen && displayName.contains(cand)) {
+                    best = info;
+                    bestLen = cand.length();
+                }
+            }
+        }
+        return best;
+    }
+
+    private static boolean classifyByKey(Component message) {
+        if (!(message.getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents tc)) return false;
+        String key = tc.getKey();
+        Object[] args = tc.getArgs();
+
+        if (key.equals("commands.message.display.incoming") && args.length >= 2) {
+            Component name = argAsComponent(args[0]);
+            Component content = argAsComponent(args[1]);
+            String displayName = name.getString().replaceAll("§.", "").trim();
+            var info = findOnlinePlayer(displayName);
+            String profile = info != null ? info.getProfile().getName() : displayName;
+            UUID uuid = info != null ? info.getProfile().getId() : new UUID(0, 0);
+            ChatMessageStore.debugLog("[e33chat] Key(whisper in) | name=" + profile + " | content='" + content.getString() + "'");
+            ChatMessageStore.setPendingMeta(new SenderMeta(uuid, name, content, false, profile, true, profile));
+            return true;
+        }
+
+        if (key.equals("commands.message.display.outgoing")) {
+            if (ChatMessageStore.hasPendingWhisperEcho()) {
+                ChatMessageStore.consumeWhisperEcho();
+                ChatMessageStore.markSuppressCapture();
+                ChatMessageStore.debugLog("[e33chat] Key(whisper echo suppressed)");
+                return true;
+            }
+            var player = Minecraft.getInstance().player;
+            if (player != null && args.length >= 2) {
+                // /msg sent outside our UI (another mod, key bind) — no local bubble exists
+                String partner = argAsComponent(args[0]).getString().replaceAll("§.", "").trim();
+                Component content = argAsComponent(args[1]);
+                String own = player.getName().getString();
+                ChatMessageStore.debugLog("[e33chat] Key(whisper out) | partner=" + partner + " | content='" + content.getString() + "'");
+                ChatMessageStore.setPendingMeta(new SenderMeta(player.getUUID(),
+                    Component.literal(own), content, false, own, true, partner));
+                return true;
+            }
+            return false;
+        }
+
+        if (ChatBubbleConfig.CHAT_REPORT_COMPAT.get() && key.equals("chat.type.text") && args.length >= 2) {
+            Component name = argAsComponent(args[0]);
+            Component content = argAsComponent(args[1]);
+            String contentStr = content.getString();
+            // Xaero shares waypoint data as chat — converted servers wrap it in chat.type.text
+            if (contentStr.startsWith("xaero-waypoint:")
+                || contentStr.startsWith("xaero_waypoint:")
+                || contentStr.startsWith("xaero_waypoint_add:")) {
+                ChatMessageStore.debugLog("[e33chat] Key(waypoint data) -> system");
+                ChatMessageStore.setPendingMeta(new SenderMeta(new UUID(0, 0),
+                    Component.translatable("e33chat.sender.system"), message, true, null, false, null));
+                return true;
+            }
+            String displayName = name.getString().replaceAll("§.", "").trim();
+            var info = findOnlinePlayer(displayName);
+            String profile = info != null ? info.getProfile().getName() : displayName;
+            UUID uuid = info != null ? info.getProfile().getId() : new UUID(0, 0);
+            ChatMessageStore.debugLog("[e33chat] Key(chat) | name=" + profile + " | display='" + name.getString() + "' | content='" + content.getString() + "'");
+            ChatMessageStore.setPendingMeta(new SenderMeta(uuid, name, content, false, profile, false, null));
+            return true;
+        }
+
+        if (isVanillaBroadcast(message)) {
+            boolean isSystem = !ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE.get();
+            ChatMessageStore.debugLog("[e33chat] Key(broadcast) | key=" + key);
+            ChatMessageStore.setPendingMeta(new SenderMeta(new UUID(0, 0),
+                Component.translatable("e33chat.sender.system"), message, isSystem, null, false, null));
+            return true;
+        }
+
         return false;
     }
 
@@ -335,6 +445,10 @@ public class ChatListenerMixin {
     @Inject(method = "handleSystemMessage", at = @At("HEAD"))
     private void onSystemChat(Component message, boolean overlay, CallbackInfo ci) {
         if (overlay) return;
+
+        // Layer 0: known translation keys route deterministically; keyword echo check
+        // stays below it so a partner's reply can never be eaten as our own echo
+        if (classifyByKey(message)) return;
 
         String sysText = message.getString();
         // Suppress outgoing whisper echo
