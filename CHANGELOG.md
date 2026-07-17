@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.9.1
+
+**修复**
+- 自带下划线样式的消息（如 Xaero 路径点分享）不再出现双下划线，其下划线也不再刮破表情菜单等浮层——现在聊天列表中的所有下划线都由 mod 按绘制顺序自绘
+
+***
+
+**Fixes**
+- Messages with intrinsic underline styling (e.g. Xaero waypoint shares) no longer show a double underline, and their underlines no longer bleed through overlay panels — all underlines in the chat list are now repainted by the mod in plain paint order
+
 ## v1.9
 
 **新功能**
