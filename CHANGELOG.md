@@ -1,5 +1,57 @@
 # Changelog
 
+## v1.9
+
+**新功能**
+- 配置界面重做：左侧分类栏（外观/通知/行为/兼容），悬停选项名显示详细说明，调试日志开关加入界面
+- 配置项支持第三方配置界面（如 Configured）的本地化显示
+
+**修复**
+- 三处输入框（主输入、常用语、侧边栏搜索）文字垂直居中，占位符与输入文字位置完全一致，聚焦不再跳位
+- 可点击文本的下划线不再穿透浮层面板（此前打开表情菜单等浮层时会有一道"划痕"）
+- 发送指令不再生成本地气泡——与原版一致，指令文本不进聊天记录（私聊指令除外）
+
+**其他**
+- 配置文件注释全部改为英文（生态惯例）；文件结构与键名不变，现有配置无缝保留
+
+***
+
+**New Features**
+- Reworked config screen: category sidebar (Appearance / Notifications / Behavior / Compat), hover an option name for a detailed description, debug log toggle now in the GUI
+- Config options now localize in third-party config UIs (e.g. Configured)
+
+**Fixes**
+- Text in all three input boxes (main input, quick chat, sidebar search) is now vertically centered; placeholder and typed text share the exact same position, no more jump on focus
+- Underlines on clickable text no longer bleed through overlay panels (previously visible as a "scratch" across the emoji panel and other overlays)
+- Sending a command no longer creates a local bubble — matching vanilla, command text stays out of the chat log (whisper commands excepted)
+
+**Misc**
+- Config file comments are now in English (ecosystem convention); file structure and keys unchanged, existing configs carry over seamlessly
+
+## v1.8
+
+**消息分类重构**
+- 新增"翻译键"确定性分类层：私聊、公屏聊天、指令反馈、原版广播（进度/死亡/进出服）、OP 回显、/say、/me、队伍消息按原版翻译键精确路由，不再依赖文本内容猜测；键在 NCR/FreedomChat 转换后依然保留，因此转换服同样受益
+- 未知格式自动回落到原有启发式识别（插件自定义格式不受影响）
+
+**修复**
+- /tp、/kill 等指令的 OP 回显（`[名字: ...]`）不再被误判为该玩家的聊天气泡
+- 转换服上的私聊名字与内容直接取自消息结构（保留样式与颜色），且不再依赖客户端语言
+- 你发出私聊后 10 秒内对方的回复不再可能被回显抑制误吞
+- Xaero 地图路径点分享在聊天转换服务器上不再被渲染成气泡
+
+***
+
+**Message Classification Rework**
+- New deterministic classification layer based on vanilla translation keys: whispers, public chat, command feedback, vanilla broadcasts (advancements / deaths / joins), op echoes, /say, /me, and team messages are routed by their exact translation keys instead of text guessing; keys survive NCR/FreedomChat conversion, so converted servers benefit equally
+- Unknown formats fall back to the existing heuristics (custom plugin formats unaffected)
+
+**Fixes**
+- Op echoes of commands like /tp and /kill (`[Name: ...]`) are no longer misattributed as that player's chat bubble
+- Whisper sender and content on converted servers are taken directly from the message structure (styles and colors preserved), independent of client language
+- A partner's reply within 10 seconds of your outgoing whisper can no longer be swallowed by echo suppression
+- Xaero waypoint shares are no longer rendered as bubbles on chat-converting servers
+
 ## v1.7
 
 **新功能**
