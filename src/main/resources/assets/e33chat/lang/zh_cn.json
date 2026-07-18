@@ -16,6 +16,8 @@
   "e33chat.config.hide_chat_icon.desc": "隐藏 HUD 聊天图标（红点一并隐藏），仍可按聊天键打开",
   "e33chat.config.animation": "动画",
   "e33chat.config.animation.desc": "聊天界面打开/关闭的滑动动画",
+  "e33chat.config.panel_width": "面板宽度",
+  "e33chat.config.panel_width.desc": "聊天面板在屏幕上的物理像素宽度 (800-1600)，不受 GUI 缩放和屏幕比例影响",
   "e33chat.config.debug_log": "调试日志",
   "e33chat.config.debug_log.desc": "把消息处理过程写进 latest.log，排查消息分类问题时开启",
   "e33chat.config.own_bubble_color": "自己的气泡色",

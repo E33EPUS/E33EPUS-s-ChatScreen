@@ -28,6 +28,7 @@ public class ChatBubbleConfig {
     public static final ModConfigSpec.ConfigValue<String> OWN_TEXT_COLOR;
     public static final ModConfigSpec.ConfigValue<String> OTHER_TEXT_COLOR;
     public static final ModConfigSpec.ConfigValue<List<? extends String>> QUICK_CHAT_PHRASES;
+    public static final ModConfigSpec.IntValue PANEL_WIDTH;
     public static final ModConfigSpec.BooleanValue DEBUG_LOG;
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -64,6 +65,11 @@ public class ChatBubbleConfig {
             .comment("Verbose message-pipeline logging for troubleshooting (writes chat text to latest.log)")
             .translation("e33chat.config.debug_log")
             .define("debug_log", false);
+
+        PANEL_WIDTH = builder
+            .comment("Chat panel width in physical screen pixels (800-1600, independent of GUI scale and aspect ratio)")
+            .translation("e33chat.config.panel_width")
+            .defineInRange("panel_width", 1000, 800, 1600);
 
         STRONG_HINT_ENABLED = builder
             .comment("Show system messages as a strong hint above the hotbar (otherwise they go to the message preview)")

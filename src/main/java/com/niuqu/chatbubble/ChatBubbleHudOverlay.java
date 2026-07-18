@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.ResourceLocation;
 
@@ -122,7 +123,7 @@ public class ChatBubbleHudOverlay {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options == null) return;
         if (!ChatBubbleConfig.STRONG_HINT_ENABLED.get() && !ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get()) return;
-        String hint = ChatMessageStore.getStrongHintText();
+        Component hint = ChatMessageStore.getStrongHintText();
         if (hint == null) return;
         int ticks = ChatMessageStore.getStrongHintTicks();
         int screenW = mc.getWindow().getGuiScaledWidth();
@@ -163,7 +164,7 @@ public class ChatBubbleHudOverlay {
                     new net.minecraft.client.renderer.texture.DynamicTexture(img);
                 Minecraft.getInstance().getTextureManager().register(chatIconTex(), tex);
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) { com.mojang.logging.LogUtils.getLogger().error("[e33chat] Failed to load HUD icon texture", e); }
     }
 
     private static void drawIcon(GuiGraphics g, int x, int y) {

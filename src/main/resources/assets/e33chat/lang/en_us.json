@@ -16,6 +16,8 @@
   "e33chat.config.hide_chat_icon.desc": "Hide the HUD chat icon (red dot included); chat key still works",
   "e33chat.config.animation": "Animation",
   "e33chat.config.animation.desc": "Slide animation when opening/closing the chat screen",
+  "e33chat.config.panel_width": "Panel Width",
+  "e33chat.config.panel_width.desc": "Chat panel width in physical screen pixels (800-1600). Same physical size regardless of GUI scale or aspect ratio",
   "e33chat.config.debug_log": "Debug Log",
   "e33chat.config.debug_log.desc": "Write message-pipeline details to latest.log; enable when troubleshooting message routing",
   "e33chat.config.own_bubble_color": "Own Bubble Color",

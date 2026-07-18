@@ -100,6 +100,7 @@ public class ChatBubbleScreen extends Screen {
     private static boolean sidebarOpen;
     private static String whisperPartner;
     private int sidebarScrollOffset;
+    private int sidebarMaxScroll;
     private EditBox sidebarSearchBox;
 
     // Sidebar animation
@@ -215,7 +216,9 @@ public class ChatBubbleScreen extends Screen {
         animStart = net.minecraft.Util.getMillis();
         closing = false;
 
-        panelW = Math.max(200, (int) (width * 0.4));
+        int physicalW = ChatBubbleConfig.PANEL_WIDTH.get();
+        int guiScale = (int)Math.round(minecraft.getWindow().getGuiScale());
+        panelW = Math.max(100, Math.min(physicalW / guiScale, width));
         if (sidebarOpen) {
             panelX = 0;
             sidebarTargetOpen = true;
@@ -282,7 +285,9 @@ public class ChatBubbleScreen extends Screen {
     }
 
     private void rebuildLayout() {
-        panelW = Math.max(200, (int)(width * 0.4));
+        int physicalW = ChatBubbleConfig.PANEL_WIDTH.get();
+        int guiScale = (int)Math.round(minecraft.getWindow().getGuiScale());
+        panelW = Math.max(100, Math.min(physicalW / guiScale, width));
         if (panelX + panelW > width) panelW = width - panelX;
         titleY = 0;
         msgTop = titleY + TITLE_H + 1;
@@ -407,6 +412,7 @@ public class ChatBubbleScreen extends Screen {
                     (SIDEBAR_W - textW) / 2, startY + 8 + iconS + 4, c().textMuted(), false);
             } else {
             int maxSideScroll = Math.max(0, totalH - (visibleBottom - startY));
+            sidebarMaxScroll = maxSideScroll;
             if (sidebarScrollOffset > maxSideScroll) sidebarScrollOffset = maxSideScroll;
 
             g.enableScissor(0, startY, SIDEBAR_W, visibleBottom);
@@ -423,7 +429,7 @@ public class ChatBubbleScreen extends Screen {
                     if (itemBg != 0) g.fill(0, scrollY, SIDEBAR_W, scrollY + itemH, itemBg);
 
                     ResourceLocation skin = getSkin(info.getProfile().getId());
-                    drawPlayerHead(g, skin, 3, scrollY + 2, 18, 20);
+                    drawPlayerHead(g, skin, 4, scrollY + 3, 16, 18);
 
                     int tipW = ChatMessageStore.hasUnreadWhisper(name) ? 16 : 0;
                     int maxNameW = SIDEBAR_W - nameX - 4 - tipW - 2;
@@ -596,7 +602,7 @@ public class ChatBubbleScreen extends Screen {
         }
         int sidebarX = getSidebarScreenX();
         if ((sidebarOpen || sidebarAnimating) && mouseX >= sidebarX && mouseX <= sidebarX + SIDEBAR_W) {
-            sidebarScrollOffset = Mth.clamp(sidebarScrollOffset - (int)(scrollY * 20), 0, 10000);
+            sidebarScrollOffset = Mth.clamp(sidebarScrollOffset - (int)(scrollY * 20), 0, sidebarMaxScroll);
             return true;
         }
         if (commandSuggestions != null && commandSuggestions.mouseScrolled(scrollY))
@@ -1206,7 +1212,6 @@ public class ChatBubbleScreen extends Screen {
             latestMentionIndex = -1;
             lastSeenMessageCount = currentMsgCount;
         } else if (currentMsgCount > lastSeenMessageCount) {
-            if (lastSeenMessageCount > currentMsgCount) lastSeenMessageCount = currentMsgCount;
             for (int i = lastSeenMessageCount; i < currentMsgCount; i++) {
                 var msg = messages.get(i);
                 if (msg == null) continue;

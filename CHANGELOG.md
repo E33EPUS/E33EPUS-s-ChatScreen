@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.9.3
+
+**修复**
+- 强提示弹窗（热键栏上方的系统消息推送）现在正确保留文本颜色，与聊天气泡/消息预览一致
+- 面板宽度默认值提高到 1000 物理像素，最小值提高到 800（400 会挡住部分 UI）；面板宽度计算使用四舍五入避免 GUI 自动缩放下的像素偏差
+- 侧边栏玩家头像与频道图标对齐，滚动上限精确计算不再可无限滚出空白
+- 配置界面数字输入框自适应位数（面板宽度 4 位、预览宽度 3 位、圆角半径 2 位）
+
+**其他**
+- 多处 `printStackTrace` / `Exception ignored` 改为 `LogUtils.getLogger()` 统一日志输出
+- NeoForge 1.21.1 同步上述全部改动；两版代码基线合并
+
+***
+
+**Fixes**
+- Strong hint popups (system message pushes above the hotbar) now correctly preserve text colors, matching chat bubbles and message preview
+- Panel width default raised to 1000 physical pixels, minimum raised to 800 (400 blocked parts of the UI); panel width calculation now rounds guiScale to avoid pixel drift under auto GUI scaling
+- Sidebar player avatars now align with the public channel icon; scroll bound is computed accurately and no longer scrolls endlessly into blank space
+- Config screen number inputs adapt their max length (4 digits for panel width, 3 for preview width, 2 for corner radius)
+
+**Other**
+- Replaced multiple `printStackTrace` / `Exception ignored` with `LogUtils.getLogger()` for unified logging
+- NeoForge 1.21.1 synced with all the above; both codebases merged to parity
+
 ## v1.9.2
 
 **修复**
@@ -78,77 +102,142 @@
 
 ## v1.7
 
-> 同步自 Forge 1.20.1 v1.3–v1.7（一次性补齐五个版本）
+**新功能**
+- 圆角气泡：SDF shader 实现，边缘逐像素抗锯齿，任意 GUI 缩放下均平滑
+- 新配置项"气泡圆角半径"（0-10，默认 4，0 = 原来的方角）
+- shader 加载失败时自动回退方角渲染，不影响使用
+- 昵称类插件支持：消息归属额外尝试匹配 tab 列表显示名（覆盖"聊天名=tab名"的常见配置，未在真实昵称服实测）
+- "点击私聊"事件归属：识别插件挂在名字上的 `/tell`/`/msg` 点击事件，从中拿到真实档案名——昵称服上的零猜测归属通道
+- 名字匹配兼容 `§` 颜色码（提供原始/剥离双版本候选）
+- 默认配色更新：自己的气泡 #1E90FF 蓝底白字（仅对新生成的配置生效）
 
-**v1.3-v1.4 私聊系统**
-- 私聊侧边栏：在线玩家列表（头像+名字+最新私聊预览），点击进入私聊模式，紫色模式指示条
-- 私聊发送隐形拼接 `/msg`，输入框不穿帮；回显三层拦截，私聊不泄漏公屏、不复读
-- 侧边栏搜索框、右键头像菜单（传送/私聊）、未读私聊紫色闪烁、滑入滑出动画、无人在线插画
-- 公屏最新消息预览显示在"世界频道"行；消息预览宽度可配置（`preview_width`）
+**修复**
+- 聊天历史保存加固：单条消息序列化失败自动降级为纯文本，不再可能因一条异常消息丢失整个历史
 
-**v1.5 主题**
-- 颜色主题切换：深色（默认）/ 浅色，配置界面一键切换
-- 常用语面板（`quick_chat` 配置）
-
-**v1.6 装饰名**
-- 服务器称号/前缀带原色显示在玩家名旁（`[前缀]<名字>` 与 `<[前缀]名字>` 均支持，失败回退裸名）
-- 自己的称号在服务器回显后补全到本地气泡；消息预览保留原有颜色样式
-- 回显记录/私聊回显旗标 10 秒过期，不再误吞后续消息
-- 聊天历史保存带样式的发送者名（旧存档兼容）
-- 网络通道声明为可选——连接未装本 mod 的服务器不再可能被拒连
-
-**v1.7 圆角与昵称**
-- 圆角气泡：SDF shader 逐像素抗锯齿，新配置"气泡圆角半径"（0-10，默认 4），shader 加载失败自动回退方角
-- 昵称插件支持：消息归属尝试 tab 显示名 + `/tell` 点击事件通道 + `§` 颜色码兼容
-- 聊天历史保存加固：单条消息序列化失败降级纯文本，不再丢整个历史
-- 默认配色：自己的气泡 #1E90FF 蓝底白字（仅新配置生效）
-- 调试日志改为 `debug_log` 配置开关（默认关闭）
-
-**NeoForge 1.21.1 适配说明**
-- 私聊类型判定改用 `Holder.is()`（1.21.1 `ChatType.Bound` 记录化）
-- 历史序列化走 `registryAccess`（1.20.5+ Component JSON 要求）
-- 圆角 shader 按 1.21.1 顶点 API 重写提交路径
+**其他**
+- 消息处理调试日志改为配置开关 `debug_log`（默认关闭）——正式版不再把聊天内容写入 latest.log，排查问题时可在配置文件中开启
 
 ***
 
-> Synced from Forge 1.20.1 v1.3–v1.7 (five versions in one pass)
+**New Features**
+- Rounded bubble corners: SDF shader with per-pixel anti-aliased edges, smooth at any GUI scale
+- New config option "Bubble Corner Radius" (0-10, default 4, 0 = classic square corners)
+- Automatically falls back to square rendering if the shader fails to load
+- Nickname plugin support: message attribution also tries tab-list display names (covers the common "chat name = tab name" setup; not yet field-tested on real nickname servers)
+- "Click to whisper" attribution: reads the real profile name from `/tell`/`/msg` click events plugins attach to sender names — a zero-guess attribution channel on nickname servers
+- Name matching tolerates `§` color codes (raw and stripped candidate variants)
+- New default colors: own bubble #1E90FF with white text (applies to fresh configs only)
 
-**v1.3-v1.4 Whisper System**
-- Whisper sidebar: online player list (avatar + name + latest whisper preview), click to enter whisper mode with purple indicator bar
-- Invisible `/msg` splicing on send; three-layer echo suppression — whispers never leak to public chat or echo back
-- Sidebar search box, avatar right-click menu (Teleport/Whisper), purple unread blink, slide animation, no-players illustration
-- Latest public message preview under the "Public" entry; configurable preview width (`preview_width`)
+**Fixes**
+- Chat history saving hardened: a message that fails to serialize degrades to plain text instead of aborting the save — one bad message can no longer wipe the whole history
 
-**v1.5 Themes**
+**Misc**
+- Message-pipeline debug logging is now gated behind the `debug_log` config option (off by default) — release builds no longer write chat content to latest.log; enable it in the config file when troubleshooting
+
+## v1.6
+
+**新功能**
+- 服务器称号/前缀显示：插件添加的 `[称号]`/`[群组]` 等前缀现在带原色显示在玩家名旁，玩家消息与系统消息通道均支持，兼容 `[前缀]<名字>` 与 `<[前缀]名字>` 两种格式（提取失败自动回退裸名）
+- 自己的称号自己也可见——服务器回显到达后自动补全到本地气泡
+- 消息预览保留消息原有颜色与样式（称号颜色、mod 彩色文本等）
+
+**修复**
+- 回显记录改为 10 秒过期，且仅对聊天和 `/msg` `/tell` `/w` `/me` `/say` 记账——修复发送无回显指令后计数残留、误吞后续署名为自己的消息
+- 私聊回显旗标同样 10 秒过期——修复自定义私聊格式服务器上残留旗标可能误吞后续收到的私聊
+- 聊天历史现在保存带样式的发送者名（旧存档兼容读取）
+- 玩家名过长截断时保留颜色
+- 网络频道版本校验放宽（`acceptMissingOr`）——连接装了 Forge 但没装本 mod 的服务器不再可能被拒连，"服务端可选"更彻底
+
+**其他**
+- 身份判定（own/@提及/引用）与显示名解耦，装饰名不影响消息归属
+- 日志前缀统一为 `[e33chat]`
+
+***
+
+**New Features**
+- Server title/prefix display: plugin-added prefixes like `[Title]`/`[Group]` now show next to player names with their original colors, on both player and system message channels, supporting both `[Prefix]<Name>` and `<[Prefix]Name>` formats (falls back to bare name if extraction fails)
+- Your own title is now visible to yourself — patched into the local bubble once the server echo arrives
+- Message previews keep original colors and styles (title colors, mod-colored text, etc.)
+
+**Fixes**
+- Pending echoes now expire after 10s and are only tracked for chat and `/msg` `/tell` `/w` `/me` `/say` — fixes stale counters from no-echo commands swallowing later self-attributed messages
+- Whisper echo flag also expires after 10s — fixes stale flag potentially swallowing incoming whispers on servers with custom whisper formats
+- Chat history now saves styled sender names (old saves still load)
+- Long player names keep their colors when truncated
+- Relaxed network channel version check (`acceptMissingOr`) — joining Forge servers without this mod can no longer be rejected, making "server optional" truly hold
+
+**Misc**
+- Identity logic (own/@mention/quote) decoupled from display names — decorated names never affect message attribution
+- Log prefix unified to `[e33chat]`
+
+## v1.5
+
+**新功能**
+- 颜色主题切换：深色（默认）/ 浅色，配置界面一键切换
+- 新增 `ChatBubbleTheme` 主题系统，所有 UI 颜色集中管理
+
+***
+
+**New Features**
 - Color theme toggle: Dark (default) / Light, switchable in config screen
-- Quick chat phrases panel (`quick_chat` config)
+- New `ChatBubbleTheme` system: all UI colors managed in one place
 
-**v1.6 Decorated Names**
-- Server titles/prefixes shown next to player names in original colors (both `[Prefix]<Name>` and `<[Prefix]Name>`, falls back to bare name)
-- Your own title patched into local bubbles once the server echo arrives; previews keep original colors
-- Pending echoes and whisper echo flags expire after 10s — no more swallowed messages
-- Chat history saves styled sender names (old saves still load)
-- Network channel declared optional — joining servers without this mod can no longer be rejected
+## v1.4
 
-**v1.7 Rounded Corners & Nicknames**
-- Rounded bubble corners: SDF shader with per-pixel anti-aliasing, new "Bubble Corner Radius" config (0-10, default 4), automatic square fallback if the shader fails to load
-- Nickname plugin support: attribution tries tab-list display names + `/tell` click events + `§` color code tolerance
-- Chat history hardening: a message that fails to serialize degrades to plain text instead of wiping the whole history
-- New default colors: own bubble #1E90FF with white text (fresh configs only)
-- Debug logging gated behind `debug_log` config (off by default)
+**新功能**
+- 侧边栏搜索框：按名字筛选在线玩家
+- 右键头像菜单：传送 + 私聊快捷操作
+- 侧边栏无在线玩家插画
+- 私聊未读闪烁提示：侧边栏玩家列表紫色闪烁标记
+- 侧边栏滑入/滑出动画（ease-out cubic）
+- 公屏最新消息预览显示在侧边栏"世界频道"行
+- 消息预览宽度可配置（`preview_width`，50-400px）
 
-**NeoForge 1.21.1 Porting Notes**
-- Whisper type detection now uses `Holder.is()` (`ChatType.Bound` is a record in 1.21.1)
-- History serialization goes through `registryAccess` (required for Component JSON since 1.20.5)
-- Rounded-corner shader submission path rewritten for the 1.21.1 vertex API
+**修复**
+- 私聊输入框不再穿帮——`/msg` 拼接完全在背后完成
+- 私聊消息不再泄漏到公屏——系统回显三层拦截（标记→检测→吞除）
+- 私聊回复不再复读——本地显示与服务端转发完全隔离
+- 引用私聊消息不再错位——全量索引追踪，不受过滤视图影响
+- NCR 兼容开关开启/关闭均可正确处理私聊
+
+***
+
+**New Features**
+- Sidebar search box: filter online players by name
+- Avatar right-click menu: Teleport + Whisper quick actions
+- No online players illustration in sidebar
+- Unread whisper blinking indicator: purple pulsing dot in sidebar player list
+- Sidebar slide-in/out animation (ease-out cubic)
+- Latest public message preview under "Public" entry in sidebar
+- Configurable message preview width (`preview_width`, 50-400px)
+
+**Fixes**
+- Input box no longer exposes `/msg` — command splicing is fully behind-the-scenes
+- Whisper messages no longer leak to public chat — three-layer system echo suppression
+- Whisper replies no longer echo back — local display fully isolated from server forwarding
+- Quoting whisper messages no longer mis-tracks — global index tracking unaffected by filtered views
+- NCR compat on/off both handle whispers correctly
+
+## v1.3
+
+**新功能**
+- 私聊侧边栏：左侧在线玩家列表，显示头像+名字+最新私聊预览，点击切换私聊模式
+- 侧边栏收起/展开：标题栏左侧汉堡按钮，收起后聊天面板占满
+- 私聊过滤：点击玩家只显示与该玩家的私聊记录，顶部紫色模式指示条；点击"公屏"返回
+- 私聊发件隐形拼接：输入框不显示 `/msg`，发送时背后自动拼接，不露破绽
+
+***
+
+**New Features**
+- Whisper sidebar: online player list on the left with avatar + name + latest whisper preview, click to switch to whisper mode
+- Sidebar toggle: hamburger button at the top-left of the title bar, chat panel fills width when collapsed
+- Whisper filtering: clicking a player shows only whisper messages with them, with a purple mode indicator bar; click "Public" to return
+- Invisible whisper splicing: `/msg` is prepended behind the scenes on send, never shown in the input box
 
 ## v1.2
 
-> 同步自 Forge 1.20.1 v1.2
-
 **修复**
 - 修复标准服务器（未安装 No Chat Reports）开启 `chat_report_compat` 后，`[头衔] <玩家名>` 格式的服务器前缀/称号无法提取到发送者显示名的问题
-- 修复配置在游戏内修改后重启丢失的问题（NeoForge 的 `ModConfigSpec.set()` 不会自动保存，需手动调用 `save()`）
 
 **新功能**
 - 消息区域右侧新增滚动条：显示当前位置、点击空白区域翻页、拖拽滑块滚动
@@ -157,14 +246,11 @@
 
 **Fixes**
 - Fixed server prefix/title extraction for standard servers (without No Chat Reports): when `chat_report_compat` is enabled, prefixes like `[VIP] <PlayerName>` in player chat messages are now correctly extracted to the sender display name
-- Fixed in-game config changes lost on restart (NeoForge's `ModConfigSpec.set()` does not auto-save; added explicit `save()` call)
 
 **New Features**
 - Scrollbar on the right side of the message area: shows scroll position, click empty track to page up/down, drag thumb to scroll
 
 ## v1.1
-
-> 同步自 Forge 1.20.1 v1.1
 
 **修复**
 - 修复 Xaero 地图连续分享多个不同坐标后坐标丢失
@@ -199,8 +285,6 @@
 - @mention popup 70% opacity, emoji panel fully opaque
 
 ## v1.0
-
-> 同步自 Forge 1.20.1 v1.0，支持 NeoForge 1.21.1
 
 **修复**
 - 修复 `ChatComponent.addMessage` 双重触发导致的@/引用重复音效
