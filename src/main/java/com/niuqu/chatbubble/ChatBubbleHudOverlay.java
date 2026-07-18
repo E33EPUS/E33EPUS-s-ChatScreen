@@ -80,15 +80,19 @@ public class ChatBubbleHudOverlay {
 
                 int bottomLineY = iconY - 5 - lineH;
                 int topLineY = bottomLineY - (displays.size() - 1) * (lineH + gap);
-                int newestTicks = previews.get(previews.size() - 1).ticks;
-                int newestAlpha = newestTicks > 10 ? 0xDD : (newestTicks * 0xDD / 10);
-                int bgAlpha = newestAlpha / 2;
+                int maxAlpha = 0;
+                for (var e : previews) {
+                    int a = e.ticks > 10 ? 0xDD : e.ticks * 0xDD / 10;
+                    if (a > maxAlpha) maxAlpha = a;
+                }
+                int bgAlpha = maxAlpha / 2;
                 int bgColor = (bgAlpha << 24) | 0x000000;
                 g.fill(bgX1, topLineY - 2, px + maxTextW + 3, bottomLineY + lineH + 2, bgColor);
                 var lang = net.minecraft.locale.Language.getInstance();
                 for (int i = displays.size() - 1; i >= 0; i--) {
                     int lineY = bottomLineY - (displays.size() - 1 - i) * (lineH + gap);
-                    g.drawString(mc.font, lang.getVisualOrder(displays.get(i)), px, lineY, 0xFFFFFFFF, false);
+                    int lineAlpha = previews.get(i).ticks > 10 ? 0xFF : previews.get(i).ticks * 0xFF / 10;
+                    g.drawString(mc.font, lang.getVisualOrder(displays.get(i)), px, lineY, (lineAlpha << 24) | 0xFFFFFF, false);
                 }
             }
         }

@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.9.4
+
+**优化**
+- renderMessages 消息列表遍历从三趟合并为两趟，减少重复迭代
+- 替换 indexOf 全列表查找为双指针扫描，消息索引查找从 O(v*m) 降为 O(m)
+- HUD 消息预览逐行独立淡出，旧行不再突然消失
+- 引用块改为微信风格：置于气泡下方、宽度独立跟随文本、单行省略号
+- 去掉聊天面板打开时的游戏背景变暗效果
+
+**Optimizations**
+- Merged renderMessages height-calculation passes from two loops into one
+- Replaced per-message indexOf full-list scan with two-pointer tracking (O(v*m) → O(m))
+- HUD message preview now fades each line independently; old lines fade out instead of vanishing
+- Quote block redesigned to WeChat style: below bubble, independent width, single-line with ellipsis
+- Removed dark background overlay when chat panel is open
+
 ## v1.9.3
 
 **修复**

@@ -1067,11 +1067,6 @@ public class ChatBubbleScreen extends Screen {
         float anim = getAnimProgress();
         int panelOffset = (int) ((anim - 1.0f) * panelW);
 
-        // Dark overlay to the right of panel
-        int overlayAlpha = (int) (0.94f * anim * 160) << 24;
-        if (overlayAlpha != 0)
-            g.fill(panelX + panelW + panelOffset, 0, width, height, overlayAlpha | 0x000000);
-
         // Panel contents slide in from left
         g.pose().pushPose();
         g.pose().translate(panelOffset, 0, 0);
@@ -1182,21 +1177,20 @@ public class ChatBubbleScreen extends Screen {
             g.drawString(font, Component.literal(modeText), panelX + (panelW - modeTW) / 2, indY + 2, c().textPrimary(), false);
         }
 
-        // Count time separators for total height
+        int effectiveMsgTop = msgTop + indicatorH;
+        int effectiveMsgBottom = newMessageCount > 0 ? barTop - NOTIF_H - 1 : msgBottom;
+        int areaH = effectiveMsgBottom - effectiveMsgTop;
+
         int timeSeps = 0;
         String lastKey = null;
+        int totalH = 0;
         for (var msg : messages) {
+            totalH += getMsgHeight(msg) + GAP;
             if (!msg.isSystem()) {
                 String key = timeKey(msg.time());
                 if (lastKey == null || !key.equals(lastKey)) { timeSeps++; lastKey = key; }
             }
         }
-
-        int effectiveMsgTop = msgTop + indicatorH;
-        int effectiveMsgBottom = newMessageCount > 0 ? barTop - NOTIF_H - 1 : msgBottom;
-        int areaH = effectiveMsgBottom - effectiveMsgTop;
-        int totalH = 0;
-        for (var msg : messages) totalH += getMsgHeight(msg) + GAP;
         totalH += timeSeps * (TIME_SEP_H + GAP);
         int prevMaxScroll = maxScroll;
         maxScroll = Math.max(0, totalH - areaH);
@@ -1236,10 +1230,15 @@ public class ChatBubbleScreen extends Screen {
 
         g.enableScissor(panelX, effectiveMsgTop, panelX + panelW, effectiveMsgBottom);
 
+        List<ChatMessageStore.ChatMessage> fullList = ChatMessageStore.getMessages();
+        int fullIdx = 0;
+        while (fullIdx < fullList.size() && fullList.get(fullIdx) != messages.get(0)) fullIdx++;
+
         int contentY = 0;
         lastKey = null;
         for (int i = 0; i < messages.size(); i++) {
             var msg = messages.get(i);
+            while (fullIdx < fullList.size() && fullList.get(fullIdx) != msg) fullIdx++;
 
             // Time separator
             if (!msg.isSystem()) {
@@ -1257,9 +1256,9 @@ public class ChatBubbleScreen extends Screen {
             int screenY = effectiveMsgTop + contentY - scrollOffset;
             contentY += h + GAP;
 
-            if (screenY + h <= effectiveMsgTop || screenY >= effectiveMsgBottom) continue;
-            int fullIdx = ChatMessageStore.getMessages().indexOf(msg);
+            if (screenY + h <= effectiveMsgTop || screenY >= effectiveMsgBottom) { fullIdx++; continue; }
             renderBubble(g, msg, fullIdx, screenY, mouseX, mouseY);
+            fullIdx++;
         }
         renderScrollbar(g, mouseX, mouseY, effectiveMsgBottom);
         g.disableScissor();
@@ -1319,7 +1318,7 @@ public class ChatBubbleScreen extends Screen {
         int bubbleMaxW = panelW - AVATAR - PAD * 2 - BUBBLE_PAD_X * 2 - 16;
         List<FormattedCharSequence> lines = font.split(msg.content(), bubbleMaxW);
         int h = lines.size() * font.lineHeight + BUBBLE_PAD_Y * 2 + NAME_H;
-        if (msg.replyContent() != null) h += font.lineHeight + 2;
+        if (msg.replyContent() != null) h += font.lineHeight + 7;
         return h;
     }
 
@@ -1358,20 +1357,7 @@ public class ChatBubbleScreen extends Screen {
 
         int nameY = baseY;
 
-        // Reply preview
-        if (msg.replyContent() != null) {
-            int replyH = font.lineHeight;
-            int replyBarX = own ? bubbleX : bubbleX;
-            int replyMaxW = bubbleW - 10;
-            String replyText = msg.replySender() + ": " + msg.replyContent();
-            String replyDisplay = font.plainSubstrByWidth(replyText, replyMaxW - font.width("..."));
-            if (!replyDisplay.equals(replyText)) replyDisplay += "...";
-            g.fill(replyBarX, nameY, replyBarX + 2, nameY + replyH, c().textPrimary());
-            g.drawString(font, Component.literal(replyDisplay), replyBarX + 6, nameY + 1, c().timeColor(), false);
-            nameY += replyH + 2;
-        }
-
-        if (!msg.senderName().getString().isEmpty() && msg.replyContent() == null) {
+        if (!msg.senderName().getString().isEmpty()) {
             int maxNameW = panelW - AVATAR - PAD * 2 - 20;
             Component sn = msg.senderName();
             net.minecraft.util.FormattedCharSequence nameSeq;
@@ -1387,7 +1373,7 @@ public class ChatBubbleScreen extends Screen {
             g.drawString(font, nameSeq, startX, nameY, c().nameColor(), false);
         }
 
-        int bubbleY = baseY + (msg.replyContent() != null ? font.lineHeight + 2 : NAME_H);
+        int bubbleY = baseY + NAME_H;
         int avatarY = baseY;
 
         int bg = own
@@ -1418,6 +1404,27 @@ public class ChatBubbleScreen extends Screen {
                 labelX = bubbleX + bubbleW + 3;
             }
             g.drawString(font, Component.literal(label), labelX, labelY, c().duplicateLabel(), false);
+        }
+
+        if (msg.replyContent() != null) {
+            int quoteMaxW = panelW - PAD * 2 - AVATAR - 24;
+            String quoteText = "↳ " + msg.replySender() + ": " + msg.replyContent();
+            String quoteDisplay = font.plainSubstrByWidth(quoteText, quoteMaxW - 10);
+            if (!quoteDisplay.equals(quoteText)) quoteDisplay += "...";
+            int quoteTextW = font.width(quoteDisplay);
+            int quoteW = Math.min(quoteTextW + 8, quoteMaxW);
+            int quoteH = font.lineHeight + 4;
+            int quoteY = bubbleY + bubbleH + 3;
+            int quoteX;
+            if (own) {
+                quoteX = bubbleX + bubbleW - quoteW;
+            } else {
+                quoteX = bubbleX;
+            }
+            if (quoteX < panelX + PAD) quoteX = panelX + PAD;
+            if (quoteX + quoteW > panelX + panelW - PAD) quoteW = panelX + panelW - PAD - quoteX;
+            RoundRectRenderer.fill(g, quoteX, quoteY, quoteX + quoteW, quoteY + quoteH, 3, c().contextHover());
+            g.drawString(font, Component.literal(quoteDisplay), quoteX + 4, quoteY + 2, c().textSecondary(), false);
         }
 
         bubbleRects.add(new int[]{bubbleX, bubbleY, bubbleW, bubbleH, index});
