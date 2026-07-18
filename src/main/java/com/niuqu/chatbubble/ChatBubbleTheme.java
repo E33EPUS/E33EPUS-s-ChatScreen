@@ -27,7 +27,7 @@ public enum ChatBubbleTheme {
     public Colors colors() {
         return switch (this) {
             case DARK -> new Colors(
-                0xEE1E1E1E, 0xFF242424, 0xFF242424,
+                0xD01E1E1E, 0xFF242424, 0xFF242424,
                 0xFF1A1A1A, 0xFF2A2A2A, 0xFF3A3A3A, 0xFF333333,
                 0xFF333333, 0xFF2A2A2A,
                 0xFFFFFFFF, 0xFFAAAAAA, 0xFF888888,
@@ -46,7 +46,7 @@ public enum ChatBubbleTheme {
                 0xFFFFFFFF, 0xFFFFAA00, 0xFFFFFFFF, 0xC0101010
             );
             case LIGHT -> new Colors(
-                0xC0E8DFC8, 0xFFF0EDD8, 0xFFF0EDD8,
+                0x9AE8DFC8, 0xFFF0EDD8, 0xFFF0EDD8,
                 0xFFD8D5C2, 0xFFDED9C4, 0xFFC9C6B3, 0xFFC8C3AC,
                 0xFFC8C3AC, 0xFFD8CEB5,
                 0xFF2D2D1F, 0xFF5A5A45, 0xFF787860,
