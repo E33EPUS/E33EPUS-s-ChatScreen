@@ -2,6 +2,7 @@ package com.niuqu.chatbubble;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.InBedChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
@@ -10,25 +11,24 @@ import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.event.entity.player.CanPlayerSleepEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
-import org.lwjgl.glfw.GLFW;
 
 public class ChatBubbleClientListener {
 
-    private static boolean manualChatOpen;
     private static Screen screenBeforeSleep;
-
-    public static void setManualChatOpen(boolean v) { manualChatOpen = v; }
-    public static boolean isManualChatOpen() { return manualChatOpen; }
 
     @SubscribeEvent
     public void onScreenOpen(ScreenEvent.Opening event) {
         if (!ChatBubbleConfig.ENABLED.get()) return;
-        if (event.getScreen() instanceof ChatScreen chatScreen) {
+        if (event.getScreen() instanceof InBedChatScreen) {
+            // Vanilla force-opens InBedChatScreen every tick while sleeping; swap in
+            // our minimal bed screen so the Leave Bed button survives the chat rework
+            event.setCanceled(true);
+            Minecraft.getInstance().setScreen(new BedScreen());
+        } else if (event.getScreen() instanceof ChatScreen chatScreen) {
             event.setCanceled(true);
             String initial = getChatInitialText(chatScreen);
             Minecraft.getInstance().setScreen(new ChatBubbleScreen(initial));
         }
-        manualChatOpen = false;
     }
 
     private static String getChatInitialText(ChatScreen chatScreen) {
@@ -50,19 +50,6 @@ public class ChatBubbleClientListener {
             }
         }
         return "";
-    }
-
-    @SubscribeEvent
-    public void onKeyPress(InputEvent.Key event) {
-        if (!ChatBubbleConfig.ENABLED.get()) return;
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options == null) return;
-        if (event.getAction() == GLFW.GLFW_PRESS) {
-            int chatKey = mc.options.keyChat.getKey().getValue();
-            if (event.getKey() == chatKey) {
-                manualChatOpen = true;
-            }
-        }
     }
 
     @SubscribeEvent
@@ -123,7 +110,6 @@ public class ChatBubbleClientListener {
         double my = mc.mouseHandler.ypos() * (double) mc.getWindow().getGuiScaledHeight() / (double) mc.getWindow().getScreenHeight();
         if (ChatBubbleHudOverlay.isMouseOverIcon(mx, my)) {
             event.setCanceled(true);
-            manualChatOpen = true;
             mc.setScreen(new ChatBubbleScreen(""));
         }
     }
