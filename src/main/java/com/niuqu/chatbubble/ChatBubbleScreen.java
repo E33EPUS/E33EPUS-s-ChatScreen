@@ -315,9 +315,7 @@ public class ChatBubbleScreen extends Screen {
 
     private float getSidebarAnimProgress() {
         if (!sidebarAnimating) return sidebarOpen ? 1f : 0f;
-        long elapsed = net.minecraft.Util.getMillis() - sidebarAnimStart;
-        float t = Mth.clamp((float) elapsed / ANIM_MS, 0f, 1f);
-        float progress = 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
+        float progress = Animation.progress(sidebarAnimStart, ANIM_MS, false);
         return sidebarTargetOpen ? progress : 1.0f - progress;
     }
 
@@ -499,10 +497,7 @@ public class ChatBubbleScreen extends Screen {
 
     private float getAnimProgress() {
         if (!ChatBubbleConfig.ANIMATION_ENABLED.get()) return 1.0f;
-        long elapsed = net.minecraft.Util.getMillis() - animStart;
-        float t = Mth.clamp((float) elapsed / ANIM_MS, 0f, 1f);
-        if (closing) t = 1.0f - t;
-        return 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
+        return Animation.progress(animStart, ANIM_MS, closing);
     }
 
     @Override
@@ -1126,7 +1121,7 @@ public class ChatBubbleScreen extends Screen {
 
         String title = getDisplayTitle();
         int titleW = font.width(title);
-        int titleX = panelX + (panelW - titleW) / 2;
+        int titleX = UiLayout.centerX(panelX, panelW, titleW);
         int titleTextY = ty + (TITLE_H - font.lineHeight) / 2;
         g.drawString(font, Component.literal(title), titleX, titleTextY, c().textPrimary(), false);
 
@@ -1267,8 +1262,7 @@ public class ChatBubbleScreen extends Screen {
             && mouseX <= panelX + panelW
             && mouseY >= msgTop && mouseY < effectiveMsgBottom;
         float target = (inZone || scrollbarDragging) ? 1f : 0f;
-        scrollbarAlpha += (target - scrollbarAlpha) * 0.15f;
-        if (Math.abs(scrollbarAlpha - target) < 0.005f) scrollbarAlpha = target;
+        scrollbarAlpha = Animation.lerpTo(scrollbarAlpha, target, 0.15f, 0.005f);
         if (scrollbarAlpha <= 0.005f && !scrollbarDragging) return;
 
         int trackX = panelX + panelW - SCROLLBAR_WIDTH;
@@ -1300,7 +1294,7 @@ public class ChatBubbleScreen extends Screen {
     private void renderTimeSeparator(GuiGraphics g, LocalTime time, int y) {
         String text = time.format(TIME_FMT);
         int tw = font.width(text);
-        int tx = panelX + (panelW - tw) / 2;
+        int tx = UiLayout.centerX(panelX, panelW, tw);
         g.fill(tx - 6, y + 2, tx + tw + 6, y + TIME_SEP_H - 2, ChatBubbleTheme.alphaBlend(c().toastBg(), 0x44));
         g.drawString(font, Component.literal(text), tx, y + 3, c().timeColor(), false);
     }
@@ -1661,11 +1655,11 @@ public class ChatBubbleScreen extends Screen {
 
     private void renderToast(GuiGraphics g) {
         if (copyToastTicks <= 0) return;
-        int alpha = copyToastTicks > 5 ? 0xFF : (copyToastTicks * 255 / 5) << 24;
+        int alpha = Animation.fadeIn(copyToastTicks, 5) << 24;
         int color = alpha | (c().toastText() & 0x00FFFFFF);
         String text = Component.translatable("e33chat.toast.copied").getString();
         int tw = font.width(text);
-        int tx = panelX + (panelW - tw) / 2;
+        int tx = UiLayout.centerX(panelX, panelW, tw);
         int ty = msgBottom - 24;
         g.fill(tx - 6, ty - 2, tx + tw + 6, ty + font.lineHeight + 2, c().toastBg());
         g.drawString(font, Component.literal(text), tx, ty, color, false);

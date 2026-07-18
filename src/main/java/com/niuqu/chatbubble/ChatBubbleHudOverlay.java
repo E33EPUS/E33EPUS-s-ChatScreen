@@ -50,14 +50,7 @@ public class ChatBubbleHudOverlay {
                 int hintW = mc.font.width(hint);
                 int hintX = (screenW - hintW) / 2;
                 int hintY = mc.getWindow().getGuiScaledHeight() - 22 - 30 - mc.font.lineHeight;
-                int alpha;
-                if (ticks > 50)
-                    alpha = (ChatMessageStore.STRONG_HINT_DURATION - ticks) * 0xFF / 10;
-                else if (ticks > 10)
-                    alpha = 0xFF;
-                else
-                    alpha = ticks * 0xFF / 10;
-                alpha = Math.min(alpha, 0xFF);
+                int alpha = Animation.fadeInOut(ticks, 10, 40, 10);
                 int bgAlpha = alpha / 2;
                 int bgColor = (bgAlpha << 24) | 0x000000;
                 int baseColor = ChatMessageStore.isStrongHintMention() ? 0xFFFFFF55 : 0xFFFFFFFF;
@@ -106,7 +99,7 @@ public class ChatBubbleHudOverlay {
                 int topLineY = bottomLineY - (displays.size() - 1) * (lineH + gap);
                 int maxAlpha = 0;
                 for (var e : previews) {
-                    int a = e.ticks > 10 ? 0xDD : e.ticks * 0xDD / 10;
+                    int a = Animation.fadeIn(e.ticks, 10) * 0xDD / 0xFF;
                     if (a > maxAlpha) maxAlpha = a;
                 }
                 int bgAlpha = maxAlpha / 2;
@@ -115,7 +108,7 @@ public class ChatBubbleHudOverlay {
                 var lang = net.minecraft.locale.Language.getInstance();
                 for (int i = displays.size() - 1; i >= 0; i--) {
                     int lineY = bottomLineY - (displays.size() - 1 - i) * (lineH + gap);
-                    int lineAlpha = previews.get(i).ticks > 10 ? 0xFF : previews.get(i).ticks * 0xFF / 10;
+                    int lineAlpha = Animation.fadeIn(previews.get(i).ticks, 10);
                     g.drawString(mc.font, lang.getVisualOrder(displays.get(i)), px, lineY, (lineAlpha << 24) | 0xFFFFFF, false);
                 }
             }
