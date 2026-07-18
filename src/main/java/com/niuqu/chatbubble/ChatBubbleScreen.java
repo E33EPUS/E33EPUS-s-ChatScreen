@@ -1078,6 +1078,9 @@ public class ChatBubbleScreen extends Screen {
         if (hovered != null && hovered.getHoverEvent() != null) {
             g.renderComponentHoverEffect(font, hovered, mouseX, mouseY);
         }
+        // Everything past the message list renders 50 z-units up so vanilla/ModernUI
+        // text effects (underline/strikethrough at z+0.01) can never pierce overlays
+        g.pose().translate(0, 0, 50);
         renderNotificationBar(g, mouseX, mouseY);
         renderReplyBar(g, mouseX, mouseY);
         renderContextMenu(g, mouseX, mouseY);
@@ -1102,13 +1105,16 @@ public class ChatBubbleScreen extends Screen {
             int sidebarOffset = closing
                 ? (int)((getAnimProgress() - 1.0f) * SIDEBAR_W)
                 : getSidebarScreenX();
-            g.pose().translate(sidebarOffset, 0, 0);
+            g.pose().translate(sidebarOffset, 0, 50);
             renderSidebar(g, mouseX - sidebarOffset, mouseY);
             g.pose().popPose();
             if (closing) sidebarSearchBox.setX(2 + sidebarOffset);
         }
 
+        g.pose().pushPose();
+        g.pose().translate(0, 0, 50);
         super.render(g, mouseX, mouseY, partialTick);
+        g.pose().popPose();
     }
 
     private void renderTitleBar(GuiGraphics g, int mouseX, int mouseY) {
@@ -1420,72 +1426,48 @@ public class ChatBubbleScreen extends Screen {
     private void renderLineWithClicks(GuiGraphics g, FormattedCharSequence line,
                                        int x, int y, int color,
                                        net.minecraft.network.chat.Style fallback) {
-        // Strip underline styling before drawing: vanilla renders the underline effect at
-        // z+0.01 (BakedGlyph.Effect), which pierces overlay panels drawn at z=0.
-        // All underlines are repainted below in plain paint order instead
-        FormattedCharSequence stripped = sink -> line.accept((i, st, cp) ->
-            sink.accept(i, st.isUnderlined() ? st.withUnderlined(false) : st, cp));
-        g.drawString(font, stripped, x, y, color, false);
+        // Let the font renderer draw underlines itself: re-measuring glyphs per char
+        // drifts under font mods with sub-pixel advances (ModernUI), producing
+        // offset/oversized self-painted lines. Overlay piercing by the z+0.01 text
+        // effect layer is handled by the overlay z-lift in render() instead
+        FormattedCharSequence decorated = sink -> line.accept((i, st, cp) ->
+            sink.accept(i, st.getClickEvent() != null && !st.isUnderlined() ? st.withUnderlined(true) : st, cp));
+        g.drawString(font, decorated, x, y, color, false);
 
-        final int[] pos = {0};
-        final int[] spanStart = {-1};
-        final net.minecraft.network.chat.Style[] spanStyle = {null};
-        final int[] ulStart = {-1};
-        final int[] ulColor = {0};
-        final java.util.List<int[]> ulRuns = new java.util.ArrayList<>();
+        final java.util.List<net.minecraft.network.chat.Style> styles = new java.util.ArrayList<>();
+        line.accept((i, st, cp) -> { styles.add(st); return true; });
+
         final int beforeCount = clickableSpans.size();
-
-        line.accept((index, style, codePoint) -> {
-            int charW = font.width(new String(Character.toChars(codePoint)));
-            if (style.getClickEvent() != null) {
-                if (spanStart[0] < 0) {
-                    spanStart[0] = pos[0]; spanStyle[0] = style;
-                } else if (!style.equals(spanStyle[0])) {
-                    clickableSpans.add(new ClickableSpan(x + spanStart[0], y,
-                        pos[0] - spanStart[0], font.lineHeight, spanStyle[0]));
-                    spanStart[0] = pos[0]; spanStyle[0] = style;
-                }
-            } else {
-                if (spanStart[0] >= 0) {
-                    clickableSpans.add(new ClickableSpan(x + spanStart[0], y,
-                        pos[0] - spanStart[0], font.lineHeight, spanStyle[0]));
-                    spanStart[0] = -1; spanStyle[0] = null;
-                }
+        int runStart = -1;
+        net.minecraft.network.chat.Style runStyle = null;
+        for (int idx = 0; idx <= styles.size(); idx++) {
+            net.minecraft.network.chat.Style st = idx < styles.size() ? styles.get(idx) : null;
+            boolean clickable = st != null && st.getClickEvent() != null;
+            if (runStyle == null) {
+                if (clickable) { runStart = idx; runStyle = st; }
+            } else if (!clickable || !st.equals(runStyle)) {
+                int x0 = prefixWidth(line, runStart);
+                int x1 = prefixWidth(line, idx);
+                clickableSpans.add(new ClickableSpan(x + x0, y, x1 - x0, font.lineHeight, runStyle));
+                runStart = clickable ? idx : -1;
+                runStyle = clickable ? st : null;
             }
-            // Underlined text without a click event (e.g. Xaero's waypoint share styling)
-            // still needs its underline repainted; clickable spans get theirs below
-            boolean ul = style.isUnderlined() && style.getClickEvent() == null;
-            int col = style.getColor() != null ? 0xFF000000 | style.getColor().getValue() : color;
-            if (ul && ulStart[0] < 0) {
-                ulStart[0] = pos[0]; ulColor[0] = col;
-            } else if (ul && col != ulColor[0]) {
-                ulRuns.add(new int[]{ulStart[0], pos[0], ulColor[0]});
-                ulStart[0] = pos[0]; ulColor[0] = col;
-            } else if (!ul && ulStart[0] >= 0) {
-                ulRuns.add(new int[]{ulStart[0], pos[0], ulColor[0]});
-                ulStart[0] = -1;
-            }
-            pos[0] += charW;
-            return true;
-        });
-        if (spanStart[0] >= 0) {
-            clickableSpans.add(new ClickableSpan(x + spanStart[0], y,
-                pos[0] - spanStart[0], font.lineHeight, spanStyle[0]));
-        }
-        if (ulStart[0] >= 0) {
-            ulRuns.add(new int[]{ulStart[0], pos[0], ulColor[0]});
         }
         if (clickableSpans.size() == beforeCount && fallback != null && fallback.getClickEvent() != null) {
-            clickableSpans.add(new ClickableSpan(x, y, pos[0], font.lineHeight, fallback.withUnderlined(true)));
+            clickableSpans.add(new ClickableSpan(x, y, font.width(line), font.lineHeight, fallback.withUnderlined(true)));
         }
-        for (int[] r : ulRuns) {
-            g.fill(x + r[0], y + font.lineHeight - 1, x + r[1], y + font.lineHeight, r[2]);
-        }
-        for (int i = beforeCount; i < clickableSpans.size(); i++) {
-            ClickableSpan s = clickableSpans.get(i);
-            int uc = s.style.getColor() != null ? 0xFF000000 | s.style.getColor().getValue() : color;
-            g.fill(s.x, y + font.lineHeight - 1, s.x + s.w, y + font.lineHeight, uc);
-        }
+    }
+
+    // Width of the first count codepoints, measured through the renderer's own
+    // metrics so positions match what it actually draws (per-char accumulation
+    // does not — see renderLineWithClicks)
+    private int prefixWidth(FormattedCharSequence line, int count) {
+        if (count <= 0) return 0;
+        return font.width((FormattedCharSequence) sink -> {
+            int[] left = {count};
+            line.accept((i, st, cp) -> left[0]-- > 0 && sink.accept(i, st, cp));
+            return true;
+        });
     }
 
     private net.minecraft.network.chat.Style findClickStyle(net.minecraft.network.chat.Component c) {
