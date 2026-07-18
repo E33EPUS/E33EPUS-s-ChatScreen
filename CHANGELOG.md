@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.9.5
+
+**重构**
+- 新增 `Animation` 工具类：统一 easeOutCubic/lerpTo/fadeIn/fadeOut/fadeInOut 动画函数
+- 新增 `UiLayout` 工具类：统一 centerX/clampX/clampW 布局计算
+- ChatBubbleScreen 和 ChatBubbleHudOverlay 动画计算统一使用 Animation 方法
+
+**Refactor**
+- Added `Animation` utility class: unified easeOutCubic/lerpTo/fadeIn/fadeOut/fadeInOut animation functions
+- Added `UiLayout` utility class: unified centerX/clampX/clampW layout helpers
+- ChatBubbleScreen and ChatBubbleHudOverlay animation math now uses Animation methods
+
 ## v1.9.4
 
 **优化**
