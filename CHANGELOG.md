@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.9.3
+
+**修复**
+- 强提示弹窗（热键栏上方的系统消息推送）现在正确保留文本颜色，与聊天气泡/消息预览一致
+- 面板宽度默认值提高到 1000 物理像素，最小值提高到 800（400 会挡住部分 UI）；面板宽度计算使用四舍五入避免 GUI 自动缩放下的像素偏差
+- 侧边栏玩家头像与频道图标对齐，滚动上限精确计算不再可无限滚出空白
+- 配置界面数字输入框自适应位数（面板宽度 4 位、预览宽度 3 位、圆角半径 2 位）
+
+**其他**
+- 多处 `printStackTrace` / `Exception ignored` 改为 `LogUtils.getLogger()` 统一日志输出
+- NeoForge 1.21.1 同步上述全部改动；两版代码基线合并
+
+***
+
+**Fixes**
+- Strong hint popups (system message pushes above the hotbar) now correctly preserve text colors, matching chat bubbles and message preview
+- Panel width default raised to 1000 physical pixels, minimum raised to 800 (400 blocked parts of the UI); panel width calculation now rounds guiScale to avoid pixel drift under auto GUI scaling
+- Sidebar player avatars now align with the public channel icon; scroll bound is computed accurately and no longer scrolls endlessly into blank space
+- Config screen number inputs adapt their max length (4 digits for panel width, 3 for preview width, 2 for corner radius)
+
+**Other**
+- Replaced multiple `printStackTrace` / `Exception ignored` with `LogUtils.getLogger()` for unified logging
+- NeoForge 1.21.1 synced with all the above; both codebases merged to parity
+
 ## v1.9.2
 
 **修复**

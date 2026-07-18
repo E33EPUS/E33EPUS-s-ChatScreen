@@ -61,8 +61,10 @@ public class ChatBubbleConfigScreen extends Screen {
             y -> mkHexBox(y, ChatBubbleConfig.OTHER_TEXT_COLOR.get(), ChatBubbleConfig.OTHER_TEXT_COLOR::set),
             ChatBubbleConfig.OTHER_TEXT_COLOR::get));
         appearance.add(new Opt("e33chat.config.bubble_corner_radius",
-            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get()), 0, 10, ChatBubbleConfig.BUBBLE_CORNER_RADIUS::set), null));
+            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get()), 0, 10, 2, ChatBubbleConfig.BUBBLE_CORNER_RADIUS::set), null));
         appearance.add(new Opt("e33chat.config.animation", y -> mkBoolButton(y, ChatBubbleConfig.ANIMATION_ENABLED), null));
+        appearance.add(new Opt("e33chat.config.panel_width",
+            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PANEL_WIDTH.get()), 800, 1600, 4, ChatBubbleConfig.PANEL_WIDTH::set), null));
         cats.add(new Cat("e33chat.config.cat.appearance", appearance));
 
         List<Opt> notifications = new ArrayList<>();
@@ -71,7 +73,7 @@ public class ChatBubbleConfigScreen extends Screen {
         notifications.add(new Opt("e33chat.config.preview_enabled", y -> mkBoolButton(y, ChatBubbleConfig.PREVIEW_ENABLED), null));
         notifications.add(new Opt("e33chat.config.preview_lines", this::mkCycleButton, null));
         notifications.add(new Opt("e33chat.config.preview_width",
-            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, ChatBubbleConfig.PREVIEW_WIDTH::set), null));
+            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, 3, ChatBubbleConfig.PREVIEW_WIDTH::set), null));
         notifications.add(new Opt("e33chat.config.strong_hint", y -> mkBoolButton(y, ChatBubbleConfig.STRONG_HINT_ENABLED), null));
         notifications.add(new Opt("e33chat.config.mention_strong_hint", y -> mkBoolButton(y, ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED), null));
         cats.add(new Cat("e33chat.config.cat.notifications", notifications));
@@ -199,10 +201,10 @@ public class ChatBubbleConfigScreen extends Screen {
         return box;
     }
 
-    private EditBox mkIntBox(int y, String initial, int min, int max, java.util.function.Consumer<Integer> onChange) {
+    private EditBox mkIntBox(int y, String initial, int min, int max, int maxLen, java.util.function.Consumer<Integer> onChange) {
         EditBox box = new EditBox(font, inputX, y, INPUT_W, 20, Component.literal(""));
         box.setValue(initial);
-        box.setMaxLength(3);
+        box.setMaxLength(maxLen);
         box.setResponder(s -> {
             if (!s.matches("\\d*")) return;
             try {

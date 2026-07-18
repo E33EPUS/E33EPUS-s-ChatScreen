@@ -23,7 +23,7 @@ public class ChatMessageStore {
     private static String pendingReplySender;
     private static final List<PreviewEntry> previews = new ArrayList<>();
     private static final int PREVIEW_TICKS = 100;
-    private static String strongHintText;
+    private static Component strongHintText;
     private static int strongHintTicks;
     private static boolean strongHintIsMention;
     public static final int STRONG_HINT_DURATION = 60;
@@ -171,6 +171,17 @@ public class ChatMessageStore {
         }
     }
 
+    // Display names can't identify a sender reliably: the local echo bubble's name
+    // gets patched from bare to decorated once the server echo arrives, so the next
+    // local echo would never match it — compare raw player names when both are known
+    private static boolean isSameSender(ChatMessage last, Component senderName, String rawPlayerName) {
+        if (rawPlayerName != null && !rawPlayerName.isEmpty()
+            && last.rawPlayerName() != null && !last.rawPlayerName().isEmpty()) {
+            return rawPlayerName.equals(last.rawPlayerName());
+        }
+        return last.senderName().getString().equals(senderName.getString());
+    }
+
     public static void addMessage(Component content, UUID senderUUID, Component senderName, boolean isSystem, String rawPlayerName, boolean whisper, String whisperPartner) {
         String messageHash = String.valueOf(content.getString().hashCode());
 
@@ -182,7 +193,7 @@ public class ChatMessageStore {
 
         if (ChatBubbleConfig.ANTI_SPAM.get() && !messages.isEmpty()) {
             ChatMessage last = messages.get(messages.size() - 1);
-            if (!last.isSystem() && last.senderName().getString().equals(senderName.getString())
+            if (!last.isSystem() && isSameSender(last, senderName, rawPlayerName)
                 && last.content().getString().equals(content.getString())) {
                 if (own && pendingReplyContent != null) {
                     pendingReplyContent = null;
@@ -252,7 +263,7 @@ public class ChatMessageStore {
             boolean mentionToHint = isMentionOrQuote && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get();
 
             if (mentionToHint) {
-                strongHintText = Component.translatable("e33chat.notif.mention").getString();
+                strongHintText = Component.translatable("e33chat.notif.mention");
                 strongHintTicks = STRONG_HINT_DURATION;
                 strongHintIsMention = true;
             }
@@ -273,7 +284,7 @@ public class ChatMessageStore {
                     previews.remove(0);
             }
             if (systemToHint && !mentionToHint) {
-                strongHintText = content.getString();
+                strongHintText = content;
                 strongHintTicks = STRONG_HINT_DURATION;
                 strongHintIsMention = false;
             }
@@ -413,7 +424,7 @@ public class ChatMessageStore {
         }
     }
 
-    public static String getStrongHintText() { return strongHintTicks > 0 ? strongHintText : null; }
+    public static Component getStrongHintText() { return strongHintTicks > 0 ? strongHintText : null; }
 
     public static boolean isStrongHintMention() { return strongHintIsMention; }
 
@@ -509,11 +520,11 @@ public class ChatMessageStore {
                     if (msg.whisperPartner() != null) obj.put("whisperPartner", msg.whisperPartner());
                 }
                 list.add(obj);
-            } catch (Exception ignored) {}
+            } catch (Exception e) { com.mojang.logging.LogUtils.getLogger().warn("[e33chat] Failed to read/write chat history", e); }
         }
         try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
             GSON.toJson(list, w);
-        } catch (Exception ignored) {}
+        } catch (Exception e) { com.mojang.logging.LogUtils.getLogger().warn("[e33chat] Failed to read/write chat history", e); }
     }
 
     private static void loadMessages(String worldKey) {
@@ -544,10 +555,10 @@ public class ChatMessageStore {
                     messages.add(new ChatMessage(uuid, senderName, content, time,
                         isOwn, isSystem, replyContent, replySender, "", 1, rawPlayerName,
                         whisper, whisperPartner));
-                } catch (Exception ignored) {}
+                } catch (Exception e) { com.mojang.logging.LogUtils.getLogger().warn("[e33chat] Failed to read/write chat history", e); }
             }
             while (messages.size() > MAX) messages.remove(0);
-        } catch (Exception ignored) {}
+        } catch (Exception e) { com.mojang.logging.LogUtils.getLogger().warn("[e33chat] Failed to read/write chat history", e); }
     }
 
     private static File getTitlesFile() {
@@ -562,7 +573,7 @@ public class ChatMessageStore {
         try (Reader r = new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8)) {
             Map<String, String> data = GSON.fromJson(r, new TypeToken<Map<String, String>>(){}.getType());
             if (data != null) worldTitles.putAll(data);
-        } catch (Exception ignored) {}
+        } catch (Exception e) { com.mojang.logging.LogUtils.getLogger().warn("[e33chat] Failed to read/write chat history", e); }
     }
 
     private static void saveWorldTitles() {
@@ -570,7 +581,7 @@ public class ChatMessageStore {
         f.getParentFile().mkdirs();
         try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
             GSON.toJson(worldTitles, w);
-        } catch (Exception ignored) {}
+        } catch (Exception e) { com.mojang.logging.LogUtils.getLogger().warn("[e33chat] Failed to read/write chat history", e); }
     }
 
     public static void applyChatMeta(UUID senderUUID, String messageHash, String quoteSender,
@@ -595,7 +606,7 @@ public class ChatMessageStore {
                         Minecraft.getInstance().player.playSound(
                             net.minecraft.sounds.SoundEvents.NOTE_BLOCK_CHIME.get(), 0.6F, 1.0F);
                         if (!screenOpen && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get()) {
-                            strongHintText = Component.translatable("e33chat.notif.mention").getString();
+                            strongHintText = Component.translatable("e33chat.notif.mention");
                             strongHintTicks = STRONG_HINT_DURATION;
                             strongHintIsMention = true;
                         }
