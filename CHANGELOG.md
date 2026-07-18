@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.9.2
+
+**修复**
+- 起床按钮回来了：睡觉时显示原版样式的"起床"按钮（v1.1 屏蔽睡觉强制聊天框时的误伤，此后一直无法提前起床）；ESC 直接起床，按 T 仍可打开聊天
+- 可点击文本的下划线在 ModernUI 等字体替换 mod 下不再过粗、错位、超出文本刺穿气泡边框——下划线改回由字体渲染器自绘（1.9.1 的手动补画在亚像素字宽下必然漂移），浮层防刺穿改为整体抬高浮层 z 层实现，顺带修复了删除线刮浮层的同类问题
+- 可点击文本的点击判定区域在 ModernUI 下不再右偏（同一根因）
+
+***
+
+**Fixes**
+- The Leave Bed button is back: sleeping now shows a vanilla-style Leave Bed button (collateral damage of the v1.1 forced-chat-screen fix — getting up early had been impossible since); ESC wakes you up, T still opens chat
+- Underlines on clickable text no longer render too thick, misplaced, or overshooting past the bubble border under font-replacing mods (e.g. ModernUI) — underlines are drawn by the font renderer again (the 1.9.1 manual repainting inevitably drifts with sub-pixel advances); overlay bleed-through is now prevented by z-lifting overlays instead, which also fixes the same strikethrough issue
+- Click hitboxes on clickable text are no longer shifted right under ModernUI (same root cause)
+
 ## v1.9.1
 
 **修复**
