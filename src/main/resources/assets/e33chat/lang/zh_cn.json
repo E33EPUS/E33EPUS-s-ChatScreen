@@ -62,6 +62,10 @@
   "e33chat.menu.settings": "设置",
   "e33chat.menu.theme": "主题 (测试)",
   "e33chat.menu.quick_chat": "常用语",
+  "e33chat.menu.search": "搜索",
+  "e33chat.search.placeholder": "搜索聊天记录...",
+  "e33chat.search.no_match": "无匹配",
+  "e33chat.search.match": "匹配",
 
   "e33chat.emoji.tab_emoji": "😊 Emoji",
   "e33chat.emoji.tab_kaomoji": "✧ 颜文字",
