@@ -252,7 +252,14 @@ public class ChatMessageStore {
             && (content.getString().contains("@" + playerName)
                 || (replySender != null && replySender.equals(playerName)));
 
-        if (isMentionOrQuote && Minecraft.getInstance().player != null) {
+        boolean playSound = false;
+        if (!own && Minecraft.getInstance().player != null) {
+            if (isMentionOrQuote && ChatBubbleConfig.SOUND_MENTION.get()) playSound = true;
+            else if (whisper && ChatBubbleConfig.SOUND_WHISPER.get()) playSound = true;
+            else if (isSystem && ChatBubbleConfig.SOUND_SYSTEM.get()) playSound = true;
+            else if (!isSystem && !whisper && ChatBubbleConfig.SOUND_PUBLIC.get()) playSound = true;
+        }
+        if (playSound) {
             Minecraft.getInstance().player.playSound(
                 net.minecraft.sounds.SoundEvents.NOTE_BLOCK_CHIME.get(), 0.6F, 1.0F);
         }
@@ -602,7 +609,8 @@ public class ChatMessageStore {
                         ? Minecraft.getInstance().player.getName().getString() : "";
                     if (!msg.isOwn() && !playerName.isEmpty()
                         && playerName.equals(quoteSender)
-                        && !msg.content().getString().contains("@" + playerName)) {
+                        && !msg.content().getString().contains("@" + playerName)
+                        && ChatBubbleConfig.SOUND_MENTION.get()) {
                         Minecraft.getInstance().player.playSound(
                             net.minecraft.sounds.SoundEvents.NOTE_BLOCK_CHIME.get(), 0.6F, 1.0F);
                         if (!screenOpen && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get()) {

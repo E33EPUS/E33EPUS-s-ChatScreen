@@ -89,6 +89,17 @@ public class ChatBubbleConfigScreen extends Screen {
         List<Opt> compat = new ArrayList<>();
         compat.add(new Opt("e33chat.config.chat_report_compat", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_REPORT_COMPAT), null));
         compat.add(new Opt("e33chat.config.debug_log", y -> mkBoolButton(y, ChatBubbleConfig.DEBUG_LOG), null));
+        List<Opt> sound = new ArrayList<>();
+        sound.add(new Opt("e33chat.config.sound_system",
+            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_SYSTEM), null));
+        sound.add(new Opt("e33chat.config.sound_mention",
+            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_MENTION), null));
+        sound.add(new Opt("e33chat.config.sound_whisper",
+            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_WHISPER), null));
+        sound.add(new Opt("e33chat.config.sound_public",
+            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_PUBLIC), null));
+        cats.add(new Cat("e33chat.config.cat.sound", sound));
+
         cats.add(new Cat("e33chat.config.cat.compat", compat));
     }
 

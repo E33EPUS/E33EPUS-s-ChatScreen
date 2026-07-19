@@ -73,5 +73,15 @@
   "e33chat.sidebar.search": "查找玩家",
   "e33chat.sidebar.no_players": "无在线玩家",
   "e33chat.whisper.mode": "私聊",
-  "e33chat.quick_chat.placeholder": "添加常用语..."
+  "e33chat.quick_chat.placeholder": "添加常用语...",
+
+  "e33chat.config.cat.sound": "音效",
+  "e33chat.config.sound_system": "系统消息音效",
+  "e33chat.config.sound_system.desc": "收到系统消息时播放提示音",
+  "e33chat.config.sound_mention": "@ / 引用消息音效",
+  "e33chat.config.sound_mention.desc": "被 @ 或引用时播放提示音",
+  "e33chat.config.sound_whisper": "私聊消息音效",
+  "e33chat.config.sound_whisper.desc": "收到私聊消息时播放提示音",
+  "e33chat.config.sound_public": "公屏消息音效",
+  "e33chat.config.sound_public.desc": "收到公屏消息时播放提示音"
 }

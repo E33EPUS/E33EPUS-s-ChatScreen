@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.9.7
+
+**音效**
+- 新增"音效"配置分类，四种消息类型可独立开关提示音：系统消息、@/引用消息、私聊消息、公屏消息
+- 默认 @/引用消息和私聊消息触发提示音，系统消息和公屏消息不触发
+- 防刷屏选项默认关闭
+
+**Sound**
+- New "Sound" config category with independent notification sound toggles for 4 message types: system, @/quote, whisper, public
+- Default: @/quote and whisper trigger sounds, system and public do not
+- Anti-spam now defaults to off
+
 ## v1.9.6
 
 **动画**
