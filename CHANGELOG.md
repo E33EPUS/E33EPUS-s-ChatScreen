@@ -1,5 +1,31 @@
 # Changelog
 
+## v1.9.7
+
+**音效**
+- 新增"音效"配置分类，四种消息类型可独立开关提示音：系统消息、@/引用消息、私聊消息、公屏消息
+- 默认 @/引用消息和私聊消息触发提示音，系统消息和公屏消息不触发
+- 防刷屏选项默认关闭
+
+**Sound**
+- New "Sound" config category with independent notification sound toggles for 4 message types: system, @/quote, whisper, public
+- Default: @/quote and whisper trigger sounds, system and public do not
+- Anti-spam now defaults to off
+
+## v1.9.6
+
+**动画**
+- 聊天面板打开：背景不透明度渐入（easeOutCubic），关闭：淡出（easeInQuad）
+- 滚屏系统重构：壁钟驱动 easeOutCubic 丝滑动画，滚轮 40px/120ms，拖拽滑动块 80ms，底部自动滚屏 150ms
+- 滑动块自动浮现：滚动时显示，停止滚动 1 秒后淡出；悬停/拖拽时常驻
+- 新消息到达时列表底部丝滑滚屏，不再瞬移；首次打开直接跳底，无回弹动画
+
+**Animation**
+- Panel open: background fades in (easeOutCubic), close: fades out (easeInQuad)
+- Scroll system rebuilt: wall-clock-driven easeOutCubic animations — wheel 40px/120ms, drag 80ms, auto-scroll 150ms
+- Scrollbar auto-appear: visible while scrolling, fades out 1s after stop; always visible on hover/drag
+- Smooth auto-scroll when new messages arrive; instant jump-to-bottom on first open, no bounce
+
 ## v1.9.5
 
 **重构**

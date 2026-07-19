@@ -82,6 +82,7 @@ public class ChatBubbleScreen extends Screen {
     private int scrollOffset;
     private int maxScroll;
     private boolean scrollToBottom = true;
+    private boolean firstRender = true;
     private static String savedInput = "";
     private String historyBuffer = "";
     private int historyPos = -1;
@@ -118,6 +119,12 @@ public class ChatBubbleScreen extends Screen {
     private boolean scrollbarHovered;
     private float scrollbarAlpha;
     private static final int SCROLLBAR_HOVER_ZONE = 20;
+    private boolean scrollAnimActive;
+    private long scrollAnimStart;
+    private float scrollAnimFrom;
+    private float scrollAnimTo;
+    private int scrollAnimDuration;
+    private long lastScrollTime;
 
     private static final int EMOJI_PANEL_H = 132;
     private static final int EMOJI_TAB_H = 18;
@@ -215,6 +222,7 @@ public class ChatBubbleScreen extends Screen {
         ChatMessageStore.setScreenOpen(true);
         animStart = net.minecraft.Util.getMillis();
         closing = false;
+        firstRender = true;
 
         int physicalW = ChatBubbleConfig.PANEL_WIDTH.get();
         int guiScale = (int)Math.round(minecraft.getWindow().getGuiScale());
@@ -603,8 +611,15 @@ public class ChatBubbleScreen extends Screen {
         if (commandSuggestions != null && commandSuggestions.mouseScrolled(scrollY))
             return true;
         scrollToBottom = false;
-        scrollOffset -= (int) (scrollY * 20);
-        scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
+        lastScrollTime = net.minecraft.Util.getMillis();
+        float newTarget = Mth.clamp(scrollOffset - (int)(scrollY * 40), 0, maxScroll);
+        scrollAnimFrom = scrollOffset;
+        scrollAnimTo = newTarget;
+        scrollAnimStart = net.minecraft.Util.getMillis();
+        if (!scrollAnimActive) {
+            scrollAnimDuration = 120;
+            scrollAnimActive = true;
+        }
         return true;
     }
 
@@ -849,6 +864,7 @@ public class ChatBubbleScreen extends Screen {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (scrollbarDragging && maxScroll > 0) {
+            lastScrollTime = net.minecraft.Util.getMillis();
             int effBottom = newMessageCount > 0 ? barTop - NOTIF_H - 1 : msgBottom;
             int trackH = effBottom - msgTop;
             int thumbH = Math.max(MIN_THUMB_H, (int)((long)trackH * trackH / messageTotalH));
@@ -856,8 +872,14 @@ public class ChatBubbleScreen extends Screen {
             int travelRange = trackH - thumbH;
             if (travelRange > 0) {
                 int dy = (int) mouseY - scrollbarDragStartY;
-                int newOffset = scrollbarDragStartOffset + (int)((long)dy * maxScroll / travelRange);
-                scrollOffset = Mth.clamp(newOffset, 0, maxScroll);
+                float newTarget = Mth.clamp(scrollbarDragStartOffset + (int)((long)dy * maxScroll / travelRange), 0, maxScroll);
+                scrollAnimFrom = scrollOffset;
+                scrollAnimTo = newTarget;
+                scrollAnimStart = net.minecraft.Util.getMillis();
+                if (!scrollAnimActive) {
+                    scrollAnimDuration = 80;
+                    scrollAnimActive = true;
+                }
             }
             return true;
         }
@@ -1066,7 +1088,10 @@ public class ChatBubbleScreen extends Screen {
         g.pose().pushPose();
         g.pose().translate(panelOffset, 0, 0);
 
-        g.fill(panelX, 0, panelX + panelW, height, c().panelBg());
+        int panelBg = c().panelBg();
+        int panelBgAlpha = (panelBg >> 24) & 0xFF;
+        int fadedBg = ((int)(panelBgAlpha * anim) << 24) | (panelBg & 0x00FFFFFF);
+        g.fill(panelX, 0, panelX + panelW, height, fadedBg);
 
         renderTitleBar(g, mouseX, mouseY);
         renderMessages(g, mouseX, mouseY);
@@ -1217,9 +1242,31 @@ public class ChatBubbleScreen extends Screen {
             lastSeenMessageCount = currentMsgCount;
         }
 
-        if (scrollToBottom || wasAtBottom) {
+        if (firstRender) {
             scrollOffset = maxScroll;
             scrollToBottom = false;
+            firstRender = false;
+            scrollAnimActive = false;
+        } else if (scrollAnimActive) {
+            float t = Animation.progress(scrollAnimStart, scrollAnimDuration, false);
+            scrollOffset = Math.round(scrollAnimFrom + (scrollAnimTo - scrollAnimFrom) * t);
+            if (t >= 1.0f) {
+                scrollOffset = Math.round(scrollAnimTo);
+                scrollAnimActive = false;
+            }
+        } else if (scrollToBottom || wasAtBottom) {
+            float newTarget = maxScroll;
+            if (Math.abs(scrollOffset - newTarget) <= 3) {
+                scrollOffset = Math.round(newTarget);
+                scrollToBottom = false;
+            } else {
+                lastScrollTime = net.minecraft.Util.getMillis();
+                scrollAnimFrom = scrollOffset;
+                scrollAnimTo = newTarget;
+                scrollAnimStart = net.minecraft.Util.getMillis();
+                scrollAnimDuration = 150;
+                scrollAnimActive = true;
+            }
         }
         scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
 
@@ -1266,7 +1313,8 @@ public class ChatBubbleScreen extends Screen {
         boolean inZone = mouseX >= panelX + panelW - SCROLLBAR_HOVER_ZONE
             && mouseX <= panelX + panelW
             && mouseY >= msgTop && mouseY < effectiveMsgBottom;
-        float target = (inZone || scrollbarDragging) ? 1f : 0f;
+        boolean recentlyScrolled = net.minecraft.Util.getMillis() - lastScrollTime < 1000;
+        float target = (inZone || scrollbarDragging || recentlyScrolled) ? 1f : 0f;
         scrollbarAlpha = Animation.lerpTo(scrollbarAlpha, target, 0.15f, 0.005f);
         if (scrollbarAlpha <= 0.005f && !scrollbarDragging) return;
 
@@ -1318,14 +1366,19 @@ public class ChatBubbleScreen extends Screen {
 
     private void renderBubble(GuiGraphics g, ChatMessageStore.ChatMessage msg,
                                int index, int baseY, int mouseX, int mouseY) {
+        float fadeProgress = 1f;
+        if (fadeProgress <= 0.01f) return;
+
         if (msg.isSystem()) {
             List<FormattedCharSequence> lines = font.split(msg.content(), panelW - PAD * 2 - 20);
             int yy = baseY + 2;
             net.minecraft.network.chat.Style fb = findClickStyle(msg.content());
             int sysColor = c().textMuted();
+            int sysAlpha = sysColor >>> 24;
+            int fadedSys = ((int)(sysAlpha * fadeProgress) << 24) | (sysColor & 0x00FFFFFF);
             for (var line : lines) {
                 int lw = font.width(line);
-                renderLineWithClicks(g, line, panelX + (panelW - lw) / 2, yy, sysColor, fb);
+                renderLineWithClicks(g, line, panelX + (panelW - lw) / 2, yy, fadedSys, fb);
                 yy += font.lineHeight;
             }
             return;
@@ -1364,7 +1417,9 @@ public class ChatBubbleScreen extends Screen {
             }
             int nameW = font.width(nameSeq);
             int startX = own ? (bubbleX + bubbleW - nameW) : bubbleX;
-            g.drawString(font, nameSeq, startX, nameY, c().nameColor(), false);
+            int nameColor = c().nameColor();
+            int fadedName = ((int)((nameColor >>> 24) * fadeProgress) << 24) | (nameColor & 0x00FFFFFF);
+            g.drawString(font, nameSeq, startX, nameY, fadedName, false);
         }
 
         int bubbleY = baseY + NAME_H;
@@ -1377,16 +1432,21 @@ public class ChatBubbleScreen extends Screen {
             ? ChatBubbleConfig.parseHexColor(ChatBubbleConfig.OWN_TEXT_COLOR.get(), 0xFFFFFFFF)
             : ChatBubbleConfig.parseHexColor(ChatBubbleConfig.OTHER_TEXT_COLOR.get(), c().textPrimary());
 
+        int fadedBg = ((int)((bg >>> 24) * fadeProgress) << 24) | (bg & 0x00FFFFFF);
+        int fadedFg = ((int)((fg >>> 24) * fadeProgress) << 24) | (fg & 0x00FFFFFF);
+
         RoundRectRenderer.fill(g, bubbleX, bubbleY, bubbleX + bubbleW, bubbleY + bubbleH,
-            ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get(), bg);
+            ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get(), fadedBg);
 
         net.minecraft.network.chat.Style fbP = findClickStyle(msg.content());
         for (int li = 0; li < lines.size(); li++)
             renderLineWithClicks(g, lines.get(li), bubbleX + BUBBLE_PAD_X,
-                bubbleY + BUBBLE_PAD_Y + li * font.lineHeight, fg, fbP);
+                bubbleY + BUBBLE_PAD_Y + li * font.lineHeight, fadedFg, fbP);
 
         ResourceLocation skin = getSkin(msg.senderUUID());
+        RenderSystem.setShaderColor(1f, 1f, 1f, fadeProgress);
         drawPlayerHead(g, skin, avatarX, avatarY, 20, 22);
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 
         if (msg.duplicateCount() > 1) {
             String label = "x" + msg.duplicateCount();
@@ -1397,7 +1457,9 @@ public class ChatBubbleScreen extends Screen {
             } else {
                 labelX = bubbleX + bubbleW + 3;
             }
-            g.drawString(font, Component.literal(label), labelX, labelY, c().duplicateLabel(), false);
+            int dlColor = c().duplicateLabel();
+            int fadedDl = ((int)((dlColor >>> 24) * fadeProgress) << 24) | (dlColor & 0x00FFFFFF);
+            g.drawString(font, Component.literal(label), labelX, labelY, fadedDl, false);
         }
 
         if (msg.replyContent() != null) {
@@ -1417,8 +1479,12 @@ public class ChatBubbleScreen extends Screen {
             }
             if (quoteX < panelX + PAD) quoteX = panelX + PAD;
             if (quoteX + quoteW > panelX + panelW - PAD) quoteW = panelX + panelW - PAD - quoteX;
-            RoundRectRenderer.fill(g, quoteX, quoteY, quoteX + quoteW, quoteY + quoteH, 3, c().contextHover());
-            g.drawString(font, Component.literal(quoteDisplay), quoteX + 4, quoteY + 2, c().textSecondary(), false);
+            int qBg = c().contextHover();
+            int qFg = c().textSecondary();
+            int fadedQBg = ((int)((qBg >>> 24) * fadeProgress) << 24) | (qBg & 0x00FFFFFF);
+            int fadedQFg = ((int)((qFg >>> 24) * fadeProgress) << 24) | (qFg & 0x00FFFFFF);
+            RoundRectRenderer.fill(g, quoteX, quoteY, quoteX + quoteW, quoteY + quoteH, 3, fadedQBg);
+            g.drawString(font, Component.literal(quoteDisplay), quoteX + 4, quoteY + 2, fadedQFg, false);
         }
 
         bubbleRects.add(new int[]{bubbleX, bubbleY, bubbleW, bubbleH, index});

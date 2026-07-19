@@ -36,7 +36,7 @@ public final class Animation {
     public static float progress(long startMs, int durationMs, boolean closing) {
         long elapsed = net.minecraft.Util.getMillis() - startMs;
         float t = Mth.clamp((float) elapsed / durationMs, 0f, 1f);
-        if (closing) t = 1.0f - t;
+        if (closing) return 1.0f - (t * t);
         return easeOutCubic(t);
     }
 }

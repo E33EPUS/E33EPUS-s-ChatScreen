@@ -30,6 +30,10 @@ public class ChatBubbleConfig {
     public static final ModConfigSpec.ConfigValue<List<? extends String>> QUICK_CHAT_PHRASES;
     public static final ModConfigSpec.IntValue PANEL_WIDTH;
     public static final ModConfigSpec.BooleanValue DEBUG_LOG;
+    public static final ModConfigSpec.BooleanValue SOUND_SYSTEM;
+    public static final ModConfigSpec.BooleanValue SOUND_MENTION;
+    public static final ModConfigSpec.BooleanValue SOUND_WHISPER;
+    public static final ModConfigSpec.BooleanValue SOUND_PUBLIC;
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -89,7 +93,7 @@ public class ChatBubbleConfig {
         ANTI_SPAM = builder
             .comment("Collapse consecutive identical messages into one bubble with a counter")
             .translation("e33chat.config.anti_spam")
-            .define("anti_spam", true);
+            .define("anti_spam", false);
 
         CHAT_REPORT_COMPAT = builder
             .comment("Parse '<name> message' lines back into player bubbles on servers that convert",
@@ -160,6 +164,29 @@ public class ChatBubbleConfig {
             .comment("Quick chat phrase list")
             .translation("e33chat.config.quick_chat_phrases")
             .defineListAllowEmpty("phrases", new ArrayList<>(), () -> "", o -> o instanceof String);
+
+        builder.pop();
+        builder.push("sound");
+
+        SOUND_SYSTEM = builder
+            .comment("Play a notification sound for system messages")
+            .translation("e33chat.config.sound_system")
+            .define("sound_system", false);
+
+        SOUND_MENTION = builder
+            .comment("Play a notification sound when you are @mentioned or quoted")
+            .translation("e33chat.config.sound_mention")
+            .define("sound_mention", true);
+
+        SOUND_WHISPER = builder
+            .comment("Play a notification sound for private / whisper messages")
+            .translation("e33chat.config.sound_whisper")
+            .define("sound_whisper", true);
+
+        SOUND_PUBLIC = builder
+            .comment("Play a notification sound for public chat messages")
+            .translation("e33chat.config.sound_public")
+            .define("sound_public", false);
 
         builder.pop();
 
