@@ -82,6 +82,7 @@ public class ChatBubbleScreen extends Screen {
     private int scrollOffset;
     private int maxScroll;
     private boolean scrollToBottom = true;
+    private boolean firstRender = true;
     private static String savedInput = "";
     private String historyBuffer = "";
     private int historyPos = -1;
@@ -118,6 +119,12 @@ public class ChatBubbleScreen extends Screen {
     private boolean scrollbarHovered;
     private float scrollbarAlpha;
     private static final int SCROLLBAR_HOVER_ZONE = 20;
+    private boolean scrollAnimActive;
+    private long scrollAnimStart;
+    private float scrollAnimFrom;
+    private float scrollAnimTo;
+    private int scrollAnimDuration;
+    private long lastScrollTime;
 
     private static final int EMOJI_PANEL_H = 132;
     private static final int EMOJI_TAB_H = 18;
@@ -215,6 +222,7 @@ public class ChatBubbleScreen extends Screen {
         ChatMessageStore.setScreenOpen(true);
         animStart = net.minecraft.Util.getMillis();
         closing = false;
+        firstRender = true;
 
         int physicalW = ChatBubbleConfig.PANEL_WIDTH.get();
         int guiScale = (int)Math.round(minecraft.getWindow().getGuiScale());
@@ -598,8 +606,15 @@ public class ChatBubbleScreen extends Screen {
         if (commandSuggestions != null && commandSuggestions.mouseScrolled(delta))
             return true;
         scrollToBottom = false;
-        scrollOffset -= (int) (delta * 20);
-        scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
+        lastScrollTime = net.minecraft.Util.getMillis();
+        float newTarget = Mth.clamp(scrollOffset - (int)(delta * 40), 0, maxScroll);
+        scrollAnimFrom = scrollOffset;
+        scrollAnimTo = newTarget;
+        scrollAnimStart = net.minecraft.Util.getMillis();
+        if (!scrollAnimActive) {
+            scrollAnimDuration = 120;
+            scrollAnimActive = true;
+        }
         return true;
     }
 
@@ -844,6 +859,7 @@ public class ChatBubbleScreen extends Screen {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (scrollbarDragging && maxScroll > 0) {
+            lastScrollTime = net.minecraft.Util.getMillis();
             int effBottom = newMessageCount > 0 ? barTop - NOTIF_H - 1 : msgBottom;
             int trackH = effBottom - msgTop;
             int thumbH = Math.max(MIN_THUMB_H, (int)((long)trackH * trackH / messageTotalH));
@@ -851,8 +867,14 @@ public class ChatBubbleScreen extends Screen {
             int travelRange = trackH - thumbH;
             if (travelRange > 0) {
                 int dy = (int) mouseY - scrollbarDragStartY;
-                int newOffset = scrollbarDragStartOffset + (int)((long)dy * maxScroll / travelRange);
-                scrollOffset = Mth.clamp(newOffset, 0, maxScroll);
+                float newTarget = Mth.clamp(scrollbarDragStartOffset + (int)((long)dy * maxScroll / travelRange), 0, maxScroll);
+                scrollAnimFrom = scrollOffset;
+                scrollAnimTo = newTarget;
+                scrollAnimStart = net.minecraft.Util.getMillis();
+                if (!scrollAnimActive) {
+                    scrollAnimDuration = 80;
+                    scrollAnimActive = true;
+                }
             }
             return true;
         }
@@ -1061,7 +1083,10 @@ public class ChatBubbleScreen extends Screen {
         g.pose().pushPose();
         g.pose().translate(panelOffset, 0, 0);
 
-        g.fill(panelX, 0, panelX + panelW, height, c().panelBg());
+        int panelBg = c().panelBg();
+        int panelBgAlpha = (panelBg >> 24) & 0xFF;
+        int fadedBg = ((int)(panelBgAlpha * anim) << 24) | (panelBg & 0x00FFFFFF);
+        g.fill(panelX, 0, panelX + panelW, height, fadedBg);
 
         renderTitleBar(g, mouseX, mouseY);
         renderMessages(g, mouseX, mouseY);
@@ -1212,9 +1237,31 @@ public class ChatBubbleScreen extends Screen {
             lastSeenMessageCount = currentMsgCount;
         }
 
-        if (scrollToBottom || wasAtBottom) {
+        if (firstRender) {
             scrollOffset = maxScroll;
             scrollToBottom = false;
+            firstRender = false;
+            scrollAnimActive = false;
+        } else if (scrollAnimActive) {
+            float t = Animation.progress(scrollAnimStart, scrollAnimDuration, false);
+            scrollOffset = Math.round(scrollAnimFrom + (scrollAnimTo - scrollAnimFrom) * t);
+            if (t >= 1.0f) {
+                scrollOffset = Math.round(scrollAnimTo);
+                scrollAnimActive = false;
+            }
+        } else if (scrollToBottom || wasAtBottom) {
+            float newTarget = maxScroll;
+            if (Math.abs(scrollOffset - newTarget) <= 3) {
+                scrollOffset = Math.round(newTarget);
+                scrollToBottom = false;
+            } else {
+                lastScrollTime = net.minecraft.Util.getMillis();
+                scrollAnimFrom = scrollOffset;
+                scrollAnimTo = newTarget;
+                scrollAnimStart = net.minecraft.Util.getMillis();
+                scrollAnimDuration = 150;
+                scrollAnimActive = true;
+            }
         }
         scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
 
@@ -1261,7 +1308,8 @@ public class ChatBubbleScreen extends Screen {
         boolean inZone = mouseX >= panelX + panelW - SCROLLBAR_HOVER_ZONE
             && mouseX <= panelX + panelW
             && mouseY >= msgTop && mouseY < effectiveMsgBottom;
-        float target = (inZone || scrollbarDragging) ? 1f : 0f;
+        boolean recentlyScrolled = net.minecraft.Util.getMillis() - lastScrollTime < 1000;
+        float target = (inZone || scrollbarDragging || recentlyScrolled) ? 1f : 0f;
         scrollbarAlpha = Animation.lerpTo(scrollbarAlpha, target, 0.15f, 0.005f);
         if (scrollbarAlpha <= 0.005f && !scrollbarDragging) return;
 
@@ -1310,6 +1358,7 @@ public class ChatBubbleScreen extends Screen {
         if (msg.replyContent() != null) h += font.lineHeight + 7;
         return h;
     }
+
 
     private void renderBubble(GuiGraphics g, ChatMessageStore.ChatMessage msg,
                                int index, int baseY, int mouseX, int mouseY) {

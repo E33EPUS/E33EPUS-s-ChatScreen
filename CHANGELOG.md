@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.9.6
+
+**动画**
+- 聊天面板打开：背景不透明度渐入（easeOutCubic），关闭：淡出（easeInQuad）
+- 滚屏系统重构：壁钟驱动 easeOutCubic 丝滑动画，滚轮 40px/120ms，拖拽滑动块 80ms，底部自动滚屏 150ms
+- 滑动块自动浮现：滚动时显示，停止滚动 1 秒后淡出；悬停/拖拽时常驻
+- 新消息到达时列表底部丝滑滚屏，不再瞬移；首次打开直接跳底，无回弹动画
+
+**Animation**
+- Panel open: background fades in (easeOutCubic), close: fades out (easeInQuad)
+- Scroll system rebuilt: wall-clock-driven easeOutCubic animations — wheel 40px/120ms, drag 80ms, auto-scroll 150ms
+- Scrollbar auto-appear: visible while scrolling, fades out 1s after stop; always visible on hover/drag
+- Smooth auto-scroll when new messages arrive; instant jump-to-bottom on first open, no bounce
+
 ## v1.9.5
 
 **重构**
