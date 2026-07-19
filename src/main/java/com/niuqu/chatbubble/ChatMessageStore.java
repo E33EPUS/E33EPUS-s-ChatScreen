@@ -129,7 +129,7 @@ public class ChatMessageStore {
                     m.senderUUID(), senderName, m.content(), m.time(),
                     m.isOwn(), m.isSystem(), m.replyContent(), m.replySender(),
                     m.messageHash(), m.duplicateCount(), m.rawPlayerName(),
-                    m.whisper(), m.whisperPartner(), m.addedTime()));
+                    m.whisper(), m.whisperPartner()));
             }
             return;
         }
@@ -159,8 +159,7 @@ public class ChatMessageStore {
         int duplicateCount,
         String rawPlayerName,
         boolean whisper,
-        String whisperPartner,
-        long addedTime
+        String whisperPartner
     ) {}
 
     public static class PreviewEntry {
@@ -207,8 +206,7 @@ public class ChatMessageStore {
                     last.replyContent(), last.replySender(), last.messageHash(),
                     last.duplicateCount() + 1,
                     last.rawPlayerName(),
-                    last.whisper(), last.whisperPartner(),
-                    last.addedTime()
+                    last.whisper(), last.whisperPartner()
                 ));
                 return;
             }
@@ -244,8 +242,7 @@ public class ChatMessageStore {
             1,
             rawPlayerName,
             whisper,
-            whisperPartner,
-            System.currentTimeMillis()
+            whisperPartner
         ));
 
         while (messages.size() > MAX)
@@ -584,7 +581,7 @@ public class ChatMessageStore {
                     String whisperPartner = (String) obj.get("whisperPartner");
                     messages.add(new ChatMessage(uuid, senderName, content, time,
                         isOwn, isSystem, replyContent, replySender, "", 1, rawPlayerName,
-                        whisper, whisperPartner, 0));
+                        whisper, whisperPartner));
                 } catch (Exception e) { com.mojang.logging.LogUtils.getLogger().warn("[e33chat] Failed to read/write chat history", e); }
             }
             while (messages.size() > MAX) messages.remove(0);
@@ -627,7 +624,7 @@ public class ChatMessageStore {
                         msg.senderUUID(), msg.senderName(), msg.content(), msg.time(),
                         msg.isOwn(), msg.isSystem(), quoteContent, quoteSender, msg.messageHash(),
                         msg.duplicateCount(), msg.rawPlayerName(),
-                        msg.whisper(), msg.whisperPartner(), msg.addedTime()));
+                        msg.whisper(), msg.whisperPartner()));
                     String playerName = Minecraft.getInstance().player != null
                         ? Minecraft.getInstance().player.getName().getString() : "";
                     if (!msg.isOwn() && !playerName.isEmpty()
