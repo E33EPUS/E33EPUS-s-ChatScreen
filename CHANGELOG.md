@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.9.8
+
+**修复**
+- 清理 ChatMessage 死字段 `addedTime`
+- 多条系统消息（tellraw）同时到达时强提示不再互相覆盖，改为排队依次显示
+
+**Fix**
+- Removed dead `addedTime` field from ChatMessage
+- Multiple simultaneous system messages (tellraw) no longer overwrite each other's strong hint; now queued and displayed in sequence
+
 ## v1.9.7
 
 **音效**
