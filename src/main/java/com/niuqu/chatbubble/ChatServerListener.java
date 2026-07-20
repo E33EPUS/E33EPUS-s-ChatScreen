@@ -71,6 +71,7 @@ public class ChatServerListener {
 
     @SubscribeEvent
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (!ChatServerConfig.HISTORY_ENABLED.get()) return;
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (historyBuffer.isEmpty()) return;
         PacketDistributor.sendToPlayer(player,
