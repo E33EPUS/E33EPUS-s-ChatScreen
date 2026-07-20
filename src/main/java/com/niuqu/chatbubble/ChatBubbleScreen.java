@@ -287,6 +287,7 @@ public class ChatBubbleScreen extends Screen {
     }
 
     private float getSidebarAnimProgress() {
+        if (!ChatBubbleConfig.ANIMATION_ENABLED.get()) return sidebarOpen ? 1f : 0f;
         if (!sidebarAnimating) return sidebarOpen ? 1f : 0f;
         float progress = Animation.progress(sidebarAnimStart, ANIM_MS, false);
         return sidebarTargetOpen ? progress : 1.0f - progress;
@@ -775,7 +776,15 @@ public class ChatBubbleScreen extends Screen {
 
         if (button == 0) {
             if (isMouseOverHamburger(mouseX, mouseY)) {
-                if (sidebarAnimating) {
+                if (!ChatBubbleConfig.ANIMATION_ENABLED.get()) {
+                    sidebarOpen = !sidebarOpen;
+                    sidebarAnimating = false;
+                    panelX = sidebarOpen ? SIDEBAR_W : 0;
+                    sidebarSearchBox.setX(2);
+                    sidebarSearchBox.setVisible(sidebarOpen);
+                    if (!sidebarOpen && sidebarSearchBox.isFocused()) setFocused(input);
+                    rebuildLayout();
+                } else if (sidebarAnimating) {
                     sidebarTargetOpen = !sidebarTargetOpen;
                     long elapsed = net.minecraft.Util.getMillis() - sidebarAnimStart;
                     float currentT = Mth.clamp((float) elapsed / ANIM_MS, 0f, 1f);
