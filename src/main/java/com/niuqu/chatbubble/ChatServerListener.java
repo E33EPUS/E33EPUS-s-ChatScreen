@@ -1,21 +1,25 @@
 package com.niuqu.chatbubble;
 
 import com.niuqu.chatbubble.packets.ChatMetaPacket;
+import com.niuqu.chatbubble.packets.HistoryPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.ServerChatEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.network.PacketDistributor;
 
+import java.time.LocalTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ChatServerListener {
     private static final Pattern MENTION_PATTERN = Pattern.compile("@(\\w+)");
+    private static final int HISTORY_MAX = 50;
 
-    // player UUID → pending quote data (QuoteSyncPacket arrived before ServerChatEvent)
     private static final Map<UUID, QuotePending> pendingQuotes = new HashMap<>();
+    private static final Deque<HistoryPacket.HistoryEntry> historyBuffer = new ArrayDeque<>();
 
     private record QuotePending(String quotedSenderName, String quotedContent, String messageHash) {}
 
@@ -35,6 +39,12 @@ public class ChatServerListener {
                 player.getUUID(), messageHash, quoteSender, quoteContent, mentions);
             NetworkHandler.CHANNEL.send(PacketDistributor.ALL.noArg(), meta);
         }
+
+        addToHistory(new HistoryPacket.HistoryEntry(
+            player.getUUID(), player.getName().getString(), rawText,
+            LocalTime.now(), false,
+            quote != null ? quote.quotedContent() : null,
+            quote != null ? quote.quotedSenderName() : null));
     }
 
     @SubscribeEvent
@@ -60,9 +70,24 @@ public class ChatServerListener {
         NetworkHandler.CHANNEL.send(PacketDistributor.ALL.noArg(), meta);
     }
 
+    @SubscribeEvent
+    public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        if (historyBuffer.isEmpty()) return;
+        NetworkHandler.CHANNEL.send(
+            PacketDistributor.PLAYER.with(() -> player),
+            new HistoryPacket(new ArrayList<>(historyBuffer)));
+    }
+
     public static void onQuoteReceived(UUID senderUUID, String quotedSenderName,
                                         String quotedContent, String messageHash) {
         pendingQuotes.put(senderUUID, new QuotePending(quotedSenderName, quotedContent, messageHash));
+    }
+
+    private static void addToHistory(HistoryPacket.HistoryEntry entry) {
+        historyBuffer.addLast(entry);
+        while (historyBuffer.size() > HISTORY_MAX)
+            historyBuffer.removeFirst();
     }
 
     private static List<String> extractMentions(String text, int playerCount) {

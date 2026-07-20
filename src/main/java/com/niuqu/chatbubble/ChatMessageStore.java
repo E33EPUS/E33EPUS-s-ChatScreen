@@ -605,6 +605,27 @@ public class ChatMessageStore {
         } catch (Exception e) { com.mojang.logging.LogUtils.getLogger().warn("[e33chat] Failed to read/write chat history", e); }
     }
 
+    public static void addHistoryMessages(List<com.niuqu.chatbubble.packets.HistoryPacket.HistoryEntry> entries) {
+        if (entries.isEmpty()) return;
+        for (var e : entries) {
+            messages.add(new ChatMessage(
+                e.senderUUID(),
+                Component.literal(e.senderName()),
+                Component.literal(e.content()),
+                e.time(),
+                false,
+                e.isSystem(),
+                e.replyContent(),
+                e.replySender(),
+                String.valueOf(e.content().hashCode()),
+                1,
+                e.senderName(),
+                false,
+                null
+            ));
+        }
+    }
+
     public static void applyChatMeta(UUID senderUUID, String messageHash, String quoteSender,
                                       String quoteContent, List<String> mentionTargets) {
         LocalTime cutoff = LocalTime.now().minusSeconds(5);

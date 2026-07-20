@@ -1,6 +1,7 @@
 package com.niuqu.chatbubble;
 
 import com.niuqu.chatbubble.packets.ChatMetaPacket;
+import com.niuqu.chatbubble.packets.HistoryPacket;
 import com.niuqu.chatbubble.packets.QuoteSyncPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.network.NetworkRegistry;
@@ -28,6 +29,12 @@ public class NetworkHandler {
             .encoder(ChatMetaPacket::encode)
             .decoder(ChatMetaPacket::decode)
             .consumerMainThread(ChatMetaPacket::handle)
+            .add();
+
+        CHANNEL.messageBuilder(HistoryPacket.class, 2)
+            .encoder(HistoryPacket::encode)
+            .decoder(HistoryPacket::decode)
+            .consumerMainThread(HistoryPacket::handle)
             .add();
     }
 }

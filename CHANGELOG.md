@@ -8,6 +8,18 @@
 **Rename**
 - Display name changed from E33EPUS's ChatScreen to **E33Chat**
 
+**新增**
+- 服务端聊天历史分发：新玩家进服自动同步最近 50 条聊天记录
+
+**修复**
+- 关闭动画配置后侧边栏不再有动画，打开/关闭均为即时切换
+
+**New**
+- Server-side chat history: new players receive the last 50 messages on join
+
+**Fix**
+- Sidebar no longer animates when animation config is disabled
+
 ## v1.9.9
 
 **重构**
