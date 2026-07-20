@@ -1,5 +1,56 @@
 # E33Chat
 
+*Rebuilds the vanilla chat HUD in chat-app style*
+
+**Client required, server optional**
+
+| | Forge | NeoForge |
+|---|---|---|
+| 1.20.1 | ✅ | — |
+| 1.21.1 | — | ✅ |
+
+## Vanilla Improvements
+
+- 💬 **Chat bubbles** — Messages with player heads and names
+- 💾 **Chat history** — Saved per world/server, restored on rejoin
+- 📝 **Input preserved** — Typed text kept when closing chat
+- 🚫 **Anti-spam** — Consecutive duplicate messages merged with a counter
+
+## Highlights
+
+- 👥 **Whisper sidebar** — Online player list, click to whisper
+- 🔍 **Chat search** — Keyword search with real-time matching
+- @ **Mention autocomplete** — Type `@` for a popup player list
+- 📌 **Quick chat** — Save and quick-fill common phrases
+- 😊 **Emoji & kaomoji** — Emoji panel + kaomoji picker
+- 💬 **Quote reply** — Right-click a message to quote reply
+- 🔔 **Preview & hints** — HUD preview at bottom-left; popup hints for @mentions, quotes, and system messages
+- 🔊 **Notification sounds** — Per-type toggles for system, @/quote, whisper, and public messages
+- 🎨 **Themes** — Dark/light theme with customizable bubble color, text color, and corner radius
+- 🕐 **Time separators** — Timestamp dividers at configurable intervals
+
+## Compatibility
+
+**Server using NCR/FreedomChat?** Enable the compat option in config.
+
+## FAQ
+
+**Server required?** No, but installing the server-side component activates quote reply and @mention sync.
+
+**How to configure?** Gear icon (bottom-left) → Menu → Settings, or edit `\config\chatbubble-client.toml`.
+
+**Where is chat history?** `.minecraft\e33chat\history`
+
+**Modpack?** Go ahead.
+
+**Found a bug?** [Report it here](https://github.com/E33EPUS/E33EPUS-s-ChatScreen/issues)
+
+---
+
+# E33Chat
+
+*以聊天APP风格重铸原版聊天框*
+
 **客户端需装，服务端可选**
 
 | | Forge | NeoForge |
@@ -42,41 +93,3 @@
 **可以放进整合包吗？** 可以
 
 **如何反馈问题？** [反馈问题](https://github.com/E33EPUS/E33EPUS-s-ChatScreen/issues)
-
----
-
-## Vanilla Improvements
-
-- 💬 **Chat bubbles** — Messages with player heads and names
-- 💾 **Chat history** — Saved per world/server, restored on rejoin
-- 📝 **Input preserved** — Typed text kept when closing chat
-- 🚫 **Anti-spam** — Consecutive duplicate messages merged with a counter
-
-## Highlights
-
-- 👥 **Whisper sidebar** — Online player list, click to whisper
-- 🔍 **Chat search** — Keyword search with real-time matching
-- @ **Mention autocomplete** — Type `@` for a popup player list
-- 📌 **Quick chat** — Save and quick-fill common phrases
-- 😊 **Emoji & kaomoji** — Emoji panel + kaomoji picker
-- 💬 **Quote reply** — Right-click a message to quote reply
-- 🔔 **Preview & hints** — HUD preview at bottom-left; popup hints for @mentions, quotes, and system messages
-- 🔊 **Notification sounds** — Per-type toggles for system, @/quote, whisper, and public messages
-- 🎨 **Themes** — Dark/light theme with customizable bubble color, text color, and corner radius
-- 🕐 **Time separators** — Timestamp dividers at configurable intervals
-
-## Compatibility
-
-**Server using NCR/FreedomChat?** Enable the compat option in config.
-
-## FAQ
-
-**Server required?** No, but installing the server-side component activates quote reply and @mention sync.
-
-**How to configure?** Gear icon (bottom-left) → Menu → Settings, or edit `\config\chatbubble-client.toml`.
-
-**Where is chat history?** `.minecraft\e33chat\history`
-
-**Modpack?** Go ahead.
-
-**Found a bug?** [Report it here](https://github.com/E33EPUS/E33EPUS-s-ChatScreen/issues)
