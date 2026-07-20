@@ -1,71 +1,46 @@
-# E33EPUS's ChatScreen
+# E33Chat
 
-Rebuilds the vanilla chat HUD in chat-app style.
+*Replace the vanilla chat HUD with a chat-app experience.*
 
-Client required, server optional.
+**Client required, server optional.** Config via `e33chat/chatbubble-client.toml`.
 
-## Vanilla Improvements
+## 原版优化 / Vanilla Improvements
 
-- Messages as bubbles with player heads
-- Whisper sidebar: click a player's head to chat privately
-- Per-world chat history (`.minecraft/e33chat/history/`)
-- Input text preserved when closing chat
-- Anti-spam merging
+- 💬 **聊天气泡** — 消息带气泡和玩家头像，自己/他人分色显示
+- 💾 **聊天记录** — 按存档/服务器保存聊天历史，重进后恢复
+- 📝 **输入保留** — 关闭聊天框保留已输入文本，不会白打
+- 🚫 **防刷屏合并** — 连续重复的相同消息自动合并并计数
 
-## Highlights
+## 特点 / Highlights
 
-- Right-click a message: copy / quote reply
-- Left-click a player head to @ them, right-click to teleport / whisper
-- Popup hints for system / @mention / quote, message preview at bottom-left of screen
-- Quick chat panel: save common phrases, auto-fill on use
-- Emoji & kaomoji picker
-- TIP: type `@` to open an autocomplete popup
+- 👥 **私聊侧边栏** — 在线玩家列表，点玩家头像进入私聊模式
+- 🔍 **聊天搜索** — 浮动搜索框，实时子串匹配，上下键/滚轮切换匹配项
+- @ **提及补全** — 输入 `@` 弹出在线玩家列表，Tab 键选择
+- 📌 **常用语面板** — 保存/管理常用短语，一键填入输入框
+- 😊 **表情 & 颜文字** — emoji 面板 + 颜文字面板，分页切换
+- 💬 **引用回复** — 右键消息选"引用"，回复时携带上下文
+- 🔔 **消息预览 & 强提示** — 左下角 HUD 预览；被@/引用/系统消息弹窗提示
+- 🔊 **提示音** — 系统消息/@及引用/私聊/公屏，四种消息类型独立开关
+- 🎨 **主题 & 自定义** — 深色/浅色主题，自定义气泡颜色、文字颜色、圆角半径
+- 🕐 **时间分隔线** — 聊天列表按时间间隔显示时间戳分隔标签
 
-## Config
+## 兼容性 / Compatibility
 
-Config file: `chatbubble-client.toml`
+| | Forge | NeoForge |
+|---|---|---|
+| 1.20.1 | ✅ | — |
+| 1.21.1 | — | ✅ |
 
-Theme switching, custom bubble / text colors, preview lines, animations, popup hints, and more.
+**服务器装了 NCR/FreedomChat？** 在配置里开启兼容选项。
 
-**If your server uses a "No Chat Reports" plugin, turn on the compat option in config**
+## FAQ
+
+**服务器需要装吗？** 不用，纯客户端 mod。
+
+**怎么打开设置？** 聊天面板左下角齿轮 → 菜单 → 设置，或直接用 Mod Menu 打开。
+
+**可以放进整合包吗？** 可以，标注作者 E33EPUS 即可。
 
 ## License
 
-MIT License
-
----
-
-# E33EPUS的聊天界面
-
-以聊天APP风格重铸原版聊天栏。
-
-客户端需装，服务端可选。
-
-## 原版优化
-
-- 消息带气泡和玩家头像
-- 私聊侧边栏：点玩家头像进入私聊
-- 按存档保存聊天记录（`.minecraft/e33chat/history/`）
-- 关闭聊天框保留已输入文本
-- 防刷屏功能
-
-## 特色
-
-- 右键消息：复制 / 引用回复
-- 左键玩家头像 @ ta，右键则可 传送 / 私聊
-- 系统消息 / @ / 引用有弹窗提示，屏幕左下角有消息预览
-- 常用语面板：保存常用语，使用时自动填充
-- Emoji & 颜文字表情面板
-- TIP：输入 `@` 弹出补全列表
-
-## 配置
-
-配置文件：`chatbubble-client.toml`
-
-切换主题、自定义气泡 / 文字颜色、消息预览行数、动画、弹窗提示等等。
-
-**如果你的服务器装了"禁用聊天举报"插件，请在配置里打开兼容选项**
-
-## 许可
-
-MIT License
+MIT © E33EPUS

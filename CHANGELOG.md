@@ -1,5 +1,35 @@
 # Changelog
 
+## v2.0.0
+
+**更名**
+- 显示名从 E33EPUS's ChatScreen 改为 **E33Chat**
+- 1.20.1 v2.0.0 同步
+
+**Rename**
+- Display name changed from E33EPUS's ChatScreen to **E33Chat**
+- Synced 1.20.1 v2.0.0
+
+## v1.9.9
+
+**重构**
+- ChatBubbleScreen 拆分为 5 个类：ChatEmojiPanel（表情）、ChatQuickChatPanel（常用语）、ChatSettingsMenu（设置菜单）、ChatSearchPanel（搜索）、ChatBubbleScreen（编排层）
+- drawTextureIcon / iconTex / BAR_H 改为包内可见，面板类直接引用
+- 1.20.1 v1.9.9 架构同步
+
+**新增**
+- 聊天搜索：浮动输入框，实时子串匹配，上下箭头/滚轮切换匹配项，黄色高亮边框，计数器显示
+- 设置菜单重铸：从 3 列横排改为 4 行竖排上拉，图标居左文字居右，英文字段自适应截断
+
+**Refactor**
+- Split ChatBubbleScreen into 5 classes: ChatEmojiPanel (emoji picker), ChatQuickChatPanel (quick phrases), ChatSettingsMenu (gear menu), ChatSearchPanel (search bar), ChatBubbleScreen (orchestrator)
+- drawTextureIcon / iconTex / BAR_H relaxed to package-private for panel access
+- Synced 1.20.1 v1.9.9 architecture
+
+**New**
+- Chat search: floating input above bottom bar, real-time substring matching, up/down/scroll to cycle matches, yellow highlight border, match counter
+- Settings menu redesigned: vertical 4-row popup (was horizontal 3-col), icons left + text right, auto-truncate long English labels
+
 ## v1.9.8
 
 **修复**
