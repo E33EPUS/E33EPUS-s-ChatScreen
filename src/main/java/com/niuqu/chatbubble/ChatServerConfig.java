@@ -11,7 +11,7 @@ public class ChatServerConfig {
         builder.comment("E33Chat server settings");
         HISTORY_ENABLED = builder
             .comment("Send recent chat history to players when they join")
-            .define("history_enabled", true);
+            .define("history_enabled", false);
         SERVER_CONFIG = builder.build();
     }
 }
