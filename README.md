@@ -20,10 +20,11 @@
 
 - 👥 **Whisper sidebar** — Online player list, click to whisper
 - 🔍 **Chat search** — Keyword search with real-time matching
-- @ **Mention autocomplete** — Type `@` for a popup player list
+- @ **Mention autocomplete** — Type `@` for a popup player list, or left-click a player head
 - 📌 **Quick chat** — Save and quick-fill common phrases
 - 😊 **Emoji & kaomoji** — Emoji panel + kaomoji picker
-- 💬 **Quote reply** — Right-click a message to quote reply
+- 📋 **Copy & quote reply** — Right-click a message to copy or quote reply
+- 👤 **Player head actions** — Right-click a player head to teleport or whisper
 - 🔔 **Preview & hints** — HUD preview at bottom-left; popup hints for @mentions, quotes, and system messages
 - 🔊 **Notification sounds** — Per-type toggles for system, @/quote, whisper, and public messages
 - 🎨 **Themes** — Dark/light theme with customizable bubble color, text color, and corner radius
@@ -71,10 +72,11 @@
 
 - 👥 **私聊侧边栏** — 在线玩家列表，点玩家头像进行私聊
 - 🔍 **聊天搜索** — 输入关键词搜索聊天记录
-- @ **提及补全** — 输入 `@` 弹出在线玩家列表
+- @ **提及补全** — 输入 `@` 弹出在线玩家列表，或左键点玩家头像 @ta
 - 📌 **常用语面板** — 保存/管理常用短语，点击填充
 - 😊 **表情 & 颜文字** — emoji 面板 + 颜文字面板
-- 💬 **引用回复** — 右键消息选"引用"，回复时携带上下文
+- 📋 **复制 & 引用回复** — 右键消息可复制或引用回复
+- 👤 **玩家头像交互** — 右键头像 传送/私聊，左键头像 @提及
 - 🔔 **消息预览 & 强提示** — 左下角 HUD 预览；被 @ / 引用 / 系统消息弹窗提示
 - 🔊 **提示音** — 系统消息 / @ / 引用 / 私聊 / 公屏，独立配置
 - 🎨 **主题 & 自定义** — 深色/浅色主题，自定义气泡颜色、文字颜色、圆角半径
