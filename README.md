@@ -37,7 +37,7 @@
 
 **Server required?** No, but installing the server-side mod enables quote reply, @mention sync, and chat history sync (new players receive recent messages).
 
-**How to configure?** Gear icon (bottom-left) → Menu → Settings, or edit `\config\chatbubble-client.toml`. Server config: `\config\e33chat-server.toml`.
+**How to configure?** Gear icon (bottom-left) → Menu → Settings, or edit `\config\e33chat-client.toml`. Server config: `\config\e33chat-server.toml`.
 
 **Where is chat history?** `.minecraft\e33chat\history`
 
@@ -88,7 +88,7 @@
 
 **服务器需要装吗？** 可不安装，但安装后激活 引用 / @ / 新玩家聊天历史同步
 
-**怎么打开配置？** 聊天面板左下角齿轮 → 菜单 → 设置。配置文件在 `\config\chatbubble-client.toml`，服务端配置在 `\config\e33chat-server.toml`
+**怎么打开配置？** 聊天面板左下角齿轮 → 菜单 → 设置。配置文件在 `\config\e33chat-client.toml`，服务端配置在 `\config\e33chat-server.toml`
 
 **聊天历史保存在哪？** 在 `.minecraft\e33chat\history`
 
