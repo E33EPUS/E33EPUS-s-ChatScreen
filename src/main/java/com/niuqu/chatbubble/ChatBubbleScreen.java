@@ -8,6 +8,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.network.chat.Component;
@@ -37,7 +38,7 @@ public class ChatBubbleScreen extends Screen {
     private static final int GAP = 6;
     private static final int NAME_H = 10;
     private static final int TIME_SEP_H = 14;
-    private static final int BAR_H = 26;
+    static final int BAR_H = 26;
     private static final int SIDEBAR_W = 90;
     private static final int SIDEBAR_ITEM_H = 22;
     private static final int SIDEBAR_ICON_S = 20;
@@ -50,7 +51,7 @@ public class ChatBubbleScreen extends Screen {
     private static final int ICON_S = 14;
     private static ChatBubbleTheme loadedTheme;
 
-    private static ResourceLocation iconTex(String name) {
+    static ResourceLocation iconTex(String name) {
         String theme = ChatBubbleConfig.THEME.get().name().toLowerCase();
         return ResourceLocation.fromNamespaceAndPath("e33chat", "textures/gui/" + theme + "/" + name);
     }
@@ -88,21 +89,16 @@ public class ChatBubbleScreen extends Screen {
     private int historyPos = -1;
 
     // Emoji panel
-    private boolean showEmojiPanel;
-    private int emojiScroll;
-    private int emojiTab;
-    private boolean showSettingsMenu;
-    private boolean showSearchPanel;
+    final ChatEmojiPanel emojiPanel = new ChatEmojiPanel();
+    final ChatSettingsMenu settingsMenu = new ChatSettingsMenu();
+    final ChatSearchPanel searchPanel = new ChatSearchPanel();
     private EditBox searchInput;
     private final List<Integer> searchMatches = new ArrayList<>();
     private int searchMatchIdx;
     private int searchHighlightIndex = -1;
-    private boolean showQuickChatPanel;
+    final ChatQuickChatPanel quickChatPanel = new ChatQuickChatPanel();
     private EditBox quickChatInput;
-    private int quickChatScrollOffset;
     private static final int QUICK_CHAT_W = 140;
-    private static final int QUICK_CHAT_ROW_H = 14;
-    private static final int QUICK_CHAT_MAX_VISIBLE = 8;
     private static boolean sidebarOpen;
     private static String whisperPartner;
     private int sidebarScrollOffset;
@@ -130,56 +126,6 @@ public class ChatBubbleScreen extends Screen {
     private float scrollAnimTo;
     private int scrollAnimDuration;
     private long lastScrollTime;
-
-    private static final int EMOJI_PANEL_H = 132;
-    private static final int EMOJI_TAB_H = 18;
-    private static final int EMOJI_COLS = 9;
-    private static final int EMOJI_SLOT = 18;
-    private static final int SETTINGS_MENU_W = 100;
-    private static final int SETTINGS_MENU_ROW_H = 18;
-    private static final int SETTINGS_MENU_COUNT = 4;
-    private static final int SEARCH_PANEL_W = 180;
-    private static final int SEARCH_PANEL_H = 22;
-    private static final int SEARCH_INPUT_H = 14;
-    private static final int SEARCH_HIGHLIGHT = 0xFFFFFF55;
-
-    private static final String[] EMOJI_EMOTES = {
-        // 😊 笑脸
-        "😀","😃","😄","😁","😆","😅","🤣","😂",
-        "🙂","😉","😊","😇","🥰","😍","🤩","😘",
-        "😋","😛","😜","🤪","😎","🤗","🤔","😐",
-        "😢","😭","😤","😡","🥺","😴","😷","🤒",
-        // 🐱 动物
-        "🐱","🐶","🐼","🐨","🐰","🦊","🐸","🐵",
-        "🐭","🐹","🐮","🦁","🐯","🐻","🐧","🐤",
-        "🐴","🦄","🐝","🐞","🦋","🐙","🦀","🐠",
-        // ❤️ 心形 & 手势
-        "❤️","🧡","💛","💚","💙","💜","🖤","💔",
-        "💕","💖","💗","💘","💝","💟","❣️","💌",
-        "👍","👎","👏","🙌","💪","🤝","👋","✌️",
-        // 🎮 物品 & 天气 & 食物
-        "🎮","🎯","🎨","🎵","🎶","🎤","🎧","🎼",
-        "⭐","🌟","🔥","💧","🌈","❄️","🎉","🎊",
-        "🍕","🍔","🌮","🍩","🍪","🎂","☕","🍺",
-        // ✅ 符号
-        "⬆️","⬇️","✅","❌","❓","❗","💤","💡",
-        "💀","🗿","🤡","👀","💯","💢","💬","💭",
-    };
-
-    private static final String[] KAOMOJI = {
-        // 开心
-        "(｡•̀ᴗ-)✧","(๑˃̵ᴗ˂̵)و","(๑•̀ㅂ•́)و✧","(◍•ᴗ•◍)",
-        "╰(*°▽°*)╯","(≧∇≦)ﾉ","(＾▽＾)","✧٩(ˊωˋ*)و✧",
-        // 卖萌
-        "ฅ^•ﻌ•^ฅ","(•ω•)","(￣▽￣*)","(⌒▽⌒)☆",
-        "(o゜▽゜)o☆","＼(￣▽￣)／","(◔◡◔)","／(=✪ x ✪=)＼",
-        // 无语
-        "¯\\_(ツ)_/¯","(ー_ー゛)","(￢_￢)","(¬_¬)",
-        "(⇀‸↼‶)","(｡ŏ_ŏ)","(・∀・)","_(:з」∠)_",
-        // 愤怒 & 哭泣 & 惊讶
-        "(╯°□°）╯︵ ┻━┻","(´;ω;｀)","Σ(°△°|||)","(◎ロ◎)",
-        "(∪.∪ )...zzz",
-    };
 
     // @mention autocomplete
     private boolean showMentions;
@@ -538,7 +484,7 @@ public class ChatBubbleScreen extends Screen {
     public void tick() {
         if (copyToastTicks > 0) copyToastTicks--;
         input.tick();
-        if (showSearchPanel) searchInput.tick();
+        if (searchPanel.visible) searchInput.tick();
         if (closing && net.minecraft.Util.getMillis() - animStart >= ANIM_MS)
             minecraft.setScreen(null);
     }
@@ -551,27 +497,27 @@ public class ChatBubbleScreen extends Screen {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         // Settings menu / emoji panel gets ESC first
-        if (showSettingsMenu && keyCode == 256) {
-            showSettingsMenu = false;
+        if (settingsMenu.visible && keyCode == 256) {
+            settingsMenu.visible = false;
             return true;
         }
-        if (showEmojiPanel && keyCode == 256) {
-            showEmojiPanel = false;
+        if (emojiPanel.visible && keyCode == 256) {
+            emojiPanel.visible = false;
             return true;
         }
-        if (showQuickChatPanel && keyCode == 256) {
-            showQuickChatPanel = false;
+        if (quickChatPanel.visible && keyCode == 256) {
+            quickChatPanel.visible = false;
             quickChatInput.setVisible(false);
             setFocused(input);
             return true;
         }
-        if (showSearchPanel && keyCode == 256) {
+        if (searchPanel.visible && keyCode == 256) {
             closeSearchPanel();
             return true;
         }
 
         // Search navigation
-        if (showSearchPanel && !searchMatches.isEmpty()) {
+        if (searchPanel.visible && !searchMatches.isEmpty()) {
             if (keyCode == 265) { // Up
                 searchMatchIdx = searchMatchIdx > 0 ? searchMatchIdx - 1 : searchMatches.size() - 1;
                 searchHighlightIndex = searchMatches.get(searchMatchIdx);
@@ -648,17 +594,15 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (showEmojiPanel) {
-            emojiScroll = Mth.clamp(emojiScroll - (int) delta * 20, 0, 200);
+        if (emojiPanel.visible) {
+            emojiPanel.handleScroll(delta);
             return true;
         }
-        if (showQuickChatPanel) {
-            var phrases = ChatBubbleConfig.QUICK_CHAT_PHRASES.get();
-            int maxScroll = Math.max(0, phrases.size() - QUICK_CHAT_MAX_VISIBLE);
-            quickChatScrollOffset = Mth.clamp(quickChatScrollOffset - (int) delta, 0, maxScroll);
+        if (quickChatPanel.visible) {
+            quickChatPanel.handleScroll(delta);
             return true;
         }
-        if (showSearchPanel && !searchMatches.isEmpty()) {
+        if (searchPanel.visible && !searchMatches.isEmpty()) {
             searchMatchIdx = Mth.clamp(searchMatchIdx - (int) delta, 0, searchMatches.size() - 1);
             searchHighlightIndex = searchMatches.get(searchMatchIdx);
             jumpToMessage(searchHighlightIndex);
@@ -844,16 +788,31 @@ public class ChatBubbleScreen extends Screen {
                 onClose();
                 return true;
             }
-            if (showSettingsMenu && handleSettingsMenuClick((int) mouseX, (int) mouseY))
+            if (settingsMenu.visible) {
+                int action = settingsMenu.handleClick((int) mouseX, (int) mouseY, panelX, panelW, barTop, ICON_S);
+                if (action >= 0) executeMenuAction(action);
                 return true;
-            if (showEmojiPanel && handleEmojiClick((int) mouseX, (int) mouseY))
+            }
+            if (emojiPanel.visible) {
+                String emojiText = emojiPanel.handleClick((int) mouseX, (int) mouseY, font, c(), panelX, panelW, barTop, ICON_S, PAD);
+                if (emojiText != null && !emojiText.isEmpty()) {
+                    input.setValue(input.getValue() + emojiText);
+                    input.moveCursorToEnd();
+                }
                 return true;
-            if (showQuickChatPanel && handleQuickChatPanelClick((int) mouseX, (int) mouseY))
+            }
+            if (quickChatPanel.visible) {
+                int result = quickChatPanel.handleClick((int) mouseX, (int) mouseY, font, c(), panelX, panelW, barTop, quickChatInput);
+                if (result >= 0) {
+                    input.setValue(ChatBubbleConfig.QUICK_CHAT_PHRASES.get().get(result));
+                    setFocused(input);
+                } else if (result == -2) {
+                    setFocused(quickChatInput);
+                }
                 return true;
-            if (showSearchPanel) {
-                int sx = panelX + panelW / 2 - SEARCH_PANEL_W / 2;
-                int sy = barTop - SEARCH_PANEL_H - 4;
-                if (mouseX >= sx && mouseX <= sx + SEARCH_PANEL_W && mouseY >= sy && mouseY <= sy + SEARCH_PANEL_H) {
+            }
+            if (searchPanel.visible) {
+                if (searchPanel.isClickOnPanel((int) mouseX, (int) mouseY, panelX, panelW, barTop)) {
                     setFocused(searchInput);
                     return true;
                 }
@@ -970,148 +929,26 @@ public class ChatBubbleScreen extends Screen {
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
-    private boolean handleEmojiClick(int mx, int my) {
-        if (!showEmojiPanel) return false;
-        int sendX = panelX + panelW - PAD - ICON_S + 2;
-
-        int emojiIconX = sendX - ICON_S - 6;
-        int iconY = barTop + (BAR_H - ICON_S) / 2;
-        if (mx >= emojiIconX && mx <= emojiIconX + ICON_S && my >= iconY && my <= iconY + ICON_S) {
-            showEmojiPanel = false;
-            return true;
-        }
-
-        boolean isKaomoji = emojiTab == 1;
-        int kCols = 2;
-        int kColW = 90;
-        int pw = isKaomoji ? kCols * kColW + 8 : EMOJI_COLS * EMOJI_SLOT + 8;
-        int px = sendX + ICON_S / 2 - pw / 2;
-        px = Mth.clamp(px, panelX + 2, panelX + panelW - pw - 2);
-        int py = barTop - EMOJI_PANEL_H - 4;
-
-        if (mx < px || mx > px + pw || my < py || my > py + EMOJI_PANEL_H) {
-            showEmojiPanel = false;
-            return false;
-        }
-
-        // Tab click
-        if (my < py + EMOJI_TAB_H) {
-            int tabW = pw / 2;
-            int t = (mx - px) / tabW;
-            if (t >= 0 && t <= 1) { emojiTab = t; emojiScroll = 0; }
-            return true;
-        }
-
-        // Content click
-        int cy = py + EMOJI_TAB_H + 1;
-        if (isKaomoji) {
-            int cw = (pw - 8) / kCols;
-            int col = (mx - px - 4) / cw;
-            int row = (my - cy - 2 + emojiScroll) / KAO_ITEM_H;
-            int idx = row * kCols + col;
-            if (idx >= 0 && idx < KAOMOJI.length) {
-                input.setValue(input.getValue() + KAOMOJI[idx]);
-                input.moveCursorToEnd();
-            }
-        } else {
-            int col = (mx - px - 4) / EMOJI_SLOT;
-            int row = (my - cy - 2 + emojiScroll) / EMOJI_SLOT;
-            int idx = row * EMOJI_COLS + col;
-            if (idx >= 0 && idx < EMOJI_EMOTES.length) {
-                input.setValue(input.getValue() + EMOJI_EMOTES[idx]);
-                input.moveCursorToEnd();
-            }
-        }
-        showEmojiPanel = false;
-        return true;
-    }
-
-    private boolean handleSettingsMenuClick(int mx, int my) {
-        if (!showSettingsMenu) return false;
-        int gearX = panelX + 4;
-        int iconY = barTop + (BAR_H - ICON_S) / 2;
-        if (mx >= gearX && mx <= gearX + ICON_S && my >= iconY && my <= iconY + ICON_S) {
-            showSettingsMenu = false;
-            return true;
-        }
-
-        int menuH = SETTINGS_MENU_COUNT * SETTINGS_MENU_ROW_H + 4;
-        int px = gearX;
-        int py = barTop - menuH - 4;
-
-        if (mx < px || mx > px + SETTINGS_MENU_W || my < py || my > py + menuH) {
-            showSettingsMenu = false;
-            return false;
-        }
-
-        int row = (my - py - 2) / SETTINGS_MENU_ROW_H;
-        if (row >= 0 && row < SETTINGS_MENU_COUNT) {
-            showSettingsMenu = false;
-            switch (row) {
-                case 0: // 搜索 (top)
-                    if (showQuickChatPanel) { showQuickChatPanel = false; quickChatInput.setVisible(false); }
-                    if (showEmojiPanel) showEmojiPanel = false;
-                    showSearchPanel = true;
-                    searchInput.setValue("");
-                    searchMatches.clear();
-                    searchMatchIdx = -1;
-                    searchHighlightIndex = -1;
-                    setFocused(searchInput);
-                    break;
-                case 1: // 常用语
-                    if (showSearchPanel) closeSearchPanel();
-                    if (showEmojiPanel) showEmojiPanel = false;
-                    showQuickChatPanel = true;
-                    quickChatScrollOffset = 0;
-                    quickChatInput.setValue("");
-                    setFocused(input);
-                    break;
-                case 2: // 主题
-                    ChatBubbleTheme next = ChatBubbleConfig.THEME.get() == ChatBubbleTheme.DARK
-                        ? ChatBubbleTheme.LIGHT : ChatBubbleTheme.DARK;
-                    ChatBubbleConfig.THEME.set(next);
-                    ensureIconsLoaded();
-                    int editColor = ChatBubbleConfig.THEME.get() == ChatBubbleTheme.LIGHT
-                        ? c().textSecondary() : c().textPrimary();
-                    input.setTextColor(editColor);
-                    input.setTextColorUneditable(c().textMuted());
-                    sidebarSearchBox.setTextColor(editColor);
-                    sidebarSearchBox.setTextColorUneditable(editColor);
-                    quickChatInput.setTextColor(editColor);
-                    quickChatInput.setTextColorUneditable(c().textMuted());
-                    searchInput.setTextColor(editColor);
-                    searchInput.setTextColorUneditable(c().textMuted());
-                    int cmdAlpha = ChatBubbleConfig.THEME.get() == ChatBubbleTheme.LIGHT ? 0x99 : 0xDD;
-                    commandSuggestions = new CommandSuggestions(minecraft, ChatBubbleScreen.this, input, font,
-                        false, false, 0, 8, true, ChatBubbleTheme.alphaBlend(c().panelBg(), cmdAlpha));
-                    break;
-                case 3: // 设置 (bottom, closest to gear)
-                    minecraft.setScreen(new ChatBubbleConfigScreen(this));
-                    break;
-            }
-        }
-        return true;
-    }
 
     private boolean handleIconClick(int mx, int my) {
         int iconY = barTop + (BAR_H - ICON_S) / 2;
         // Gear icon (left) — toggle settings menu
         int gearX = panelX + 4;
         if (mx >= gearX && mx <= gearX + ICON_S && my >= iconY && my <= iconY + ICON_S) {
-            if (showEmojiPanel) showEmojiPanel = false;
-            if (showSearchPanel) closeSearchPanel();
-            showSettingsMenu = !showSettingsMenu;
+            if (emojiPanel.visible) emojiPanel.visible = false;
+            if (searchPanel.visible) closeSearchPanel();
+            settingsMenu.visible = !settingsMenu.visible;
             return true;
         }
         // Emoji icon — toggle emoji panel
         int sendX = panelX + panelW - PAD - ICON_S + 2;
         int emojiX = sendX - ICON_S - 6;
         if (mx >= emojiX && mx <= emojiX + ICON_S && my >= iconY && my <= iconY + ICON_S) {
-            if (showSettingsMenu) showSettingsMenu = false;
-            if (showSearchPanel) closeSearchPanel();
-            showEmojiPanel = !showEmojiPanel;
+            if (settingsMenu.visible) settingsMenu.visible = false;
+            if (searchPanel.visible) closeSearchPanel();
+            emojiPanel.visible = !emojiPanel.visible;
             showMentions = false;
-            if (showEmojiPanel) emojiScroll = 0;
+            if (emojiPanel.visible) emojiPanel.scroll = 0;
             return true;
         }
         // Send icon (right)
@@ -1196,10 +1033,10 @@ public class ChatBubbleScreen extends Screen {
         renderContextMenu(g, mouseX, mouseY);
         renderAvatarContextMenu(g, mouseX, mouseY);
         renderToast(g);
-        renderSettingsMenu(g, mouseX, mouseY);
-        renderEmojiPanel(g, mouseX, mouseY);
-        renderQuickChatPanel(g, mouseX, mouseY);
-        renderSearchPanel(g, mouseX, mouseY);
+        settingsMenu.render(g, mouseX, mouseY, font, c(), panelX, panelW, barTop, ChatBubbleScreen::iconTex);
+        emojiPanel.render(g, mouseX, mouseY, font, c(), panelX, panelW, barTop, ICON_S, PAD);
+        quickChatPanel.render(g, mouseX, mouseY, font, c(), panelX, panelW, barTop, quickChatInput);
+        searchPanel.render(g, mouseX, mouseY, font, c(), panelX, panelW, barTop, searchInput, searchMatches, searchMatchIdx);
         renderBottomBar(g, mouseX, mouseY);
         renderMentionPopup(g, mouseX, mouseY);
 
@@ -1563,7 +1400,7 @@ public class ChatBubbleScreen extends Screen {
         bubbleRects.add(new int[]{bubbleX, bubbleY, bubbleW, bubbleH, index});
 
         if (index == searchHighlightIndex)
-            g.renderOutline(bubbleX - 1, bubbleY - 1, bubbleW + 2, bubbleH + 2, SEARCH_HIGHLIGHT);
+            g.renderOutline(bubbleX - 1, bubbleY - 1, bubbleW + 2, bubbleH + 2, ChatSearchPanel.HIGHLIGHT);
     }
 
     private void renderLineWithClicks(GuiGraphics g, FormattedCharSequence line,
@@ -1812,8 +1649,54 @@ public class ChatBubbleScreen extends Screen {
         g.drawString(font, Component.literal(text), tx, ty, color, false);
     }
 
+    private void executeMenuAction(int action) {
+        switch (action) {
+            case 0: // 搜索
+                if (quickChatPanel.visible) { quickChatPanel.visible = false; quickChatInput.setVisible(false); }
+                if (emojiPanel.visible) emojiPanel.visible = false;
+                searchPanel.visible = true;
+                searchInput.setValue("");
+                searchMatches.clear();
+                searchMatchIdx = -1;
+                searchHighlightIndex = -1;
+                setFocused(searchInput);
+                break;
+            case 1: // 常用语
+                if (searchPanel.visible) closeSearchPanel();
+                if (emojiPanel.visible) emojiPanel.visible = false;
+                quickChatPanel.visible = true;
+                quickChatPanel.scrollOffset = 0;
+                quickChatInput.setValue("");
+                setFocused(input);
+                break;
+            case 2: { // 主题
+                ChatBubbleTheme next = ChatBubbleConfig.THEME.get() == ChatBubbleTheme.DARK
+                    ? ChatBubbleTheme.LIGHT : ChatBubbleTheme.DARK;
+                ChatBubbleConfig.THEME.set(next);
+                ensureIconsLoaded();
+                int editColor = ChatBubbleConfig.THEME.get() == ChatBubbleTheme.LIGHT
+                    ? c().textSecondary() : c().textPrimary();
+                input.setTextColor(editColor);
+                input.setTextColorUneditable(c().textMuted());
+                sidebarSearchBox.setTextColor(editColor);
+                sidebarSearchBox.setTextColorUneditable(editColor);
+                quickChatInput.setTextColor(editColor);
+                quickChatInput.setTextColorUneditable(c().textMuted());
+                searchInput.setTextColor(editColor);
+                searchInput.setTextColorUneditable(c().textMuted());
+                int cmdAlpha = ChatBubbleConfig.THEME.get() == ChatBubbleTheme.LIGHT ? 0x99 : 0xDD;
+                commandSuggestions = new CommandSuggestions(minecraft, this, input, font,
+                    false, false, 0, 8, true, ChatBubbleTheme.alphaBlend(c().panelBg(), cmdAlpha));
+                break;
+            }
+            case 3: // 设置
+                minecraft.setScreen(new ChatBubbleConfigScreen(this));
+                break;
+        }
+    }
+
     private void closeSearchPanel() {
-        showSearchPanel = false;
+        searchPanel.visible = false;
         searchInput.setVisible(false);
         searchMatches.clear();
         searchMatchIdx = -1;
@@ -1821,309 +1704,8 @@ public class ChatBubbleScreen extends Screen {
         setFocused(input);
     }
 
-    private void renderSearchPanel(GuiGraphics g, int mouseX, int mouseY) {
-        if (!showSearchPanel) return;
-        int px = panelX + panelW / 2 - SEARCH_PANEL_W / 2;
-        int py = barTop - SEARCH_PANEL_H - 4;
 
-        // Panel background
-        g.fill(px, py, px + SEARCH_PANEL_W, py + SEARCH_PANEL_H, c().barBg());
-        g.renderOutline(px, py, SEARCH_PANEL_W, SEARCH_PANEL_H, c().divider());
 
-        // Input area (mirrors quick chat pattern)
-        int inputX = px + 4;
-        int inputY = py + 4;
-        int inputW = SEARCH_PANEL_W - 8;
-
-        // Match counter
-        String counter = "";
-        int counterW = 0;
-        if (!searchInput.getValue().isEmpty()) {
-            if (searchMatches.isEmpty())
-                counter = Component.translatable("e33chat.search.no_match").getString();
-            else
-                counter = (searchMatchIdx + 1) + "/" + searchMatches.size();
-            counterW = font.width(counter) + 6;
-        }
-
-        // Input background fill
-        g.fill(inputX, inputY, inputX + inputW, inputY + SEARCH_INPUT_H, c().inputBg());
-
-        // Hover / focus outline
-        boolean hoverInput = mouseX >= inputX && mouseX <= inputX + inputW
-            && mouseY >= inputY && mouseY <= inputY + SEARCH_INPUT_H;
-        if (hoverInput || searchInput.isFocused())
-            g.renderOutline(inputX, inputY, inputW, SEARCH_INPUT_H, c().textMuted());
-
-        // Counter — right-aligned inside input area
-        if (!counter.isEmpty()) {
-            g.drawString(font, Component.literal(counter), inputX + inputW - counterW, inputY + 3,
-                searchMatches.isEmpty() ? c().textMuted() : c().textSecondary(), false);
-        }
-
-        // EditBox (same offsets as quick chat)
-        int editW = inputW - 4 - counterW;
-        searchInput.setX(inputX + 2);
-        searchInput.setWidth(editW - 4);
-        searchInput.setY(inputY + 3);
-        searchInput.setHeight(SEARCH_INPUT_H - 2);
-        searchInput.setVisible(true);
-
-        // Placeholder (same x/y as EditBox)
-        if (searchInput.getValue().isEmpty()) {
-            String ph = Component.translatable("e33chat.search.placeholder").getString();
-            g.drawString(font, Component.literal(ph), inputX + 2, inputY + 3, c().textMuted(), false);
-        }
-    }
-
-    private void renderSettingsMenu(GuiGraphics g, int mouseX, int mouseY) {
-        if (!showSettingsMenu) return;
-        int gearX = panelX + 4;
-        int menuH = SETTINGS_MENU_COUNT * SETTINGS_MENU_ROW_H + 4;
-        int px = gearX;
-        int py = barTop - menuH - 4;
-
-        g.fill(px, py, px + SETTINGS_MENU_W, py + menuH, c().barBg());
-        g.renderOutline(px, py, SETTINGS_MENU_W, menuH, c().divider());
-
-        ResourceLocation[] icons = { iconTex("search"), iconTex("quick_chat"), iconTex("theme"), iconTex("settings") };
-        String[] labels = {
-            Component.translatable("e33chat.menu.search").getString(),
-            Component.translatable("e33chat.menu.quick_chat").getString(),
-            Component.translatable("e33chat.menu.theme").getString(),
-            Component.translatable("e33chat.menu.settings").getString()
-        };
-
-        for (int i = 0; i < SETTINGS_MENU_COUNT; i++) {
-            int ry = py + 2 + i * SETTINGS_MENU_ROW_H;
-            boolean hover = mouseX >= px && mouseX <= px + SETTINGS_MENU_W
-                && mouseY >= ry && mouseY <= ry + SETTINGS_MENU_ROW_H;
-            if (hover) g.fill(px + 1, ry, px + SETTINGS_MENU_W - 1, ry + SETTINGS_MENU_ROW_H, c().iconHover());
-            drawTextureIcon(g, icons[i], px + 3, ry + 2, 14);
-            int maxTextW = SETTINGS_MENU_W - 22;
-            String label = font.plainSubstrByWidth(labels[i], maxTextW);
-            g.drawString(font, Component.literal(label), px + 20, ry + 4, c().textPrimary(), false);
-        }
-    }
-
-    private void renderEmojiPanel(GuiGraphics g, int mouseX, int mouseY) {
-        if (!showEmojiPanel) return;
-        int sendX = panelX + panelW - PAD - ICON_S + 2;
-
-        boolean isKaomoji = emojiTab == 1;
-        int kCols = 2;
-        int kColW = 90;
-        int pw = isKaomoji ? kCols * kColW + 8 : EMOJI_COLS * EMOJI_SLOT + 8;
-        int px = sendX + ICON_S / 2 - pw / 2;
-        px = Mth.clamp(px, panelX + 2, panelX + panelW - pw - 2);
-        int py = barTop - EMOJI_PANEL_H - 4;
-
-        // Tab bar
-        String[] tabLabels = {
-            Component.translatable("e33chat.emoji.tab_emoji").getString(),
-            Component.translatable("e33chat.emoji.tab_kaomoji").getString()
-        };
-        int tabW = pw / tabLabels.length;
-        g.fill(px, py, px + pw, py + EMOJI_TAB_H + 1, c().titleBg());
-        for (int t = 0; t < tabLabels.length; t++) {
-            int tx = px + t * tabW;
-            if (t == emojiTab) g.fill(tx, py, tx + tabW, py + EMOJI_TAB_H, c().inputBg());
-            String label = tabLabels[t];
-            g.drawString(font, Component.literal(label),
-                tx + tabW / 2 - font.width(label) / 2, py + (EMOJI_TAB_H - font.lineHeight) / 2, c().textPrimary(), false);
-        }
-        g.fill(px, py + EMOJI_TAB_H, px + pw, py + EMOJI_TAB_H + 1, c().divider());
-
-        // Content area
-        int cy = py + EMOJI_TAB_H + 1;
-        int ch = EMOJI_PANEL_H - EMOJI_TAB_H - 1;
-        g.fill(px, cy, px + pw, py + EMOJI_PANEL_H, c().barBg());
-        g.renderOutline(px, py, pw, EMOJI_PANEL_H, c().divider());
-
-        if (isKaomoji) {
-            renderKaomojiList(g, mouseX, mouseY, px, cy, pw, ch);
-        } else {
-            renderEmojiGrid(g, mouseX, mouseY, px, cy, pw, ch);
-        }
-    }
-
-    private void renderQuickChatPanel(GuiGraphics g, int mouseX, int mouseY) {
-        if (!showQuickChatPanel) return;
-        var phrases = ChatBubbleConfig.QUICK_CHAT_PHRASES.get();
-        int visiblePhrases = Math.min(phrases.size(), QUICK_CHAT_MAX_VISIBLE);
-        int listH = visiblePhrases * QUICK_CHAT_ROW_H;
-        int separatorH = visiblePhrases > 0 ? 4 : 0;
-        int panelH = 8 + listH + separatorH + 20;
-
-        int px = panelX + panelW / 2 - QUICK_CHAT_W / 2;
-        int py = barTop - panelH - 4;
-
-        g.fill(px, py, px + QUICK_CHAT_W, py + panelH, c().barBg());
-        g.renderOutline(px, py, QUICK_CHAT_W, panelH, c().divider());
-
-        // Scrollbar
-        int totalPhrases = phrases.size();
-        int phraseAreaRight = px + QUICK_CHAT_W - 4;
-        boolean hasScrollbar = totalPhrases > QUICK_CHAT_MAX_VISIBLE;
-        int textMaxW = (hasScrollbar ? QUICK_CHAT_W - 20 : QUICK_CHAT_W - 16) - 14;
-        int hoverRight = hasScrollbar ? px + QUICK_CHAT_W - 8 : px + QUICK_CHAT_W - 4;
-        if (hasScrollbar) {
-            int trackX = phraseAreaRight;
-            int trackTop = py + 4;
-            int trackBottom = py + 4 + listH;
-            int trackRgb = c().scrollbar() & 0x00FFFFFF;
-            g.fill(trackX, trackTop, trackX + 3, trackBottom, (0x30 << 24) | trackRgb);
-            int thumbH = Math.max(6, listH * QUICK_CHAT_MAX_VISIBLE / totalPhrases);
-            int maxScrollOff = totalPhrases - QUICK_CHAT_MAX_VISIBLE;
-            int travelRange = listH - thumbH;
-            int thumbY = trackTop + (maxScrollOff > 0 ? quickChatScrollOffset * travelRange / maxScrollOff : 0);
-            int thumbRgb = c().scrollbarHover() & 0x00FFFFFF;
-            g.fill(trackX, thumbY, trackX + 3, thumbY + thumbH, (0x70 << 24) | thumbRgb);
-        }
-
-        int listY = py + 4;
-        int startIdx = quickChatScrollOffset;
-        int endIdx = Math.min(startIdx + QUICK_CHAT_MAX_VISIBLE, phrases.size());
-        for (int i = startIdx; i < endIdx; i++) {
-            String phrase = phrases.get(i);
-            int rowY = listY + (i - startIdx) * QUICK_CHAT_ROW_H;
-            String display = font.plainSubstrByWidth(phrase, textMaxW);
-            boolean hover = mouseX >= px + 4 && mouseX <= hoverRight
-                && mouseY >= rowY && mouseY <= rowY + QUICK_CHAT_ROW_H;
-            if (hover) g.fill(px + 4, rowY, hoverRight, rowY + QUICK_CHAT_ROW_H, c().iconHover());
-            g.drawString(font, Component.literal(display), px + 6, rowY + 2, c().textPrimary(), false);
-            int delX = hoverRight - 13;
-            int delY = rowY + 1;
-            boolean hoverDel = mouseX >= delX && mouseX <= delX + 12 && mouseY >= delY && mouseY <= delY + 12;
-            g.fill(delX, delY, delX + 12, delY + 12, hoverDel ? c().closeHoverBg() : c().closeBg());
-            g.drawString(font, Component.literal("✕"), delX + 6 - font.width("✕") / 2, delY + 2, c().closeText(), false);
-        }
-
-        // Input box with border
-        int inputY = py + 4 + listH + separatorH + 4;
-        int inputX = px + 4;
-        int inputW = QUICK_CHAT_W - 10;
-        int inputH = 14;
-        g.fill(inputX, inputY, inputX + inputW, inputY + inputH, c().inputBg());
-        boolean hoverInput = mouseX >= inputX && mouseX <= inputX + inputW
-            && mouseY >= inputY && mouseY <= inputY + inputH;
-        if (hoverInput || quickChatInput.isFocused())
-            g.renderOutline(inputX, inputY, inputW, inputH, c().textMuted());
-        if (quickChatInput.getValue().isEmpty() && !quickChatInput.isFocused())
-            g.drawString(font, Component.translatable("e33chat.quick_chat.placeholder"),
-                inputX + 2, inputY + 3, c().textMuted(), false);
-
-        quickChatInput.setX(inputX + 2);
-        quickChatInput.setWidth(inputW - 4);
-        quickChatInput.setY(inputY + 3);
-        quickChatInput.setHeight(inputH - 2);
-        quickChatInput.setVisible(true);
-    }
-
-    private boolean handleQuickChatPanelClick(int mx, int my) {
-        if (!showQuickChatPanel) return false;
-        var phrases = ChatBubbleConfig.QUICK_CHAT_PHRASES.get();
-        int visiblePhrases = Math.min(phrases.size(), QUICK_CHAT_MAX_VISIBLE);
-        int listH = visiblePhrases * QUICK_CHAT_ROW_H;
-        int separatorH = visiblePhrases > 0 ? 4 : 0;
-        int panelH = 8 + listH + separatorH + 20;
-
-        int px = panelX + panelW / 2 - QUICK_CHAT_W / 2;
-        int py = barTop - panelH - 4;
-
-        if (mx < px || mx > px + QUICK_CHAT_W || my < py || my > py + panelH) {
-            showQuickChatPanel = false;
-            quickChatInput.setVisible(false);
-            setFocused(input);
-            return false;
-        }
-
-        int hoverRight = phrases.size() > QUICK_CHAT_MAX_VISIBLE ? px + QUICK_CHAT_W - 8 : px + QUICK_CHAT_W - 4;
-        int listY = py + 4;
-        int startIdx = quickChatScrollOffset;
-        int endIdx = Math.min(startIdx + QUICK_CHAT_MAX_VISIBLE, phrases.size());
-        for (int i = startIdx; i < endIdx; i++) {
-            int rowY = listY + (i - startIdx) * QUICK_CHAT_ROW_H;
-            int delX = hoverRight - 13;
-            int delY = rowY + 1;
-            if (mx >= delX && mx <= delX + 12 && my >= delY && my <= delY + 12) {
-                java.util.ArrayList<String> list = new java.util.ArrayList<>(phrases);
-                list.remove(i);
-                ChatBubbleConfig.QUICK_CHAT_PHRASES.set(list);
-                quickChatScrollOffset = Math.min(quickChatScrollOffset,
-                    Math.max(0, list.size() - QUICK_CHAT_MAX_VISIBLE));
-                return true;
-            }
-            if (mx >= px + 4 && mx <= hoverRight
-                && my >= rowY && my <= rowY + QUICK_CHAT_ROW_H) {
-                input.setValue(phrases.get(i));
-                input.moveCursorToEnd();
-                showQuickChatPanel = false;
-                quickChatInput.setVisible(false);
-                setFocused(input);
-                return true;
-            }
-        }
-        if (quickChatInput.mouseClicked(mx, my, 0)) {
-            setFocused(quickChatInput);
-            return true;
-        }
-        setFocused(input);
-        return true;
-    }
-
-    private void renderEmojiGrid(GuiGraphics g, int mouseX, int mouseY,
-                                  int px, int cy, int pw, int ch) {
-        int rows = (EMOJI_EMOTES.length + EMOJI_COLS - 1) / EMOJI_COLS;
-        int totalH = rows * EMOJI_SLOT + 4;
-        int maxScroll = Math.max(0, totalH - ch + 4);
-        emojiScroll = Mth.clamp(emojiScroll, 0, maxScroll);
-
-        g.enableScissor(px + 1, cy + 1, px + pw - 1, cy + ch - 1);
-        int sy = cy + 2 - emojiScroll;
-        for (int i = 0; i < EMOJI_EMOTES.length; i++) {
-            int col = i % EMOJI_COLS;
-            int row = i / EMOJI_COLS;
-            int ex = px + 4 + col * EMOJI_SLOT;
-            int ey = sy + row * EMOJI_SLOT;
-            if (ey + EMOJI_SLOT <= cy || ey >= cy + ch) continue;
-            if (mouseX >= ex && mouseX <= ex + EMOJI_SLOT - 1
-                && mouseY >= ey && mouseY <= ey + EMOJI_SLOT - 1)
-                g.fill(ex, ey, ex + EMOJI_SLOT - 1, ey + EMOJI_SLOT - 1, c().iconHover());
-            String emoji = EMOJI_EMOTES[i];
-            g.drawString(font, Component.literal(emoji),
-                ex + EMOJI_SLOT / 2 - font.width(emoji) / 2,
-                ey + (EMOJI_SLOT - font.lineHeight) / 2, c().textPrimary(), false);
-        }
-        g.disableScissor();
-    }
-
-    private static final int KAO_ITEM_H = 13;
-
-    private void renderKaomojiList(GuiGraphics g, int mouseX, int mouseY,
-                                    int px, int cy, int pw, int ch) {
-        int kCols = 2;
-        int kColW = (pw - 8) / kCols;
-        int totalH = ((KAOMOJI.length + kCols - 1) / kCols) * KAO_ITEM_H + 4;
-        int maxScroll = Math.max(0, totalH - ch + 4);
-        emojiScroll = Mth.clamp(emojiScroll, 0, maxScroll);
-
-        g.enableScissor(px + 1, cy + 1, px + pw - 1, cy + ch - 1);
-        int sy = cy + 2 - emojiScroll;
-        for (int i = 0; i < KAOMOJI.length; i++) {
-            int col = i % kCols;
-            int row = i / kCols;
-            int ex = px + 4 + col * kColW;
-            int ey = sy + row * KAO_ITEM_H;
-            if (ey + KAO_ITEM_H <= cy || ey >= cy + ch) continue;
-            if (mouseX >= ex && mouseX <= ex + kColW - 1
-                && mouseY >= ey && mouseY <= ey + KAO_ITEM_H - 1)
-                g.fill(ex, ey, ex + kColW - 1, ey + KAO_ITEM_H - 1, c().iconHover());
-            g.drawString(font, Component.literal(KAOMOJI[i]),
-                ex + 2, ey + (KAO_ITEM_H - font.lineHeight) / 2, c().textPrimary(), false);
-        }
-        g.disableScissor();
-    }
 
     private void renderBottomBar(GuiGraphics g, int mouseX, int mouseY) {
         g.fill(panelX, barTop, panelX + panelW, height, c().barBg());
@@ -2157,7 +1739,7 @@ public class ChatBubbleScreen extends Screen {
         // Emoji icon (between input and send)
         boolean hoverEmoji = mouseX >= emojiX && mouseX <= emojiX + ICON_S
             && mouseY >= iconY && mouseY <= iconY + ICON_S;
-        if (hoverEmoji || showEmojiPanel) g.fill(emojiX - 1, iconY - 1, emojiX + ICON_S + 1, iconY + ICON_S + 1, c().iconHover());
+        if (hoverEmoji || emojiPanel.visible) g.fill(emojiX - 1, iconY - 1, emojiX + ICON_S + 1, iconY + ICON_S + 1, c().iconHover());
         drawTextureIcon(g, iconTex("emoji"), emojiX, iconY, ICON_S);
 
         // Send icon (right)
@@ -2198,8 +1780,15 @@ public class ChatBubbleScreen extends Screen {
         }
     }
 
-    private void drawTextureIcon(GuiGraphics g, ResourceLocation tex, int x, int y, int size) {
-        var abstractTex = minecraft.getTextureManager().getTexture(tex);
+    static void drawTextureIcon(GuiGraphics g, ResourceLocation tex, int x, int y, int size) {
+        var tm = Minecraft.getInstance().getTextureManager();
+        AbstractTexture abstractTex;
+        try {
+            abstractTex = tm.getTexture(tex);
+        } catch (Exception e) {
+            loadIconTextures();
+            abstractTex = tm.getTexture(tex);
+        }
         RenderSystem.setShaderTexture(0, abstractTex.getId());
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.enableBlend();
