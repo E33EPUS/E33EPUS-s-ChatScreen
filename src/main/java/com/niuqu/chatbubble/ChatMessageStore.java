@@ -606,7 +606,7 @@ public class ChatMessageStore {
     }
 
     public static void addHistoryMessages(List<com.niuqu.chatbubble.packets.HistoryPacket.HistoryEntry> entries) {
-        if (entries.isEmpty()) return;
+        if (!messages.isEmpty() || entries.isEmpty()) return;
         for (var e : entries) {
             messages.add(new ChatMessage(
                 e.senderUUID(),
