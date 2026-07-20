@@ -42,3 +42,5 @@
 **聊天历史保存在哪？** 在 `.minecraft\e33chat\history`
 
 **可以放进整合包吗？** 可以
+
+**如何反馈问题？** 点击反馈https://github.com/E33EPUS/E33EPUS-s-ChatScreen/issues
