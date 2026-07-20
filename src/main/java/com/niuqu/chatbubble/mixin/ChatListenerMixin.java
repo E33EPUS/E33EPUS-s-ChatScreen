@@ -36,6 +36,7 @@ public class ChatListenerMixin {
         while (b > a) {
             char ch = fullStr.charAt(b - 1);
             if (Character.isWhitespace(ch) || ch == ':' || ch == '：' || ch == '»') b--;
+            else if (ch == '>' && b >= a + 2 && fullStr.charAt(b - 2) == '>') b -= 2;
             else break;
         }
         if (a >= b) return fallback;
@@ -461,38 +462,48 @@ public class ChatListenerMixin {
             UUID foundUuid = null;
             int nameStart = -1, contentStart = -1;
             if (connection != null) {
-                exact:
+                generic:
                 for (var info : connection.getOnlinePlayers()) {
                     for (String cand : nameCandidates(info)) {
-                        String pattern = "<" + cand + "> ";
-                        int idx = text.indexOf(pattern);
-                        if (idx >= 0) {
-                            foundName = cand;
-                            foundProfile = info.getProfile().getName();
-                            foundUuid = info.getProfile().getId();
-                            nameStart = idx;
-                            contentStart = idx + pattern.length();
-                            break exact;
-                        }
-                    }
-                }
-                // Prefix inside the brackets: "<[Title]Steve> msg"
-                if (foundName == null) {
-                    inside:
-                    for (var info : connection.getOnlinePlayers()) {
-                        for (String cand : nameCandidates(info)) {
-                            int idx = text.indexOf(cand + "> ");
-                            if (idx <= 0) continue;
-                            int open = text.lastIndexOf('<', idx);
-                            if (open >= 0 && text.indexOf('>', open) == idx + cand.length()) {
-                                foundName = cand;
-                                foundProfile = info.getProfile().getName();
-                                foundUuid = info.getProfile().getId();
-                                nameStart = open;
-                                contentStart = idx + cand.length() + 2;
-                                break inside;
+                        if (cand.length() < 3) continue;
+                        int idx = text.indexOf(cand);
+                        if (idx < 0 || idx >= 30) continue;
+                        if (idx > 0) {
+                            char prev = text.charAt(idx - 1);
+                            if (Character.isLetterOrDigit(prev) || prev == '_') {
+                                int openAngle = text.lastIndexOf('<', idx);
+                                int closeAngle = text.indexOf('>', idx + cand.length());
+                                if (openAngle >= 0 && closeAngle >= 0 && closeAngle - openAngle <= 64) {
+                                    // inside angle brackets like <[VIP]Steve>
+                                } else {
+                                    int bracketClose = text.lastIndexOf(']', idx);
+                                    if (bracketClose >= 0) {
+                                        int bracketOpen = text.lastIndexOf('[', bracketClose);
+                                        if (bracketOpen < 0 || idx - bracketClose > 2) continue;
+                                    } else {
+                                        continue;
+                                    }
+                                }
                             }
                         }
+                        int sep = idx + cand.length();
+                        if (sep < text.length()) {
+                            char next = text.charAt(sep);
+                            if (Character.isLetterOrDigit(next) || next == '_') continue;
+                        }
+                        while (sep < text.length()) {
+                            char ch = text.charAt(sep);
+                            if (Character.isWhitespace(ch) || ch == '>' || ch == ':'
+                                || ch == '：' || ch == '»' || ch == '-' || ch == '|') sep++;
+                            else break;
+                        }
+                        if (sep <= idx + cand.length() || sep >= text.length()) continue;
+                        foundName = cand;
+                        foundProfile = info.getProfile().getName();
+                        foundUuid = info.getProfile().getId();
+                        nameStart = idx;
+                        contentStart = sep;
+                        break generic;
                     }
                 }
             }
