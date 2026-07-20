@@ -25,7 +25,7 @@ public class ChatSettingsMenu {
         g.renderOutline(px, py, W, menuH, c.divider());
 
         ResourceLocation[] icons = {
-            iconTex.apply("search"), iconTex.apply("quick_chat"),
+            iconTex.apply("settings"), iconTex.apply("quick_chat"),
             iconTex.apply("theme"), iconTex.apply("settings")
         };
         String[] labels = {

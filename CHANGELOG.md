@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.0
+
+**更名**
+- 显示名从 E33EPUS's ChatScreen 改为 **E33Chat**
+
+**Rename**
+- Display name changed from E33EPUS's ChatScreen to **E33Chat**
+
 ## v1.9.9
 
 **重构**
