@@ -1,9 +1,29 @@
 # Changelog
 
+## v1.9.9
+
+**重构**
+- ChatBubbleScreen 拆分为 5 个类：ChatEmojiPanel（表情）、ChatQuickChatPanel（常用语）、ChatSettingsMenu（设置菜单）、ChatSearchPanel（搜索）、ChatBubbleScreen（编排层），从 2220 行瘦至 1945 行
+- drawTextureIcon / iconTex / BAR_H 改为包内可见，面板类直接引用
+- 修复 F3+T 资源重载后图标纹理丢失导致渲染崩溃的问题
+
+**Refactor**
+- Split ChatBubbleScreen into 5 classes: ChatEmojiPanel (emoji picker), ChatQuickChatPanel (quick phrases), ChatSettingsMenu (gear menu), ChatSearchPanel (search bar), ChatBubbleScreen (orchestrator); reduced from 2220 to 1945 lines
+- drawTextureIcon / iconTex / BAR_H relaxed to package-private for panel access
+- Fixed icon texture crash after F3+T resource reload (missing try-catch in drawTextureIcon)
+
 ## v1.9.8
+
+**新增**
+- 聊天搜索：浮动输入框，实时子串匹配，上下箭头/滚轮切换匹配项，黄色高亮边框，计数器显示
+- 设置菜单重铸：从 3 列横排改为 4 行竖排上拉，图标居左文字居右，英文字段自适应截断
 
 **修复**
 - 多条系统消息（tellraw）同时到达时强提示不再互相覆盖，改为排队依次显示
+
+**New**
+- Chat search: floating input above bottom bar, real-time substring matching, up/down/scroll to cycle matches, yellow highlight border, match counter
+- Settings menu redesigned: vertical 4-row popup (was horizontal 3-col), icons left + text right, auto-truncate long English labels
 
 **Fix**
 - Multiple simultaneous system messages (tellraw) no longer overwrite each other's strong hint; now queued and displayed in sequence
