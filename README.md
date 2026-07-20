@@ -45,7 +45,7 @@
 
 **Modpack?** Go ahead.
 
-**Found a bug?** [Report it here](https://github.com/E33EPUS/E33EPUS-s-ChatScreen/issues)
+**Found a bug?** [Report it here](https://github.com/E33EPUS/E33Chat/issues)
 
 ---
 
@@ -96,4 +96,4 @@
 
 **可以放进整合包吗？** 可以
 
-**如何反馈问题？** [反馈问题](https://github.com/E33EPUS/E33EPUS-s-ChatScreen/issues)
+**如何反馈问题？** [反馈问题](https://github.com/E33EPUS/E33Chat/issues)
