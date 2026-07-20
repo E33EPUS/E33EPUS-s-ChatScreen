@@ -23,10 +23,11 @@ public class ChatMessageStore {
     private static String pendingReplySender;
     private static final List<PreviewEntry> previews = new ArrayList<>();
     private static final int PREVIEW_TICKS = 100;
-    private record HintEntry(Component text, boolean isMention) {}
+    private record HintEntry(Component text, boolean isMention, long createdAt) {}
     private static final java.util.LinkedList<HintEntry> strongHintQueue = new java.util.LinkedList<>();
     private static int strongHintTicks;
     public static final int STRONG_HINT_DURATION = 60;
+    private static final long HINT_MAX_AGE_MS = 5000;
 
     private static String currentWorldKey;
     private static final Map<String, String> worldTitles = new HashMap<>();
@@ -270,7 +271,7 @@ public class ChatMessageStore {
             boolean mentionToHint = isMentionOrQuote && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get();
 
             if (mentionToHint) {
-                strongHintQueue.add(new HintEntry(Component.translatable("e33chat.notif.mention"), true));
+                strongHintQueue.add(new HintEntry(Component.translatable("e33chat.notif.mention"), true, System.currentTimeMillis()));
                 if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
             }
 
@@ -290,7 +291,7 @@ public class ChatMessageStore {
                     previews.remove(0);
             }
             if (systemToHint && !mentionToHint) {
-                strongHintQueue.add(new HintEntry(content, false));
+                strongHintQueue.add(new HintEntry(content, false, System.currentTimeMillis()));
                 if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
             }
         }
@@ -431,7 +432,9 @@ public class ChatMessageStore {
 
     public static Component getStrongHintText() {
         if (strongHintQueue.isEmpty()) return null;
-        return strongHintTicks > 0 ? strongHintQueue.peek().text() : null;
+        if (strongHintTicks <= 0) return null;
+        if (isExpired(strongHintQueue.peek())) { strongHintTicks = 0; return null; }
+        return strongHintQueue.peek().text();
     }
 
     public static boolean isStrongHintMention() {
@@ -442,15 +445,27 @@ public class ChatMessageStore {
     public static int getStrongHintTicks() { return strongHintTicks; }
 
     public static void tickStrongHint() {
+        // Skip expired entries at the front of the queue
+        while (!strongHintQueue.isEmpty() && isExpired(strongHintQueue.peek()))
+            strongHintQueue.poll();
         if (strongHintTicks > 0) {
             strongHintTicks--;
             if (strongHintTicks <= 0) {
                 strongHintQueue.poll();
+                // Skip more expired entries
+                while (!strongHintQueue.isEmpty() && isExpired(strongHintQueue.peek()))
+                    strongHintQueue.poll();
                 if (!strongHintQueue.isEmpty()) {
                     strongHintTicks = STRONG_HINT_DURATION;
                 }
             }
+        } else if (!strongHintQueue.isEmpty()) {
+            strongHintTicks = STRONG_HINT_DURATION;
         }
+    }
+
+    private static boolean isExpired(HintEntry entry) {
+        return System.currentTimeMillis() - entry.createdAt() > HINT_MAX_AGE_MS;
     }
 
     public static int size() {
@@ -649,7 +664,7 @@ public class ChatMessageStore {
                         Minecraft.getInstance().player.playSound(
                             net.minecraft.sounds.SoundEvents.NOTE_BLOCK_CHIME.get(), 0.6F, 1.0F);
                         if (!screenOpen && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get()) {
-                            strongHintQueue.add(new HintEntry(Component.translatable("e33chat.notif.mention"), true));
+                            strongHintQueue.add(new HintEntry(Component.translatable("e33chat.notif.mention"), true, System.currentTimeMillis()));
                             if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
                         }
                     }
