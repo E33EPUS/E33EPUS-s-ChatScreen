@@ -12,7 +12,7 @@
 ## Vanilla Improvements
 
 - 💬 **Chat bubbles** — Messages with player heads and names
-- 💾 **Chat history** — Saved per world/server, restored on rejoin
+- 💾 **Chat history** — Saved per world / server, restored on rejoin
 - 📝 **Input preserved** — Typed text kept when closing chat
 - 🚫 **Anti-spam** — Consecutive duplicate messages merged with a counter
 
@@ -26,7 +26,7 @@
 - 📋 **Copy & quote reply** — Right-click a message to copy or quote reply
 - 👤 **Player head actions** — Right-click a player head to teleport or whisper
 - 🔔 **Preview & hints** — HUD preview at bottom-left; popup hints for @mentions, quotes, and system messages
-- 🔊 **Notification sounds** — Per-type toggles for system, @/quote, whisper, and public messages
+- 🔊 **Notification sounds** — Per-type toggles for system, @ / quote, whisper, and public messages
 - 🎨 **Themes** — Dark/light theme with customizable bubble color, text color, and corner radius
 - 🕐 **Time separators** — Timestamp dividers at configurable intervals
 
@@ -75,8 +75,8 @@
 - @ **提及补全** — 输入 `@` 弹出在线玩家列表，或左键点玩家头像 @ta
 - 📌 **常用语面板** — 保存/管理常用短语，点击填充
 - 😊 **表情 & 颜文字** — emoji 面板 + 颜文字面板
-- 📋 **复制 & 引用回复** — 右键消息可复制或引用回复
-- 👤 **玩家头像交互** — 右键头像 传送/私聊，左键头像 @提及
+- 📋 **复制 & 引用回复** — 右键消息 复制 / 引用回复
+- 👤 **玩家头像交互** — 右键头像 传送 / 私聊，左键头像 @提及
 - 🔔 **消息预览 & 强提示** — 左下角 HUD 预览；被 @ / 引用 / 系统消息弹窗提示
 - 🔊 **提示音** — 系统消息 / @ / 引用 / 私聊 / 公屏，独立配置
 - 🎨 **主题 & 自定义** — 深色/浅色主题，自定义气泡颜色、文字颜色、圆角半径
