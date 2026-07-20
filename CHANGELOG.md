@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.1
+
+**修复**
+- NCR 兼容重构：通用名字检测替代硬编码格式匹配，支持任意聊天格式和名字前缀
+
+**Fix**
+- NCR compat refactor: generic name detection replaces hardcoded format matching, supports any chat format and name prefix
+
 ## v2.0.0
 
 **更名**
