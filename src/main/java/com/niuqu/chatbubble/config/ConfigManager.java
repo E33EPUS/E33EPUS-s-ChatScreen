@@ -1,0 +1,57 @@
+package com.niuqu.chatbubble.config;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public final class ConfigManager {
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private ConfigManager() {}
+
+    public static ChatBubbleConfig load(Path path) {
+        if (Files.exists(path)) {
+            try (Reader r = new InputStreamReader(Files.newInputStream(path), StandardCharsets.UTF_8)) {
+                ChatBubbleConfig loaded = GSON.fromJson(r, ChatBubbleConfig.class);
+                if (loaded != null) return mergeWithDefaults(loaded);
+            } catch (Exception e) {
+                LoggerFactory.getLogger("e33chat").warn("[e33chat] Failed to load config, using defaults", e);
+            }
+        }
+        ChatBubbleConfig def = ChatBubbleConfig.defaults();
+        save(path, def);
+        return def;
+    }
+
+    private static ChatBubbleConfig mergeWithDefaults(ChatBubbleConfig c) {
+        ChatBubbleConfig d = ChatBubbleConfig.defaults();
+        return new ChatBubbleConfig(
+            c.enabled(), c.theme() != null ? c.theme() : d.theme(),
+            c.redDotEnabled(), c.hideChatIcon(), c.animationEnabled(),
+            c.strongHintEnabled(), c.mentionStrongHintEnabled(), c.systemChatAsBubble(),
+            c.antiSpam(), c.chatReportCompat(), c.chatHistoryEnabled(),
+            c.previewEnabled(), c.previewLines(), c.previewWidth(), c.timeSeparatorMinutes(),
+            c.panelWidth(), c.bubbleCornerRadius(),
+            c.ownBubbleColor() != null ? c.ownBubbleColor() : d.ownBubbleColor(),
+            c.otherBubbleColor() != null ? c.otherBubbleColor() : d.otherBubbleColor(),
+            c.ownTextColor() != null ? c.ownTextColor() : d.ownTextColor(),
+            c.otherTextColor() != null ? c.otherTextColor() : d.otherTextColor(),
+            c.soundPublic(), c.soundSystem(), c.soundMention(), c.soundWhisper(), c.debugLog(),
+            c.quickChatPhrases() != null ? c.quickChatPhrases() : d.quickChatPhrases());
+    }
+
+    public static void save(Path path, ChatBubbleConfig config) {
+        try {
+            Files.createDirectories(path.getParent());
+            try (Writer w = new OutputStreamWriter(Files.newOutputStream(path), StandardCharsets.UTF_8)) {
+                GSON.toJson(config, w);
+            }
+        } catch (Exception e) {
+            LoggerFactory.getLogger("e33chat").warn("[e33chat] Failed to save config", e);
+        }
+    }
+}
