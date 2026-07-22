@@ -14,6 +14,7 @@
 - 登录历史同步 / 伪装聊天处理 / 装饰名提取 / 私聊方向检测
 - 命令建议位置修正 / strong hint 屏幕覆盖 / shader 重载
 - 历史 JSON 样式保留 / 配置 tooltip + 范围校验 / 默认值对齐 / 图标同步
+- 修复发消息时滚动条跳动 + "N 条新消息"误触发（wasAtBottom 用了旧 maxScroll 而非 prevMaxScroll）
 
 **Architecture refactor (unified across all 3 versions)**
 - Add `ClientLifecycleState` aggregation root: owns ChatMessageStore + ChatRuntimeState, manages world switch / disconnect / metadata
@@ -27,6 +28,7 @@
 - Login history sync / disguised chat handler / decorated name extraction / whisper direction
 - Command suggestion position fix / strong hint screen overlay / shader reload
 - History JSON style preservation / config tooltips + range validation / defaults aligned / icons synced
+- Fix scrollbar jump + bogus "N new messages" notification when sending messages (wasAtBottom compared against stale maxScroll instead of prevMaxScroll)
 
 ## v2.0.1
 
