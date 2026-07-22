@@ -1013,7 +1013,7 @@ public class ChatBubbleScreen extends Screen {
         maxScroll = Math.max(0, totalH - areaH);
         this.messageTotalH = totalH;
 
-        boolean wasAtBottom = scrollOffset >= maxScroll - 2;
+        boolean wasAtBottom = scrollOffset >= prevMaxScroll - 2;
 
         String playerName = client.player != null ? client.player.getName().getString() : "";
         int currentMsgCount = messages.size();
