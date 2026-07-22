@@ -2,11 +2,23 @@
 
 ## v2.0.1
 
+**NCR 兼容（常态生效）**
+- 移除"禁用聊天举报兼容"配置开关，玩家识别默认启用（大部分服务器只装 NCR 但不了解这个开关，导致玩家消息全部渲染成系统灰字）
+- 提取 MessagePresentation 格式解析器（纯函数 + 单元测试）：按在线玩家名锚点 + 通用分隔符识别，支持 `Steve: hi`、`<Steve> hi`、`Steve >> hi`、`[VIP]Steve: hi`、`<[VIP]Steve> hi`、全角冒号 `Steve： 你好`、`Steve » hi` 等格式，名字按长度降序匹配避免前缀名误抢
+- 分层识别：私聊检测前置（修复私聊被误判成公屏气泡）→ 格式解析 → tell-click 归属 → 系统消息兜底
+- disguised 通道：发送者名为空时也尝试按格式解析，救回该类玩家消息
+
 **修复**
-- NCR 兼容重构：通用名字检测替代硬编码格式匹配，支持任意聊天格式和名字前缀
+- 输入框开关面板动画期间不跟随面板移动
+
+**NCR compat (always active)**
+- Removed the "No Chat Reports compat" config toggle; player detection is now always on (most servers run NCR without users knowing about the toggle, leaving every player message rendered as gray system text)
+- Extracted MessagePresentation format parser (pure function + unit tests): anchors on online player names + generic separator detection; handles `Steve: hi`, `<Steve> hi`, `Steve >> hi`, `[VIP]Steve: hi`, `<[VIP]Steve> hi`, full-width colon `Steve： 你好`, `Steve » hi`, etc. Names matched longest-first to prevent prefix-name misattribution
+- Layered detection: whisper check first (fixes whispers misclassified as public bubbles) → format parse → tell-click attribution → system fallback
+- Disguised channel: when the sender name is empty, still tries format parsing to recover those player messages
 
 **Fix**
-- NCR compat refactor: generic name detection replaces hardcoded format matching, supports any chat format and name prefix
+- Input box now follows the panel during the open/close animation
 
 ## v2.0.0
 

@@ -1,0 +1,97 @@
+package com.niuqu.chatbubble.chat;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class MessagePresentationTest {
+    @Test void parsesColonSeparatedPlayerMessage() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "Steve: hello there", List.of("Steve", "Alex"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Steve", parsed.orElseThrow().playerName());
+        assertEquals("hello there", parsed.orElseThrow().content());
+    }
+
+    @Test void parsesDecoratedColonMessage() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "[薄荷一区][主城] PlayerTitle_user/Ciao_Min: 额，在吗？",
+            List.of("Ciao_Min", "Other"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Ciao_Min", parsed.orElseThrow().playerName());
+        assertEquals("额，在吗？", parsed.orElseThrow().content());
+    }
+
+    @Test void parsesNcrDoubleAngleFormat() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "Steve >> hello there", List.of("Steve"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Steve", parsed.orElseThrow().playerName());
+        assertEquals("hello there", parsed.orElseThrow().content());
+    }
+
+    @Test void parsesAngleBracketFormat() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "<Steve> hello there", List.of("Steve"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Steve", parsed.orElseThrow().playerName());
+        assertEquals("hello there", parsed.orElseThrow().content());
+    }
+
+    @Test void parsesDecoratedAngleBracketPlayerMessage() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "<[VIP]Steve> hello there", List.of("Steve"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Steve", parsed.orElseThrow().playerName());
+        assertEquals("hello there", parsed.orElseThrow().content());
+    }
+
+    @Test void parsesBracketPrefixColonMessage() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "[Admin] Steve: hello there", List.of("Steve"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Steve", parsed.orElseThrow().playerName());
+        assertEquals("hello there", parsed.orElseThrow().content());
+    }
+
+    @Test void parsesFullwidthColonFormat() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "Steve： 你好", List.of("Steve"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Steve", parsed.orElseThrow().playerName());
+        assertEquals("你好", parsed.orElseThrow().content());
+    }
+
+    @Test void parsesChevronSeparatorFormat() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "Steve » hi", List.of("Steve"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Steve", parsed.orElseThrow().playerName());
+        assertEquals("hi", parsed.orElseThrow().content());
+    }
+
+    @Test void rejectsAnnouncementsThatContainNames() {
+        assertTrue(MessagePresentation.parseDecoratedPlayerLine(
+            "善良冰淇淋提示：遇到争执不要急，先交流下！",
+            List.of("Ciao_Min")).isEmpty());
+        assertTrue(MessagePresentation.parseDecoratedPlayerLine(
+            "最新版本：3.4.2 点击此处查看更新内容",
+            List.of("Ciao_Min")).isEmpty());
+    }
+
+    @Test void rejectsSubstringMatches() {
+        assertTrue(MessagePresentation.parseDecoratedPlayerLine(
+            "custom tom says hi", List.of("tom")).isEmpty());
+        assertTrue(MessagePresentation.parseDecoratedPlayerLine(
+            "hiSteve: hello", List.of("Steve")).isEmpty());
+        assertTrue(MessagePresentation.parseDecoratedPlayerLine(
+            "Steve2: hello", List.of("Steve")).isEmpty());
+    }
+
+    @Test void returnsEmptyForNullInputs() {
+        assertTrue(MessagePresentation.parseDecoratedPlayerLine(null, List.of("Steve")).isEmpty());
+        assertTrue(MessagePresentation.parseDecoratedPlayerLine("hi", null).isEmpty());
+    }
+}

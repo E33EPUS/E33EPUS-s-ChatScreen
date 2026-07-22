@@ -1070,6 +1070,9 @@ public class ChatBubbleScreen extends Screen {
 
         g.pose().pushPose();
         g.pose().translate(0, 0, 50);
+        // EditBox is a widget drawn by super.render() at its real coords — it doesn't
+        // follow the panel's pose translate, so slide it with the open/close animation
+        input.setX(inputX + panelOffset);
         super.render(g, mouseX, mouseY, partialTick);
         g.pose().popPose();
     }

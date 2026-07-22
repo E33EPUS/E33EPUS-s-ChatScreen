@@ -40,8 +40,6 @@
   "e33chat.config.anti_spam.desc": "连续重复的相同消息合并为一条并计数",
   "e33chat.config.chat_history": "保留聊天记录",
   "e33chat.config.chat_history.desc": "每个存档/服务器单独保存聊天记录，重进后恢复",
-  "e33chat.config.chat_report_compat": "\"禁用聊天举报\"模组兼容",
-  "e33chat.config.chat_report_compat.desc": "服务器装了 NCR/FreedomChat 时开启：把被转成系统消息的玩家聊天还原成气泡",
   "e33chat.config.preview_enabled": "启用消息预览",
   "e33chat.config.preview_enabled.desc": "未打开聊天时，在 HUD 图标上方滚动显示最近消息",
   "e33chat.config.preview_lines": "预览行数",

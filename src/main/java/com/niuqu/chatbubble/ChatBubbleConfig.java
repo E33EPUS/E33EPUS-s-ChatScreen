@@ -16,7 +16,6 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.BooleanValue MENTION_STRONG_HINT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue SYSTEM_CHAT_AS_BUBBLE;
     public static final ForgeConfigSpec.BooleanValue ANTI_SPAM;
-    public static final ForgeConfigSpec.BooleanValue CHAT_REPORT_COMPAT;
     public static final ForgeConfigSpec.BooleanValue CHAT_HISTORY_ENABLED;
     public static final ForgeConfigSpec.BooleanValue PREVIEW_ENABLED;
     public static final ForgeConfigSpec.IntValue PREVIEW_LINES;
@@ -94,12 +93,6 @@ public class ChatBubbleConfig {
             .comment("Collapse consecutive identical messages into one bubble with a counter")
             .translation("e33chat.config.anti_spam")
             .define("anti_spam", false);
-
-        CHAT_REPORT_COMPAT = builder
-            .comment("Parse '<name> message' lines back into player bubbles on servers that convert",
-                     "player chat to system messages (No Chat Reports, FreedomChat, etc.)")
-            .translation("e33chat.config.chat_report_compat")
-            .define("chat_report_compat", false);
 
         CHAT_HISTORY_ENABLED = builder
             .comment("Keep per-world chat history (restored when you rejoin)")
