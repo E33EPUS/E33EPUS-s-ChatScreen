@@ -12,7 +12,6 @@ public record ChatBubbleConfig(
     boolean mentionStrongHintEnabled,
     boolean systemChatAsBubble,
     boolean antiSpam,
-    boolean chatReportCompat,
     boolean chatHistoryEnabled,
     boolean previewEnabled,
     int previewLines,
@@ -34,7 +33,7 @@ public record ChatBubbleConfig(
     public static ChatBubbleConfig defaults() {
         return new ChatBubbleConfig(
             true, "dark", true, false, true,
-            true, true, false, false, false,
+            true, true, false, false,
             false, true, 3, 200, 5, 1000, 4,
             "#1E90FF", "#4A4A4A", "#FFFFFF", "#FFFFFF",
             false, false, true, true, false,
@@ -55,7 +54,7 @@ public record ChatBubbleConfig(
 
     public ChatBubbleConfig withTheme(String theme) {
         return new ChatBubbleConfig(enabled, theme, redDotEnabled, hideChatIcon, animationEnabled,
-            strongHintEnabled, mentionStrongHintEnabled, systemChatAsBubble, antiSpam, chatReportCompat,
+            strongHintEnabled, mentionStrongHintEnabled, systemChatAsBubble, antiSpam,
             chatHistoryEnabled, previewEnabled, previewLines, previewWidth, timeSeparatorMinutes,
             panelWidth, bubbleCornerRadius, ownBubbleColor, otherBubbleColor, ownTextColor, otherTextColor,
             soundPublic, soundSystem, soundMention, soundWhisper, debugLog, quickChatPhrases);
@@ -63,7 +62,7 @@ public record ChatBubbleConfig(
 
     public ChatBubbleConfig withQuickChatPhrases(List<String> phrases) {
         return new ChatBubbleConfig(enabled, theme, redDotEnabled, hideChatIcon, animationEnabled,
-            strongHintEnabled, mentionStrongHintEnabled, systemChatAsBubble, antiSpam, chatReportCompat,
+            strongHintEnabled, mentionStrongHintEnabled, systemChatAsBubble, antiSpam,
             chatHistoryEnabled, previewEnabled, previewLines, previewWidth, timeSeparatorMinutes,
             panelWidth, bubbleCornerRadius, ownBubbleColor, otherBubbleColor, ownTextColor, otherTextColor,
             soundPublic, soundSystem, soundMention, soundWhisper, debugLog, phrases);

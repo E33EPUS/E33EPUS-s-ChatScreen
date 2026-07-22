@@ -32,7 +32,7 @@ public class ChatBubbleConfigScreen extends Screen {
     // Mutable copies of config values
     private boolean enabled, redDotEnabled, hideChatIcon, animationEnabled;
     private boolean strongHintEnabled, mentionStrongHintEnabled, systemChatAsBubble;
-    private boolean antiSpam, chatReportCompat, chatHistoryEnabled;
+    private boolean antiSpam, chatHistoryEnabled;
     private boolean previewEnabled, soundPublic, soundSystem, soundMention, soundWhisper;
     private boolean debugLog;
     private int previewLines, previewWidth, timeSeparatorMinutes, panelWidth, bubbleCornerRadius;
@@ -47,7 +47,7 @@ public class ChatBubbleConfigScreen extends Screen {
         hideChatIcon = cfg.hideChatIcon(); animationEnabled = cfg.animationEnabled();
         strongHintEnabled = cfg.strongHintEnabled(); mentionStrongHintEnabled = cfg.mentionStrongHintEnabled();
         systemChatAsBubble = cfg.systemChatAsBubble(); antiSpam = cfg.antiSpam();
-        chatReportCompat = cfg.chatReportCompat(); chatHistoryEnabled = cfg.chatHistoryEnabled();
+        chatHistoryEnabled = cfg.chatHistoryEnabled();
         previewEnabled = cfg.previewEnabled(); soundPublic = cfg.soundPublic();
         soundSystem = cfg.soundSystem(); soundMention = cfg.soundMention();
         soundWhisper = cfg.soundWhisper(); debugLog = cfg.debugLog();
@@ -62,7 +62,7 @@ public class ChatBubbleConfigScreen extends Screen {
     private void saveToConfig() {
         ChatBubbleClientSetup.saveConfig(new ChatBubbleConfig(
             enabled, theme, redDotEnabled, hideChatIcon, animationEnabled,
-            strongHintEnabled, mentionStrongHintEnabled, systemChatAsBubble, antiSpam, chatReportCompat,
+            strongHintEnabled, mentionStrongHintEnabled, systemChatAsBubble, antiSpam,
             chatHistoryEnabled, previewEnabled, previewLines, previewWidth, timeSeparatorMinutes,
             panelWidth, bubbleCornerRadius, ownBubbleColor, otherBubbleColor, ownTextColor, otherTextColor,
             soundPublic, soundSystem, soundMention, soundWhisper, debugLog,
@@ -136,7 +136,6 @@ public class ChatBubbleConfigScreen extends Screen {
             case "sound_mention" -> mkBoolBtn(y, soundMention, v -> soundMention = v);
             case "sound_whisper" -> mkBoolBtn(y, soundWhisper, v -> soundWhisper = v);
             case "sound_public" -> mkBoolBtn(y, soundPublic, v -> soundPublic = v);
-            case "chat_report_compat" -> mkBoolBtn(y, chatReportCompat, v -> chatReportCompat = v);
             case "debug_log" -> mkBoolBtn(y, debugLog, v -> debugLog = v);
             case "preview_lines" -> ButtonWidget.builder(Text.literal(String.valueOf(previewLines)), btn -> {
                 previewLines = previewLines >= 8 ? 1 : previewLines + 1;

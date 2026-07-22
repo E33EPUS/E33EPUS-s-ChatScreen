@@ -33,7 +33,7 @@ public final class ConfigManager {
             c.enabled(), c.theme() != null ? c.theme() : d.theme(),
             c.redDotEnabled(), c.hideChatIcon(), c.animationEnabled(),
             c.strongHintEnabled(), c.mentionStrongHintEnabled(), c.systemChatAsBubble(),
-            c.antiSpam(), c.chatReportCompat(), c.chatHistoryEnabled(),
+            c.antiSpam(), c.chatHistoryEnabled(),
             c.previewEnabled(), c.previewLines(), c.previewWidth(), c.timeSeparatorMinutes(),
             c.panelWidth(), c.bubbleCornerRadius(),
             c.ownBubbleColor() != null ? c.ownBubbleColor() : d.ownBubbleColor(),

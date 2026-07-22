@@ -8,10 +8,10 @@ public final class MessagePipelineRules {
 
     private MessagePipelineRules() {}
 
-    public static Route classify(String key, boolean chatReportCompat) {
+    public static Route classify(String key) {
         if ("commands.message.display.incoming".equals(key)) return Route.WHISPER_INCOMING;
         if ("commands.message.display.outgoing".equals(key)) return Route.WHISPER_OUTGOING;
-        if (chatReportCompat && "chat.type.text".equals(key)) return Route.PLAYER;
+        if ("chat.type.text".equals(key)) return Route.PLAYER;
         return isVanillaBroadcast(key) ? Route.SYSTEM : Route.UNKNOWN;
     }
 
