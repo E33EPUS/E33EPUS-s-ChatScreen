@@ -1,5 +1,6 @@
 package com.niuqu.chatbubble;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -22,7 +23,9 @@ import java.io.InputStream;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class ChatBubbleScreen extends Screen {
@@ -79,6 +82,8 @@ public class ChatBubbleScreen extends Screen {
     private EditBox input;
     private CommandSuggestions commandSuggestions;
     private static int inputX, inputY;
+    // Caches resolved head skins per player uuid so the SkinManager isn't hit every frame
+    private static final Map<UUID, ResourceLocation> skinCache = new HashMap<>();
     private final String initialText;
     private int scrollOffset;
     private int maxScroll;
@@ -399,7 +404,7 @@ public class ChatBubbleScreen extends Screen {
                         : (mouseX >= 0 && mouseX <= SIDEBAR_W && mouseY >= scrollY && mouseY <= scrollY + itemH ? c().sidebarItemHover() : 0);
                     if (itemBg != 0) g.fill(0, scrollY, SIDEBAR_W, scrollY + itemH, itemBg);
 
-                    ResourceLocation skin = getSkin(info.getProfile().getId());
+                    ResourceLocation skin = getSkin(info.getProfile().getId(), info.getProfile().getName());
                     drawPlayerHead(g, skin, 4, scrollY + 3, 16, 18);
 
                     int tipW = ChatMessageStore.hasUnreadWhisper(name) ? 16 : 0;
@@ -1373,7 +1378,9 @@ public class ChatBubbleScreen extends Screen {
             renderLineWithClicks(g, lines.get(li), bubbleX + BUBBLE_PAD_X,
                 bubbleY + BUBBLE_PAD_Y + li * font.lineHeight, fg, fbP);
 
-        ResourceLocation skin = getSkin(msg.senderUUID());
+        String skinName = (msg.rawPlayerName() != null && !msg.rawPlayerName().isEmpty())
+            ? msg.rawPlayerName() : msg.senderName().getString();
+        ResourceLocation skin = getSkin(msg.senderUUID(), skinName);
         drawPlayerHead(g, skin, avatarX, avatarY, 20, 22);
 
         if (msg.duplicateCount() > 1) {
@@ -1817,13 +1824,41 @@ public class ChatBubbleScreen extends Screen {
         RenderSystem.disableBlend();
     }
 
-    private ResourceLocation getSkin(UUID uuid) {
-        if (uuid == null || uuid.equals(NIL_UUID))
-            return DefaultPlayerSkin.getDefaultSkin(NIL_UUID);
-        if (minecraft.getConnection() == null)
-            return DefaultPlayerSkin.getDefaultSkin(NIL_UUID);
-        PlayerInfo info = minecraft.getConnection().getPlayerInfo(uuid);
-        return info != null ? info.getSkinLocation() : DefaultPlayerSkin.getDefaultSkin(uuid);
+    private ResourceLocation getSkin(UUID uuid, String name) {
+        if (uuid != null && !uuid.equals(NIL_UUID)) {
+            ResourceLocation cached = skinCache.get(uuid);
+            if (cached != null) return cached;
+        }
+        // Online players: their skin was loaded through the SkinManager when the
+        // PlayerInfo was built (CSL intercepts that), so it's the real skin
+        if (minecraft.getConnection() != null && uuid != null && !uuid.equals(NIL_UUID)) {
+            PlayerInfo info = minecraft.getConnection().getPlayerInfo(uuid);
+            if (info != null) {
+                ResourceLocation skin = info.getSkinLocation();
+                skinCache.put(uuid, skin);
+                return skin;
+            }
+        }
+        // Not in the tab list (offline / NCR plain-text chat): route through the
+        // SkinManager with a GameProfile carrying the name. CustomSkinLoader keys
+        // off the name, so offline players with an imported skin resolve correctly;
+        // without CSL this falls back to vanilla (real skin for paid accounts that
+        // carry textures, Steve/Alex otherwise)
+        ResourceLocation resolved = resolveSkin(uuid, name);
+        if (uuid != null && !uuid.equals(NIL_UUID)) skinCache.put(uuid, resolved);
+        return resolved;
+    }
+
+    private ResourceLocation resolveSkin(UUID uuid, String name) {
+        if (name == null || name.isEmpty())
+            return DefaultPlayerSkin.getDefaultSkin(uuid != null ? uuid : NIL_UUID);
+        try {
+            GameProfile profile = new GameProfile(
+                uuid != null && !uuid.equals(NIL_UUID) ? uuid : NIL_UUID, name);
+            return minecraft.getSkinManager().getInsecureSkinLocation(profile);
+        } catch (Exception e) {
+            return DefaultPlayerSkin.getDefaultSkin(uuid != null ? uuid : NIL_UUID);
+        }
     }
 
     private void jumpToMessage(int msgIndex) {

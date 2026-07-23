@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.0.2
+
+**修复**
+- 头像皮肤渲染兼容 CustomSkinLoader：离线玩家/NCR 纯文本玩家不再固定回退 Steve/Alex。未知玩家改走原版 SkinManager 按名字查询（CSL 按名字接管，导入的离线皮肤可正确显示；未装 CSL 时回退原版——正版玩家正常、离线回退默认）
+- 头像皮肤按 UUID 缓存，不再每帧重复查询 SkinManager
+
+**Fix**
+- Head skin rendering now compatible with CustomSkinLoader: offline players / NCR plain-text players no longer always fall back to Steve/Alex. Unknown players are resolved through the vanilla SkinManager keyed by name (CSL intercepts by name, so imported offline skins display correctly; without CSL it falls back to vanilla — real skins for paid accounts, default otherwise)
+- Head skins cached per UUID instead of re-querying the SkinManager every frame
+
 ## v2.0.1
 
 **NCR 兼容（常态生效）**

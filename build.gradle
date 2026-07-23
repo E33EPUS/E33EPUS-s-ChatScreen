@@ -87,6 +87,9 @@ repositories {
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -147,6 +150,14 @@ tasks.register('copyRefmap', Copy) {
     include 'mixins.e33chat.refmap.json'
 }
 compileJava.finalizedBy 'copyRefmap'
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    // JUnit can't be resolved in the offline dev environment; run tests explicitly
+    // via `gradlew test -PrunTests` (CI does this). Default `build` skips them.
+    onlyIf { project.hasProperty('runTests') }
+}
+compileTestJava.dependsOn copyRefmap
 
 // 在 dev 环境生成 MANIFEST.MF，让 MixinPlatformAgentDefault 发现 mixin 配置
 tasks.register('writeDevManifest') {
