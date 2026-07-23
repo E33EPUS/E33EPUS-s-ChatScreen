@@ -13,6 +13,8 @@ import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class ChatBubbleScreen extends Screen {
@@ -358,7 +361,7 @@ public class ChatBubbleScreen extends Screen {
         ChatMessageStore.ChatMessage latestPub = ChatMessageStore.getLatestPublicMessage();
         if (latestPub != null) {
             int previewMaxW = SIDEBAR_W - nameX - 4;
-            String preview = latestPub.content().getString();
+            String preview = ChatMessageStore.singleLine(latestPub.content().getString());
             String previewDisplay = font.plainSubstrByWidth(preview, previewMaxW - font.width("..."));
             if (!previewDisplay.equals(preview)) previewDisplay += "...";
             g.drawString(font, Component.literal(previewDisplay), nameX, y + 1 + font.lineHeight, c().textMuted(), false);
@@ -415,7 +418,7 @@ public class ChatBubbleScreen extends Screen {
 
                     ChatMessageStore.ChatMessage latest = ChatMessageStore.getLatestWhisperWith(name);
                     if (latest != null) {
-                        String preview = latest.content().getString();
+                        String preview = ChatMessageStore.singleLine(latest.content().getString());
                         String previewDisplay = font.plainSubstrByWidth(preview, maxNameW - font.width("..."));
                         if (!previewDisplay.equals(preview)) previewDisplay += "...";
                         g.drawString(font, Component.literal(previewDisplay), nameX, scrollY + 1 + font.lineHeight, c().textMuted(), false);
@@ -1296,13 +1299,43 @@ public class ChatBubbleScreen extends Screen {
         g.drawString(font, Component.literal(text), tx, y + 3, c().timeColor(), false);
     }
 
+    // Wrap a message honoring '\n' as real line breaks: split the styled component into
+    // paragraphs on newlines (keeping each run's style), wrap each with the font, then
+    // concatenate. Stray leading/trailing newlines are trimmed so they don't leave a
+    // dangling blank line. The chat list thus shows a multi-line announcement on several
+    // lines instead of "LF" boxes; pure chat-clear messages are dropped at ingest.
+    private List<FormattedCharSequence> wrapContent(Component c, int width) {
+        List<Component> paras = new ArrayList<>();
+        MutableComponent[] cur = { Component.empty() };
+        c.visit((style, text) -> {
+            int start = 0;
+            for (int i = 0; i < text.length(); i++) {
+                if (text.charAt(i) == '\n') {
+                    if (i > start) cur[0].append(Component.literal(text.substring(start, i)).withStyle(style));
+                    paras.add(cur[0]);
+                    cur[0] = Component.empty();
+                    start = i + 1;
+                }
+            }
+            if (start < text.length()) cur[0].append(Component.literal(text.substring(start)).withStyle(style));
+            return Optional.<Object>empty();
+        }, Style.EMPTY);
+        paras.add(cur[0]);
+        while (!paras.isEmpty() && paras.get(0).getString().isEmpty()) paras.remove(0);
+        while (!paras.isEmpty() && paras.get(paras.size() - 1).getString().isEmpty()) paras.remove(paras.size() - 1);
+        List<FormattedCharSequence> out = new ArrayList<>();
+        for (Component p : paras) out.addAll(font.split(p, width));
+        if (out.isEmpty()) out.addAll(font.split(c, width));
+        return out;
+    }
+
     private int getMsgHeight(ChatMessageStore.ChatMessage msg) {
         if (msg.isSystem()) {
-            List<FormattedCharSequence> lines = font.split(msg.content(), panelW - PAD * 2 - 20);
+            List<FormattedCharSequence> lines = wrapContent(msg.content(), panelW - PAD * 2 - 20);
             return lines.size() * font.lineHeight + 4;
         }
         int bubbleMaxW = panelW - AVATAR - PAD * 2 - BUBBLE_PAD_X * 2 - 16;
-        List<FormattedCharSequence> lines = font.split(msg.content(), bubbleMaxW);
+        List<FormattedCharSequence> lines = wrapContent(msg.content(), bubbleMaxW);
         int h = lines.size() * font.lineHeight + BUBBLE_PAD_Y * 2 + NAME_H;
         if (msg.replyContent() != null) h += font.lineHeight + 7;
         return h;
@@ -1312,7 +1345,7 @@ public class ChatBubbleScreen extends Screen {
     private void renderBubble(GuiGraphics g, ChatMessageStore.ChatMessage msg,
                                int index, int baseY, int mouseX, int mouseY) {
         if (msg.isSystem()) {
-            List<FormattedCharSequence> lines = font.split(msg.content(), panelW - PAD * 2 - 20);
+            List<FormattedCharSequence> lines = wrapContent(msg.content(), panelW - PAD * 2 - 20);
             int yy = baseY + 2;
             net.minecraft.network.chat.Style fb = findClickStyle(msg.content());
             int sysColor = c().textMuted();
@@ -1326,7 +1359,7 @@ public class ChatBubbleScreen extends Screen {
 
         boolean own = msg.isOwn();
         int bubbleMaxW = panelW - AVATAR - PAD * 2 - BUBBLE_PAD_X * 2 - 16;
-        List<FormattedCharSequence> lines = font.split(msg.content(), bubbleMaxW);
+        List<FormattedCharSequence> lines = wrapContent(msg.content(), bubbleMaxW);
 
         int textW = 0;
         for (var line : lines) textW = Math.max(textW, font.width(line));
@@ -1600,7 +1633,7 @@ public class ChatBubbleScreen extends Screen {
 
         String sender = target.senderName().getString();
         if (sender.isEmpty()) sender = Component.translatable("e33chat.sender.system").getString();
-        String preview = sender + ": " + target.content().getString();
+        String preview = sender + ": " + ChatMessageStore.singleLine(target.content().getString());
         int maxW = barW - 24;
         String display = font.plainSubstrByWidth(preview, maxW - font.width("..."));
         if (!display.equals(preview)) display += "...";
@@ -1942,8 +1975,9 @@ public class ChatBubbleScreen extends Screen {
                 if (target != null) {
                     String quoteSender = (target.rawPlayerName() != null && !target.rawPlayerName().isEmpty())
                         ? target.rawPlayerName() : target.senderName().getString();
-                    ChatMessageStore.setPendingReply(target.content().getString(), quoteSender);
-                    QuoteSyncPacket.send(quoteSender, target.content().getString(), displayText);
+                    String quoted = ChatMessageStore.singleLine(target.content().getString());
+                    ChatMessageStore.setPendingReply(quoted, quoteSender);
+                    QuoteSyncPacket.send(quoteSender, quoted, displayText);
                 }
             }
             replyTargetIndex = -1;

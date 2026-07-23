@@ -68,23 +68,25 @@ public class ChatBubbleHudOverlay {
         int iconY = screenH - ICON_S - 20;
         int textY = iconY + ICON_S + 1;
 
-        // Message preview above icon (multi-line)
-        if (ChatBubbleConfig.PREVIEW_ENABLED.get()) {
-            List<ChatMessageStore.PreviewEntry> previews = ChatMessageStore.getPreviews();
-            if (previews != null && !previews.isEmpty()) {
+        // Message preview above icon: last N messages, shown for 5s after chat closes
+        // (countdown frozen while open), fading out at the end.
+        int previewTicks = ChatMessageStore.getPreviewTicks();
+        if (ChatBubbleConfig.PREVIEW_ENABLED.get() && previewTicks > 0) {
+            List<Component> previews = ChatMessageStore.getRecentPreviews(ChatBubbleConfig.PREVIEW_LINES.get());
+            if (!previews.isEmpty()) {
                 int maxW = ChatBubbleConfig.PREVIEW_WIDTH.get();
                 int lineH = mc.font.lineHeight;
                 int gap = 2;
 
                 List<FormattedText> displays = new ArrayList<>();
                 int maxTextW = 0;
-                for (var e : previews) {
+                for (Component text : previews) {
                     FormattedText trimmed;
-                    if (mc.font.width(e.text) > maxW - 4) {
-                        var cut = mc.font.substrByWidth(e.text, maxW - 4 - mc.font.width("..."));
+                    if (mc.font.width(text) > maxW - 4) {
+                        var cut = mc.font.substrByWidth(text, maxW - 4 - mc.font.width("..."));
                         trimmed = FormattedText.composite(cut, FormattedText.of("..."));
                     } else {
-                        trimmed = e.text;
+                        trimmed = text;
                     }
                     displays.add(trimmed);
                     maxTextW = Math.max(maxTextW, mc.font.width(trimmed));
@@ -97,18 +99,13 @@ public class ChatBubbleHudOverlay {
 
                 int bottomLineY = iconY - 5 - lineH;
                 int topLineY = bottomLineY - (displays.size() - 1) * (lineH + gap);
-                int maxAlpha = 0;
-                for (var e : previews) {
-                    int a = Animation.fadeIn(e.ticks, 10) * 0xDD / 0xFF;
-                    if (a > maxAlpha) maxAlpha = a;
-                }
-                int bgAlpha = maxAlpha / 2;
+                int lineAlpha = Animation.fadeIn(previewTicks, 10);
+                int bgAlpha = lineAlpha * 0xDD / 0xFF / 2;
                 int bgColor = (bgAlpha << 24) | 0x000000;
                 g.fill(bgX1, topLineY - 2, px + maxTextW + 3, bottomLineY + lineH + 2, bgColor);
                 var lang = net.minecraft.locale.Language.getInstance();
                 for (int i = displays.size() - 1; i >= 0; i--) {
                     int lineY = bottomLineY - (displays.size() - 1 - i) * (lineH + gap);
-                    int lineAlpha = Animation.fadeIn(previews.get(i).ticks, 10);
                     g.drawString(mc.font, lang.getVisualOrder(displays.get(i)), px, lineY, (lineAlpha << 24) | 0xFFFFFF, false);
                 }
             }

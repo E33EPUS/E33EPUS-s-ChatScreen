@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.0.9
+
+**修复**
+- 修复消息里的换行符被渲染成 "LF" 方块：聊天列表（气泡 + 灰字系统行）现在把 `\n` 渲染成**真正的换行**，多行公告正常多行显示，并保留每段样式与点击/悬浮事件
+- 服务器用纯换行刷屏清屏的消息直接丢弃（不再产生空气泡 / 预览 / 提示）
+- 修复"消息预览"逻辑，对齐原版聊天框：计时**锚定最后一条消息**、每个 tick 都扣（开框也扣、不冻结），5 秒末衰减淡出；关框时若距最后一条仍在 5 秒内就显示剩余时间、到点消失，早就过期则关框也不闪。与强提示**互斥**：默认开强提示时，系统/被@消息只弹强提示、不续预览；自己发送会续预览。预览单行、含自己与私聊
+- 所有单行场合（预览 / 强提示 / 侧栏最近消息 / 引用横幅）把 `\n` 转空格，杜绝 LF 方块
+
+**Fix**
+- Fixed message newlines rendering as "LF" boxes: the chat list (bubbles + gray system lines) now renders `\n` as **real line breaks**, so multi-line announcements show on multiple lines, preserving each run's style and click/hover events
+- Server chat-clear messages made of nothing but newlines are now dropped entirely (no empty bubble / preview / hint)
+- Reworked the message preview to match the vanilla chat log: the countdown is **anchored to the last message** and ticks every game tick (also while chat is open — not frozen), fading out at the end; closing chat shows the remaining time only if the last message was within 5s, otherwise nothing flashes. **Mutual exclusion** with the strong hint: with the strong hint on (default), system / @mention messages only pop the strong hint and don't extend the preview; your own messages do extend it. The preview is single-line and includes own + whisper messages
+- All single-line contexts (preview / strong hint / sidebar recent message / reply banner) flatten `\n` to a space so they never draw LF boxes
+
 ## v2.0.8
 
 **修复**
