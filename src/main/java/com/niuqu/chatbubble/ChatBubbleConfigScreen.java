@@ -46,8 +46,14 @@ public class ChatBubbleConfigScreen extends Screen {
         if (cats != null) return;
         cats = new ArrayList<>();
 
+        // Appearance: overall look (theme/animation/size), then colors grouped own/other
         List<Opt> appearance = new ArrayList<>();
         appearance.add(new Opt("e33chat.config.theme", this::mkThemeButton, null));
+        appearance.add(new Opt("e33chat.config.animation", y -> mkBoolButton(y, ChatBubbleConfig.ANIMATION_ENABLED), null));
+        appearance.add(new Opt("e33chat.config.panel_width",
+            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PANEL_WIDTH.get()), 800, 1600, 4, ChatBubbleConfig.PANEL_WIDTH::set), null));
+        appearance.add(new Opt("e33chat.config.bubble_corner_radius",
+            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get()), 0, 10, 2, ChatBubbleConfig.BUBBLE_CORNER_RADIUS::set), null));
         appearance.add(new Opt("e33chat.config.own_bubble_color",
             y -> mkHexBox(y, ChatBubbleConfig.OWN_BUBBLE_COLOR.get(), ChatBubbleConfig.OWN_BUBBLE_COLOR::set),
             ChatBubbleConfig.OWN_BUBBLE_COLOR::get));
@@ -60,13 +66,9 @@ public class ChatBubbleConfigScreen extends Screen {
         appearance.add(new Opt("e33chat.config.other_text_color",
             y -> mkHexBox(y, ChatBubbleConfig.OTHER_TEXT_COLOR.get(), ChatBubbleConfig.OTHER_TEXT_COLOR::set),
             ChatBubbleConfig.OTHER_TEXT_COLOR::get));
-        appearance.add(new Opt("e33chat.config.bubble_corner_radius",
-            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.BUBBLE_CORNER_RADIUS.get()), 0, 10, 2, ChatBubbleConfig.BUBBLE_CORNER_RADIUS::set), null));
-        appearance.add(new Opt("e33chat.config.animation", y -> mkBoolButton(y, ChatBubbleConfig.ANIMATION_ENABLED), null));
-        appearance.add(new Opt("e33chat.config.panel_width",
-            y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PANEL_WIDTH.get()), 800, 1600, 4, ChatBubbleConfig.PANEL_WIDTH::set), null));
         cats.add(new Cat("e33chat.config.cat.appearance", appearance));
 
+        // Notifications & sound: HUD icon, preview (toggle->params), strong hint, then sounds
         List<Opt> notifications = new ArrayList<>();
         notifications.add(new Opt("e33chat.config.red_dot", y -> mkBoolButton(y, ChatBubbleConfig.RED_DOT_ENABLED), null));
         notifications.add(new Opt("e33chat.config.hide_chat_icon", y -> mkBoolButton(y, ChatBubbleConfig.HIDE_CHAT_ICON), null));
@@ -76,31 +78,31 @@ public class ChatBubbleConfigScreen extends Screen {
             y -> mkIntBox(y, String.valueOf(ChatBubbleConfig.PREVIEW_WIDTH.get()), 50, 400, 3, ChatBubbleConfig.PREVIEW_WIDTH::set), null));
         notifications.add(new Opt("e33chat.config.strong_hint", y -> mkBoolButton(y, ChatBubbleConfig.STRONG_HINT_ENABLED), null));
         notifications.add(new Opt("e33chat.config.mention_strong_hint", y -> mkBoolButton(y, ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED), null));
+        notifications.add(new Opt("e33chat.config.sound_mention",
+            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_MENTION), null));
+        notifications.add(new Opt("e33chat.config.sound_whisper",
+            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_WHISPER), null));
+        notifications.add(new Opt("e33chat.config.sound_system",
+            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_SYSTEM), null));
+        notifications.add(new Opt("e33chat.config.sound_public",
+            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_PUBLIC), null));
         cats.add(new Cat("e33chat.config.cat.notifications", notifications));
 
+        // Behavior: master toggle first, then message handling
         List<Opt> behavior = new ArrayList<>();
         behavior.add(new Opt("e33chat.config.enabled", y -> mkBoolButton(y, ChatBubbleConfig.ENABLED), null));
         behavior.add(new Opt("e33chat.config.anti_spam", y -> mkBoolButton(y, ChatBubbleConfig.ANTI_SPAM), null));
         behavior.add(new Opt("e33chat.config.chat_history", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_HISTORY_ENABLED), null));
-        behavior.add(new Opt("e33chat.config.time_separator", this::mkTimeSepButton, null));
+        behavior.add(new Opt("e33chat.config.preserve_input", y -> mkBoolButton(y, ChatBubbleConfig.PRESERVE_INPUT), null));
+        behavior.add(new Opt("e33chat.config.color_codes", y -> mkBoolButton(y, ChatBubbleConfig.COLOR_CODES), null));
         behavior.add(new Opt("e33chat.config.system_chat_as_bubble", y -> mkBoolButton(y, ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE), null));
+        behavior.add(new Opt("e33chat.config.time_separator", this::mkTimeSepButton, null));
         cats.add(new Cat("e33chat.config.cat.behavior", behavior));
 
-        List<Opt> sound = new ArrayList<>();
-        sound.add(new Opt("e33chat.config.sound_system",
-            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_SYSTEM), null));
-        sound.add(new Opt("e33chat.config.sound_mention",
-            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_MENTION), null));
-        sound.add(new Opt("e33chat.config.sound_whisper",
-            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_WHISPER), null));
-        sound.add(new Opt("e33chat.config.sound_public",
-            y -> mkBoolButton(y, ChatBubbleConfig.SOUND_PUBLIC), null));
-        cats.add(new Cat("e33chat.config.cat.sound", sound));
-
-        List<Opt> compat = new ArrayList<>();
-        compat.add(new Opt("e33chat.config.chat_report_compat", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_REPORT_COMPAT), null));
-        compat.add(new Opt("e33chat.config.debug_log", y -> mkBoolButton(y, ChatBubbleConfig.DEBUG_LOG), null));
-        cats.add(new Cat("e33chat.config.cat.compat", compat));
+        // Advanced: debug/dev-only options
+        List<Opt> advanced = new ArrayList<>();
+        advanced.add(new Opt("e33chat.config.debug_log", y -> mkBoolButton(y, ChatBubbleConfig.DEBUG_LOG), null));
+        cats.add(new Cat("e33chat.config.cat.advanced", advanced));
     }
 
     public ChatBubbleConfigScreen(Screen lastScreen) {

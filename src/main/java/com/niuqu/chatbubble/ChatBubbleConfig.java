@@ -16,7 +16,6 @@ public class ChatBubbleConfig {
     public static final ModConfigSpec.BooleanValue MENTION_STRONG_HINT_ENABLED;
     public static final ModConfigSpec.BooleanValue SYSTEM_CHAT_AS_BUBBLE;
     public static final ModConfigSpec.BooleanValue ANTI_SPAM;
-    public static final ModConfigSpec.BooleanValue CHAT_REPORT_COMPAT;
     public static final ModConfigSpec.BooleanValue CHAT_HISTORY_ENABLED;
     public static final ModConfigSpec.BooleanValue PREVIEW_ENABLED;
     public static final ModConfigSpec.IntValue PREVIEW_LINES;
@@ -34,6 +33,8 @@ public class ChatBubbleConfig {
     public static final ModConfigSpec.BooleanValue SOUND_MENTION;
     public static final ModConfigSpec.BooleanValue SOUND_WHISPER;
     public static final ModConfigSpec.BooleanValue SOUND_PUBLIC;
+    public static final ModConfigSpec.BooleanValue PRESERVE_INPUT;
+    public static final ModConfigSpec.BooleanValue COLOR_CODES;
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -95,12 +96,6 @@ public class ChatBubbleConfig {
             .translation("e33chat.config.anti_spam")
             .define("anti_spam", false);
 
-        CHAT_REPORT_COMPAT = builder
-            .comment("Parse '<name> message' lines back into player bubbles on servers that convert",
-                     "player chat to system messages (No Chat Reports, FreedomChat, etc.)")
-            .translation("e33chat.config.chat_report_compat")
-            .define("chat_report_compat", false);
-
         CHAT_HISTORY_ENABLED = builder
             .comment("Keep per-world chat history (restored when you rejoin)")
             .translation("e33chat.config.chat_history")
@@ -125,6 +120,16 @@ public class ChatBubbleConfig {
             .comment("Minutes between time separators in the chat list (0 = off, 1-60)")
             .translation("e33chat.config.time_separator")
             .defineInRange("time_separator_minutes", 5, 0, 60);
+
+        PRESERVE_INPUT = builder
+            .comment("Keep typed text in the input box when the chat closes, restoring it on reopen")
+            .translation("e33chat.config.preserve_input")
+            .define("preserve_input", true);
+
+        COLOR_CODES = builder
+            .comment("Interpret & color/format codes as color in YOUR OWN outgoing bubble (local only). The raw & is sent unchanged (never §), so it never kicks; color plugins color it for everyone, plain servers show literal & to others. Off by default so normal text like 'B&B' isn't colored locally")
+            .translation("e33chat.config.color_codes")
+            .define("color_codes", false);
 
         builder.pop();
         builder.push("bubble");

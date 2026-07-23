@@ -2,6 +2,7 @@ package com.niuqu.chatbubble;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -33,6 +34,11 @@ public class ChatMessageStore {
     private static final Gson GSON = new Gson();
     private static boolean titlesLoaded;
     private static final Map<String, PendingMeta> pendingMetas = new HashMap<>();
+
+    // Server-synced setting: head-menu teleport uses /tpa instead of /tp (default false)
+    private static volatile boolean serverUseTpa = false;
+    public static void setServerUseTpa(boolean v) { serverUseTpa = v; }
+    public static boolean useTpa() { return serverUseTpa; }
 
     public record SenderMeta(UUID senderUUID, Component senderName,
                              Component rawContent, boolean isSystem,
@@ -185,6 +191,12 @@ public class ChatMessageStore {
     public static void addMessage(Component content, UUID senderUUID, Component senderName, boolean isSystem, String rawPlayerName, boolean whisper, String whisperPartner) {
         String messageHash = String.valueOf(content.getString().hashCode());
 
+        // A message that is only whitespace/control chars — e.g. a server chat-clear
+        // made of nothing but newlines — is dropped so it produces no bubble/preview.
+        // Real newlines are kept in the stored content so the chat list renders them as
+        // line breaks; single-line contexts (preview/hint) flatten them separately.
+        if (content.getString().isBlank()) return;
+
         String playerName = net.minecraft.client.Minecraft.getInstance().player != null
             ? net.minecraft.client.Minecraft.getInstance().player.getName().getString() : "";
         boolean own = (rawPlayerName != null && !rawPlayerName.isEmpty())
@@ -252,6 +264,21 @@ public class ChatMessageStore {
             && (content.getString().contains("@" + playerName)
                 || (replySender != null && replySender.equals(playerName)));
 
+        boolean systemToHint = isSystem && ChatBubbleConfig.STRONG_HINT_ENABLED.get();
+        boolean mentionToHint = isMentionOrQuote && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get();
+        // Enqueue a per-line preview entry on every stored message not routed to the
+        // strong hint (mutual exclusion). Top-level (not gated on !screenOpen) so messages
+        // arriving while chat is open — including your own sends — also get a line; each
+        // line then fades on its own, oldest first.
+        if (ChatBubbleConfig.PREVIEW_ENABLED.get() && !systemToHint && !mentionToHint) {
+            Component sName = senderName != null ? senderName : Component.literal("");
+            Component pt = buildPreviewText(content, sName, isSystem);
+            if (!pt.getString().isBlank()) {
+                previews.add(new PreviewEntry(pt, PREVIEW_TICKS));
+                while (previews.size() > ChatBubbleConfig.PREVIEW_LINES.get()) previews.remove(0);
+            }
+        }
+
         boolean playSound = false;
         if (!own && Minecraft.getInstance().player != null) {
             if (isMentionOrQuote && ChatBubbleConfig.SOUND_MENTION.get()) playSound = true;
@@ -264,36 +291,24 @@ public class ChatMessageStore {
                 net.minecraft.sounds.SoundEvents.NOTE_BLOCK_CHIME.value(), 0.6F, 1.0F);
         }
 
+        // Strong hints enqueue at top level (not gated on !screenOpen) so a system /
+        // @mention arriving while chat is open also pops — the HUD already draws the
+        // hint above the open screen. Mutual exclusion with the preview is preserved by
+        // the systemToHint / mentionToHint guards (shared with the preview enqueue).
+        if (mentionToHint) {
+            strongHintQueue.add(new HintEntry(
+                Component.translatable("e33chat.notif.mention").withStyle(ChatFormatting.YELLOW), true));
+            if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
+        }
+
+        if (systemToHint && !mentionToHint) {
+            strongHintQueue.removeIf(e -> !e.isMention());
+            strongHintQueue.add(new HintEntry(singleLineComponent(content), false));
+            if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
+        }
+
         if (!screenOpen) {
             unreadCount++;
-            boolean systemToHint = isSystem && ChatBubbleConfig.STRONG_HINT_ENABLED.get();
-            boolean mentionToHint = isMentionOrQuote && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get();
-
-            if (mentionToHint) {
-                strongHintQueue.add(new HintEntry(Component.translatable("e33chat.notif.mention"), true));
-                if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
-            }
-
-            if (ChatBubbleConfig.PREVIEW_ENABLED.get() && !systemToHint && !mentionToHint) {
-                Component previewComp;
-                if (senderName == null || senderName.getString().isEmpty()) {
-                    if (isSystem) {
-                        previewComp = Component.translatable("e33chat.sender.system").copy().append(Component.literal(": ")).append(content);
-                    } else {
-                        previewComp = content;
-                    }
-                } else {
-                    previewComp = Component.empty().append(senderName).append(Component.literal(": ")).append(content);
-                }
-                previews.add(new PreviewEntry(previewComp, PREVIEW_TICKS));
-                while (previews.size() > ChatBubbleConfig.PREVIEW_LINES.get())
-                    previews.remove(0);
-            }
-            if (systemToHint && !mentionToHint) {
-                strongHintQueue.removeIf(e -> !e.isMention());
-                strongHintQueue.add(new HintEntry(content, false));
-                if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
-            }
         }
 
         if (whisper && whisperPartner != null && !own) {
@@ -313,6 +328,33 @@ public class ChatMessageStore {
             return Optional.<Object>empty();
         }, Style.EMPTY);
         return out;
+    }
+
+    // Flatten the component into styled runs with control chars (newline, tab, ...)
+    // replaced by spaces — for single-line contexts (the strong hint) that can't break
+    // on '\n' and would otherwise draw "LF" boxes. Keeps style + click/hover events.
+    private static Component singleLineComponent(Component c) {
+        MutableComponent out = Component.empty();
+        c.visit((style, text) -> {
+            String cleaned = stripControls(text);
+            if (!cleaned.isEmpty()) out.append(Component.literal(cleaned).withStyle(style));
+            return Optional.<Object>empty();
+        }, Style.EMPTY);
+        return out;
+    }
+
+    // Plain-text variant for the few Screen call sites that build a single-line String.
+    static String singleLine(String s) {
+        return stripControls(s);
+    }
+
+    private static String stripControls(String s) {
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            sb.append(c < 0x20 || c == 0x7F ? ' ' : c);
+        }
+        return sb.toString();
     }
 
     public static List<ChatMessage> getMessages() {
@@ -418,26 +460,29 @@ public class ChatMessageStore {
         pendingReplySender = sender;
     }
 
-    public static List<PreviewEntry> getPreviews() {
-        return previews.isEmpty() ? null : previews;
+    public static List<PreviewEntry> getPreviews() { return previews; }
+
+    // Single-line styled preview text (nickname/prefix/content colors preserved, '\n'
+    // flattened). Built once at enqueue time so each line keeps the bubble's colors.
+    private static Component buildPreviewText(Component content, Component name, boolean isSystem) {
+        Component body = singleLineComponent(content);
+        return name.getString().isEmpty()
+            ? (isSystem
+                ? Component.translatable("e33chat.sender.system").copy().append(Component.literal(": ")).append(body)
+                : body)
+            : Component.empty().append(name).append(Component.literal(": ")).append(body);
     }
 
     public static void tickPreview() {
         var it = previews.iterator();
         while (it.hasNext()) {
-            PreviewEntry e = it.next();
-            if (--e.ticks <= 0) it.remove();
+            if (--it.next().ticks <= 0) it.remove(); // per-line lifetime; ticks also while open
         }
     }
 
     public static Component getStrongHintText() {
         if (strongHintQueue.isEmpty()) return null;
         return strongHintTicks > 0 ? strongHintQueue.peek().text() : null;
-    }
-
-    public static boolean isStrongHintMention() {
-        if (strongHintQueue.isEmpty()) return false;
-        return strongHintQueue.peek().isMention();
     }
 
     public static int getStrongHintTicks() { return strongHintTicks; }
@@ -586,6 +631,7 @@ public class ChatMessageStore {
                     if (senderName == null) senderName = Component.literal((String) obj.get("senderName"));
                     Component content = fromJsonSafe((String) obj.get("content"));
                     if (content == null) content = Component.literal((String) obj.getOrDefault("content", ""));
+                    if (content.getString().isBlank()) continue;
                     LocalTime time = LocalTime.parse((String) obj.get("time"), DateTimeFormatter.ISO_LOCAL_TIME);
                     boolean isOwn = (Boolean) obj.getOrDefault("isOwn", false);
                     boolean isSystem = (Boolean) obj.getOrDefault("isSystem", false);
@@ -629,6 +675,7 @@ public class ChatMessageStore {
     public static void addHistoryMessages(List<com.niuqu.chatbubble.packets.HistoryPayload.HistoryEntry> entries) {
         if (!messages.isEmpty() || entries.isEmpty()) return;
         for (var e : entries) {
+            if (e.content().isBlank()) continue;
             messages.add(new ChatMessage(
                 e.senderUUID(),
                 Component.literal(e.senderName()),

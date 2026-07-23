@@ -51,49 +51,46 @@ public class ChatBubbleHudOverlay {
         int iconY = screenH - ICON_S - 20;
         int textY = iconY + ICON_S + 1;
 
-        // Message preview above icon (multi-line)
-        if (ChatBubbleConfig.PREVIEW_ENABLED.get()) {
-            List<ChatMessageStore.PreviewEntry> previews = ChatMessageStore.getPreviews();
-            if (previews != null && !previews.isEmpty()) {
-                int maxW = ChatBubbleConfig.PREVIEW_WIDTH.get();
-                int lineH = mc.font.lineHeight;
-                int gap = 2;
+        // Message preview above icon: each line has its own lifetime (oldest fades first);
+        // hidden while any screen is open, but the per-line countdown keeps ticking.
+        List<ChatMessageStore.PreviewEntry> previews = ChatMessageStore.getPreviews();
+        if (ChatBubbleConfig.PREVIEW_ENABLED.get() && !previews.isEmpty()) {
+            int maxW = ChatBubbleConfig.PREVIEW_WIDTH.get();
+            int lineH = mc.font.lineHeight;
+            int gap = 2;
 
-                List<FormattedText> displays = new ArrayList<>();
-                int maxTextW = 0;
-                for (var e : previews) {
-                    FormattedText trimmed;
-                    if (mc.font.width(e.text) > maxW - 4) {
-                        var cut = mc.font.substrByWidth(e.text, maxW - 4 - mc.font.width("..."));
-                        trimmed = FormattedText.composite(cut, FormattedText.of("..."));
-                    } else {
-                        trimmed = e.text;
-                    }
-                    displays.add(trimmed);
-                    maxTextW = Math.max(maxTextW, mc.font.width(trimmed));
+            List<FormattedText> displays = new ArrayList<>();
+            int maxTextW = 0;
+            int maxAlpha = 0;
+            for (ChatMessageStore.PreviewEntry e : previews) {
+                FormattedText trimmed;
+                if (mc.font.width(e.text) > maxW - 4) {
+                    var cut = mc.font.substrByWidth(e.text, maxW - 4 - mc.font.width("..."));
+                    trimmed = FormattedText.composite(cut, FormattedText.of("..."));
+                } else {
+                    trimmed = e.text;
                 }
+                displays.add(trimmed);
+                maxTextW = Math.max(maxTextW, mc.font.width(trimmed));
+                int a = Animation.fadeIn(e.ticks, 10);
+                if (a > maxAlpha) maxAlpha = a;
+            }
 
-                int px = x + ICON_S / 2 - maxTextW / 2;
-                if (px < 2) px = 2;
-                int bgX1 = px - 3;
-                if (bgX1 < 0) bgX1 = 0;
+            int px = x + ICON_S / 2 - maxTextW / 2;
+            if (px < 2) px = 2;
+            int bgX1 = px - 3;
+            if (bgX1 < 0) bgX1 = 0;
 
-                int bottomLineY = iconY - 5 - lineH;
-                int topLineY = bottomLineY - (displays.size() - 1) * (lineH + gap);
-                int maxAlpha = 0;
-                for (var e : previews) {
-                    int a = Animation.fadeIn(e.ticks, 10) * 0xDD / 0xFF;
-                    if (a > maxAlpha) maxAlpha = a;
-                }
-                int bgAlpha = maxAlpha / 2;
-                int bgColor = (bgAlpha << 24) | 0x000000;
-                g.fill(bgX1, topLineY - 2, px + maxTextW + 3, bottomLineY + lineH + 2, bgColor);
-                var lang = net.minecraft.locale.Language.getInstance();
-                for (int i = displays.size() - 1; i >= 0; i--) {
-                    int lineY = bottomLineY - (displays.size() - 1 - i) * (lineH + gap);
-                    int lineAlpha = Animation.fadeIn(previews.get(i).ticks, 10);
-                    g.drawString(mc.font, lang.getVisualOrder(displays.get(i)), px, lineY, (lineAlpha << 24) | 0xFFFFFF, false);
-                }
+            int bottomLineY = iconY - 5 - lineH;
+            int topLineY = bottomLineY - (displays.size() - 1) * (lineH + gap);
+            int bgAlpha = maxAlpha * 0xDD / 0xFF / 2;
+            int bgColor = (bgAlpha << 24) | 0x000000;
+            g.fill(bgX1, topLineY - 2, px + maxTextW + 3, bottomLineY + lineH + 2, bgColor);
+            var lang = net.minecraft.locale.Language.getInstance();
+            for (int i = displays.size() - 1; i >= 0; i--) {
+                int lineY = bottomLineY - (displays.size() - 1 - i) * (lineH + gap);
+                int lineAlpha = Animation.fadeIn(previews.get(i).ticks, 10);
+                g.drawString(mc.font, lang.getVisualOrder(displays.get(i)), px, lineY, (lineAlpha << 24) | 0xFFFFFF, false);
             }
         }
 
@@ -137,10 +134,10 @@ public class ChatBubbleHudOverlay {
         int alpha = Animation.fadeInOut(ticks, 10, 40, 10);
         int bgAlpha = alpha / 2;
         int bgColor = (bgAlpha << 24) | 0x000000;
-        int baseColor = ChatMessageStore.isStrongHintMention() ? 0xFFFFFF55 : 0xFFFFFFFF;
-        int textColor = (alpha << 24) | baseColor;
         g.fill(hintX - 6, hintY - 3, hintX + hintW + 6, hintY + mc.font.lineHeight + 3, bgColor);
-        g.drawString(mc.font, hint, hintX, hintY, textColor, false);
+        // Colors are baked into the hint Component (mention = yellow, system = its
+        // own colors); pass white only as a fallback so embedded colors always win.
+        g.drawString(mc.font, hint, hintX, hintY, (alpha << 24) | 0xFFFFFF, false);
     }
 
     public static boolean isMouseOverIcon(double mx, double my) {

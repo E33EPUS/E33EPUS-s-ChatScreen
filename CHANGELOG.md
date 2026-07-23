@@ -1,5 +1,104 @@
 # Changelog
 
+## v2.1.0
+
+**消息预览 / 强提示 重做**
+- 预览与强提示**保留带样式文本的颜色**：玩家消息、系统消息、mod 内置文本、昵称、称号前缀等，进预览/强提示时与聊天气泡里看到的颜色一致（不再被碾成白字）
+- 预览**每行独立淡出**：最老的消息先消失、新的后消失（不再全部一起消失）；开框时预览隐藏但计时继续
+- 强提示弹窗**开聊天框时也显示**（联机时别人触发的系统 / 被@ 消息，开着框也会盖在框上弹出）
+
+**出站彩色文本（`&` 颜色码）改为安全实现**
+- 不再把 `&` 转成 `§` 发送（那是被踢的根因，连单人原版服都踢）；改为**只在自己气泡本地上色**，原文（含 `&`）原样发出，**永不踢人**
+- 装了颜色插件的服会把 `&` 转色给所有人；没插件的服别人看到原样 `&`
+- `彩色文本 (& 颜色码)` 配置语义改为"本地解释"，**默认关闭**（避免 `B&B` / `Q&A` 这类正常 `&` 被本地上色）
+
+**New**
+- **Message preview / strong-hint rework**
+- Preview and strong hint now **preserve styled text colors**: player messages, system messages, mod-built text, nicknames and title prefixes keep the same per-segment colors as in the chat bubbles (no longer flattened to white)
+- Preview lines **fade independently**: the oldest line disappears first, newer ones later (no longer all vanishing at once); the preview is hidden while chat is open but keeps counting down
+- The strong-hint popup **also shows while the chat screen is open** (online, a system / @mention triggered by others pops over the open screen)
+- **Outgoing colored text (`&` codes) reimplemented safely**: no longer converts `&` to `§` on send (the kick cause — kicks even on vanilla singleplayer); instead it **colors only your own bubble locally** and sends the raw text (with `&`) unchanged, so it **never kicks**. Servers with a color plugin translate `&` for everyone; plain servers show the literal `&` to others. The "Color Codes (& codes)" option now means "interpret locally" and is **off by default** (so normal `&` in text like `B&B` / `Q&A` isn't colored locally)
+
+## v2.0.9
+
+**修复**
+- 修复消息里的换行符被渲染成 "LF" 方块：聊天列表（气泡 + 灰字系统行）现在把 `\n` 渲染成**真正的换行**，多行公告正常多行显示，并保留每段样式与点击/悬浮事件
+- 服务器用纯换行刷屏清屏的消息直接丢弃（不再产生空气泡 / 预览 / 提示）
+- 修复"消息预览"逻辑，对齐原版聊天框：计时**锚定最后一条消息**、每个 tick 都扣（开框也扣、不冻结），5 秒末衰减淡出；关框时若距最后一条仍在 5 秒内就显示剩余时间、到点消失，早就过期则关框也不闪。与强提示**互斥**：默认开强提示时，系统/被@消息只弹强提示、不续预览；自己发送会续预览。预览单行、含自己与私聊
+- 所有单行场合（预览 / 强提示 / 侧栏最近消息 / 引用横幅）把 `\n` 转空格，杜绝 LF 方块
+
+**Fix**
+- Fixed message newlines rendering as "LF" boxes: the chat list (bubbles + gray system lines) now renders `\n` as **real line breaks**, so multi-line announcements show on multiple lines, preserving each run's style and click/hover events
+- Server chat-clear messages made of nothing but newlines are now dropped entirely (no empty bubble / preview / hint)
+- Reworked the message preview to match the vanilla chat log: the countdown is **anchored to the last message** and ticks every game tick (also while chat is open — not frozen), fading out at the end; closing chat shows the remaining time only if the last message was within 5s, otherwise nothing flashes. **Mutual exclusion** with the strong hint: with the strong hint on (default), system / @mention messages only pop the strong hint and don't extend the preview; your own messages do extend it. The preview is single-line and includes own + whisper messages
+- All single-line contexts (preview / strong hint / sidebar recent message / reply banner) flatten `\n` to a space so they never draw LF boxes
+
+## v2.0.8
+
+**修复**
+- 头像加载：正版玩家自己的头像和在线玩家头像之前长时间卡在 Steve/Alex（身体皮肤却正常）。原因是首次查询拿到的默认皮肤被缓存后再也不刷新——`PlayerInfo.getSkinLocation()` 首次返回默认皮肤并异步下载，完成后才原地更新，但我们把首次的默认值缓存死了。现在在线玩家每帧读最新皮肤，下载完成后头像即跟上（CSL 皮肤同样走这条路）。离线/崩溃端玩家本就没有皮肤可取，仍为默认（属预期，除非 CSL 本地皮肤）
+- 菜单里「搜索」项的图标之前写死成齿轮（settings），是早期 search 图标没画好时的占位，从没改回来。现在正确显示 search 图标
+
+**新增**
+- 配置项「彩色文本 (& 颜色码)」（默认关闭）：控制发送时是否把 `&c`/`&l` 等转成 § 富文本。默认关闭，因为很多服务器会拒绝 § 字符并踢人——2.0.5 的转换由此改为可选，需要时在「行为」分类开启
+
+**Fix**
+- Head loading: a paid-account player's own head and other online players' heads used to stay stuck on Steve/Alex for a long time even though the body skin was correct. Cause: the first lookup returned the default skin, which got cached and never refreshed — `PlayerInfo.getSkinLocation()` returns the default and downloads asynchronously, only updating in place when done, but we cached that initial default. Online players' skins are now read fresh each frame, so the head catches up once the download finishes (CSL skins flow through the same path). Offline/cracked players have no skin to fetch and stay on the default (expected, unless CSL provides a local skin)
+- The "Search" item in the menu had its icon hardcoded to the gear (settings) — a leftover placeholder from when the search icon hadn't been drawn yet, never changed back. It now shows the search icon correctly
+
+**New**
+- "Color Codes (& codes)" config option (default off): controls whether `&c`/`&l` etc. are converted to § rich text on send. Off by default because many servers reject the § character and kick — the 2.0.5 conversion is now opt-in; enable it under the "Behavior" category when needed
+
+## v2.0.7
+
+**新增**
+- 服务端配置 `use_tpa`（`e33chat-server.toml`，默认 false）：开启后右键玩家头像菜单的传送改用 `/tpa`（请求式）而非 `/tp`。设置进服时同步给客户端，菜单标签随之显示"请求传送"；未收到同步（单人/服务器没装 mod）回退 `/tp`
+
+**New**
+- Server config `use_tpa` (`e33chat-server.toml`, default false): when enabled, the player-head menu teleports via `/tpa` (request) instead of `/tp`. The setting is synced to clients on join and the menu label switches to "Request TP"; without a sync (singleplayer / server without the mod) it falls back to `/tp`
+
+## v2.0.6
+
+**优化**
+- 配置界面排版重排：按功能聚合、开关在前细节在后。音效并入「通知与音效」分类，「兼容」分类撤销（仅剩的 debug_log 移入新「高级」分类）
+
+**Polish**
+- Config screen reordered: options grouped by function with toggles before their detail params. Sound merged into "Notifications & Sound"; the "Compat" category is retired (its only remaining item, debug_log, moves to a new "Advanced" category)
+
+## v2.0.5
+
+**新增**
+- 发送消息支持 `&` 颜色/格式码：输入 `&c`、`&l`、`&o` 等（同 § 码表，0-9a-fk-or）发送时转成富文本。仅 `&` 后跟有效码字符才转换，单独的 `&`（如 `tom & jerry`）不受影响。注意：是否生效取决于服务器——很多服会剥掉 § 码或要求权限，Essentials 类插件可能自行转换 `&`
+
+**New**
+- Outgoing messages now support `&` color/format codes: typing `&c`, `&l`, `&o`, etc. (same code set as §, 0-9a-fk-or) is translated to rich text on send. Only `&` followed by a valid code char is converted; a bare `&` (e.g. `tom & jerry`) is left alone. Note: whether it takes effect is up to the server — many strip § codes or require permission, and Essentials-style plugins may convert `&` themselves
+
+## v2.0.4
+
+**新增**
+- 配置项"保留已输入文本"：控制关闭聊天框时是否保留输入框里未发送的文本（默认开启，与之前行为一致）
+
+**New**
+- "Preserve Typed Text" config option: controls whether unsent text in the input box is kept when chat closes (default on, matching prior behavior)
+
+## v2.0.3
+
+**修复**
+- 恢复进度完成消息的悬浮描述：原版进度名带 HoverEvent（悬停显示进度详情），mod 之前只追踪带点击事件的文本段，进度名被漏掉导致悬浮窗失效。现在带悬浮事件的文本段也被追踪
+
+**Fix**
+- Restored hover descriptions on advancement messages: vanilla advancement names carry a HoverEvent (tooltip with advancement details), but the mod only tracked text segments with click events, so advancement names were skipped and the tooltip broke. Segments with hover events are now tracked too
+
+## v2.0.2
+
+**修复**
+- 头像皮肤渲染兼容 CustomSkinLoader：离线玩家/NCR 纯文本玩家不再固定回退 Steve/Alex。未知玩家改走原版 SkinManager 按名字查询（CSL 按名字接管，导入的离线皮肤可正确显示；未装 CSL 时回退原版——正版玩家正常、离线回退默认）
+- 头像皮肤按 UUID 缓存，不再每帧重复查询 SkinManager
+
+**Fix**
+- Head skin rendering now compatible with CustomSkinLoader: offline players / NCR plain-text players no longer always fall back to Steve/Alex. Unknown players are resolved through the vanilla SkinManager keyed by name (CSL intercepts by name, so imported offline skins display correctly; without CSL it falls back to vanilla — real skins for paid accounts, default otherwise)
+- Head skins cached per UUID instead of re-querying the SkinManager every frame
+
 ## v2.0.1
 
 **修复**

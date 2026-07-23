@@ -1,6 +1,7 @@
 package com.niuqu.chatbubble;
 
 import com.niuqu.chatbubble.packets.ChatMetaPayload;
+import com.niuqu.chatbubble.packets.ConfigSyncPayload;
 import com.niuqu.chatbubble.packets.HistoryPayload;
 import com.niuqu.chatbubble.packets.QuoteSyncPayload;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -16,5 +17,6 @@ public class NetworkHandler {
         registrar.playToServer(QuoteSyncPayload.TYPE, QuoteSyncPayload.STREAM_CODEC, QuoteSyncPayload::handleServer);
         registrar.playToClient(ChatMetaPayload.TYPE, ChatMetaPayload.STREAM_CODEC, ChatMetaPayload::handleClient);
         registrar.playToClient(HistoryPayload.TYPE, HistoryPayload.STREAM_CODEC, HistoryPayload::handleClient);
+        registrar.playToClient(ConfigSyncPayload.TYPE, ConfigSyncPayload.STREAM_CODEC, ConfigSyncPayload::handleClient);
     }
 }

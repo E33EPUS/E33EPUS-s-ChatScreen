@@ -1,6 +1,7 @@
 package com.niuqu.chatbubble;
 
 import com.niuqu.chatbubble.packets.ChatMetaPayload;
+import com.niuqu.chatbubble.packets.ConfigSyncPayload;
 import com.niuqu.chatbubble.packets.HistoryPayload;
 import java.time.LocalTime;
 import java.util.*;
@@ -71,8 +72,13 @@ public class ChatServerListener {
 
     @SubscribeEvent
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (!ChatServerConfig.HISTORY_ENABLED.get()) return;
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
+
+        // Always sync server-side settings so the client head menu matches the server
+        PacketDistributor.sendToPlayer(player,
+            new ConfigSyncPayload(ChatServerConfig.USE_TPA.get()));
+
+        if (!ChatServerConfig.HISTORY_ENABLED.get()) return;
         if (historyBuffer.isEmpty()) return;
         PacketDistributor.sendToPlayer(player,
             new HistoryPayload(new ArrayList<>(historyBuffer)));

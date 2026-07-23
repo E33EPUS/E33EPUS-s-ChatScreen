@@ -1,6 +1,8 @@
 package com.niuqu.chatbubble;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.CommandSuggestions;
@@ -12,6 +14,9 @@ import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
@@ -22,7 +27,10 @@ import java.io.InputStream;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class ChatBubbleScreen extends Screen {
@@ -79,6 +87,8 @@ public class ChatBubbleScreen extends Screen {
     private EditBox input;
     private CommandSuggestions commandSuggestions;
     private static int inputX, inputY;
+    // Caches resolved head skins per player uuid so the SkinManager isn't hit every frame
+    private static final Map<UUID, ResourceLocation> skinCache = new HashMap<>();
     private final String initialText;
     private int scrollOffset;
     private int maxScroll;
@@ -212,7 +222,7 @@ public class ChatBubbleScreen extends Screen {
             ? c().textSecondary() : c().textPrimary();
         input.setTextColor(editColor);
         input.setTextColorUneditable(c().textMuted());
-        input.setValue(initialText.isEmpty() && !savedInput.isEmpty() ? savedInput : initialText);
+        input.setValue(initialText.isEmpty() && ChatBubbleConfig.PRESERVE_INPUT.get() && !savedInput.isEmpty() ? savedInput : initialText);
         input.setCanLoseFocus(false);
         input.setResponder(this::onEdited);
         addRenderableWidget(input);
@@ -353,7 +363,7 @@ public class ChatBubbleScreen extends Screen {
         ChatMessageStore.ChatMessage latestPub = ChatMessageStore.getLatestPublicMessage();
         if (latestPub != null) {
             int previewMaxW = SIDEBAR_W - nameX - 4;
-            String preview = latestPub.content().getString();
+            String preview = ChatMessageStore.singleLine(latestPub.content().getString());
             String previewDisplay = font.plainSubstrByWidth(preview, previewMaxW - font.width("..."));
             if (!previewDisplay.equals(preview)) previewDisplay += "...";
             g.drawString(font, Component.literal(previewDisplay), nameX, y + 1 + font.lineHeight, c().textMuted(), false);
@@ -400,7 +410,7 @@ public class ChatBubbleScreen extends Screen {
                         : (mouseX >= 0 && mouseX <= SIDEBAR_W && mouseY >= scrollY && mouseY <= scrollY + itemH ? c().sidebarItemHover() : 0);
                     if (itemBg != 0) g.fill(0, scrollY, SIDEBAR_W, scrollY + itemH, itemBg);
 
-                    ResourceLocation skin = getSkin(info.getProfile().getId());
+                    ResourceLocation skin = getSkin(info.getProfile().getId(), info.getProfile().getName());
                     drawPlayerHead(g, skin, 4, scrollY + 3, 16, 18);
 
                     int tipW = ChatMessageStore.hasUnreadWhisper(name) ? 16 : 0;
@@ -411,7 +421,7 @@ public class ChatBubbleScreen extends Screen {
 
                     ChatMessageStore.ChatMessage latest = ChatMessageStore.getLatestWhisperWith(name);
                     if (latest != null) {
-                        String preview = latest.content().getString();
+                        String preview = ChatMessageStore.singleLine(latest.content().getString());
                         String previewDisplay = font.plainSubstrByWidth(preview, maxNameW - font.width("..."));
                         if (!previewDisplay.equals(preview)) previewDisplay += "...";
                         g.drawString(font, Component.literal(previewDisplay), nameX, scrollY + 1 + font.lineHeight, c().textMuted(), false);
@@ -1004,7 +1014,7 @@ public class ChatBubbleScreen extends Screen {
             if (name == null || name.isEmpty()) { contextAvatarIndex = -1; return; }
 
             if (my >= menuY && my <= menuY + CTX_ITEM_H) {
-                minecraft.player.connection.sendCommand("tp " + name);
+                minecraft.player.connection.sendCommand((ChatMessageStore.useTpa() ? "tpa " : "tp ") + name);
             } else if (my >= menuY + CTX_ITEM_H + 2 && my <= menuY + CTX_ITEM_H * 2 + 2) {
                 whisperPartner = name;
                 ChatMessageStore.clearUnreadWhisper(name);
@@ -1074,6 +1084,9 @@ public class ChatBubbleScreen extends Screen {
 
         g.pose().pushPose();
         g.pose().translate(0, 0, 50);
+        // EditBox is a widget drawn by super.render() at its real coords — it doesn't
+        // follow the panel's pose translate, so slide it with the open/close animation
+        input.setX(inputX + panelOffset);
         super.render(g, mouseX, mouseY, partialTick);
         g.pose().popPose();
     }
@@ -1292,13 +1305,43 @@ public class ChatBubbleScreen extends Screen {
         g.drawString(font, Component.literal(text), tx, y + 3, c().timeColor(), false);
     }
 
+    // Wrap a message honoring '\n' as real line breaks: split the styled component into
+    // paragraphs on newlines (keeping each run's style), wrap each with the font, then
+    // concatenate. Stray leading/trailing newlines are trimmed so they don't leave a
+    // dangling blank line. The chat list thus shows a multi-line announcement on several
+    // lines instead of "LF" boxes; pure chat-clear messages are dropped at ingest.
+    private List<FormattedCharSequence> wrapContent(Component c, int width) {
+        List<Component> paras = new ArrayList<>();
+        MutableComponent[] cur = { Component.empty() };
+        c.visit((style, text) -> {
+            int start = 0;
+            for (int i = 0; i < text.length(); i++) {
+                if (text.charAt(i) == '\n') {
+                    if (i > start) cur[0].append(Component.literal(text.substring(start, i)).withStyle(style));
+                    paras.add(cur[0]);
+                    cur[0] = Component.empty();
+                    start = i + 1;
+                }
+            }
+            if (start < text.length()) cur[0].append(Component.literal(text.substring(start)).withStyle(style));
+            return Optional.<Object>empty();
+        }, Style.EMPTY);
+        paras.add(cur[0]);
+        while (!paras.isEmpty() && paras.get(0).getString().isEmpty()) paras.remove(0);
+        while (!paras.isEmpty() && paras.get(paras.size() - 1).getString().isEmpty()) paras.remove(paras.size() - 1);
+        List<FormattedCharSequence> out = new ArrayList<>();
+        for (Component p : paras) out.addAll(font.split(p, width));
+        if (out.isEmpty()) out.addAll(font.split(c, width));
+        return out;
+    }
+
     private int getMsgHeight(ChatMessageStore.ChatMessage msg) {
         if (msg.isSystem()) {
-            List<FormattedCharSequence> lines = font.split(msg.content(), panelW - PAD * 2 - 20);
+            List<FormattedCharSequence> lines = wrapContent(msg.content(), panelW - PAD * 2 - 20);
             return lines.size() * font.lineHeight + 4;
         }
         int bubbleMaxW = panelW - AVATAR - PAD * 2 - BUBBLE_PAD_X * 2 - 16;
-        List<FormattedCharSequence> lines = font.split(msg.content(), bubbleMaxW);
+        List<FormattedCharSequence> lines = wrapContent(msg.content(), bubbleMaxW);
         int h = lines.size() * font.lineHeight + BUBBLE_PAD_Y * 2 + NAME_H;
         if (msg.replyContent() != null) h += font.lineHeight + 7;
         return h;
@@ -1310,7 +1353,7 @@ public class ChatBubbleScreen extends Screen {
         if (fadeProgress <= 0.01f) return;
 
         if (msg.isSystem()) {
-            List<FormattedCharSequence> lines = font.split(msg.content(), panelW - PAD * 2 - 20);
+            List<FormattedCharSequence> lines = wrapContent(msg.content(), panelW - PAD * 2 - 20);
             int yy = baseY + 2;
             net.minecraft.network.chat.Style fb = findClickStyle(msg.content());
             int sysColor = c().textMuted();
@@ -1326,7 +1369,7 @@ public class ChatBubbleScreen extends Screen {
 
         boolean own = msg.isOwn();
         int bubbleMaxW = panelW - AVATAR - PAD * 2 - BUBBLE_PAD_X * 2 - 16;
-        List<FormattedCharSequence> lines = font.split(msg.content(), bubbleMaxW);
+        List<FormattedCharSequence> lines = wrapContent(msg.content(), bubbleMaxW);
 
         int textW = 0;
         for (var line : lines) textW = Math.max(textW, font.width(line));
@@ -1383,7 +1426,9 @@ public class ChatBubbleScreen extends Screen {
             renderLineWithClicks(g, lines.get(li), bubbleX + BUBBLE_PAD_X,
                 bubbleY + BUBBLE_PAD_Y + li * font.lineHeight, fadedFg, fbP);
 
-        ResourceLocation skin = getSkin(msg.senderUUID());
+        String skinName = (msg.rawPlayerName() != null && !msg.rawPlayerName().isEmpty())
+            ? msg.rawPlayerName() : msg.senderName().getString();
+        ResourceLocation skin = getSkin(msg.senderUUID(), skinName);
         RenderSystem.setShaderColor(1f, 1f, 1f, fadeProgress);
         drawPlayerHead(g, skin, avatarX, avatarY, 20, 22);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
@@ -1457,7 +1502,9 @@ public class ChatBubbleScreen extends Screen {
         net.minecraft.network.chat.Style runStyle = null;
         for (int idx = 0; idx <= styles.size(); idx++) {
             net.minecraft.network.chat.Style st = idx < styles.size() ? styles.get(idx) : null;
-            boolean clickable = st != null && st.getClickEvent() != null;
+            // Track segments with a click OR hover event so hover tooltips (e.g.
+            // advancement descriptions) work, not just clickable links
+            boolean clickable = st != null && (st.getClickEvent() != null || st.getHoverEvent() != null);
             if (runStyle == null) {
                 if (clickable) { runStart = idx; runStyle = st; }
             } else if (!clickable || !st.equals(runStyle)) {
@@ -1578,7 +1625,7 @@ public class ChatBubbleScreen extends Screen {
         int tpBg = hoverTp ? c().contextHover() : c().sidebarItemSelected();
         g.fill(menuX + 1, menuY + 1, menuX + CTX_W - 1, menuY + CTX_ITEM_H, tpBg);
         drawTextureIcon(g, iconTex("tp"), menuX + 5, menuY + 3, 12);
-        g.drawString(font, Component.translatable("e33chat.context.tp"), menuX + 22, menuY + 4, c().textPrimary(), false);
+        g.drawString(font, Component.translatable(ChatMessageStore.useTpa() ? "e33chat.context.tpa" : "e33chat.context.tp"), menuX + 22, menuY + 4, c().textPrimary(), false);
 
         g.fill(menuX + 4, menuY + CTX_ITEM_H + 1, menuX + CTX_W - 4, menuY + CTX_ITEM_H + 2, c().closeHoverBg());
 
@@ -1609,7 +1656,7 @@ public class ChatBubbleScreen extends Screen {
 
         String sender = target.senderName().getString();
         if (sender.isEmpty()) sender = Component.translatable("e33chat.sender.system").getString();
-        String preview = sender + ": " + target.content().getString();
+        String preview = sender + ": " + ChatMessageStore.singleLine(target.content().getString());
         int maxW = barW - 24;
         String display = font.plainSubstrByWidth(preview, maxW - font.width("..."));
         if (!display.equals(preview)) display += "...";
@@ -1835,13 +1882,41 @@ public class ChatBubbleScreen extends Screen {
         RenderSystem.disableBlend();
     }
 
-    private ResourceLocation getSkin(UUID uuid) {
-        if (uuid == null || uuid.equals(NIL_UUID))
-            return DefaultPlayerSkin.get(NIL_UUID).texture();
-        if (minecraft.getConnection() == null)
-            return DefaultPlayerSkin.get(NIL_UUID).texture();
-        PlayerInfo info = minecraft.getConnection().getPlayerInfo(uuid);
-        return info != null ? info.getSkin().texture() : DefaultPlayerSkin.get(uuid).texture();
+    private ResourceLocation getSkin(UUID uuid, String name) {
+        // Online players: read PlayerInfo fresh every frame. getSkin().texture() returns
+        // the default skin and kicks off an async download on first call, then updates
+        // in place once done. Caching that first (default) result froze the head on
+        // Steve/Alex forever even after the real skin loaded — the entity model reads
+        // this fresh each frame, which is why the body showed the skin but the head didn't.
+        // CSL intercepts the underlying SkinManager lookup, so CSL skins flow through too.
+        if (minecraft.getConnection() != null && uuid != null && !uuid.equals(NIL_UUID)) {
+            PlayerInfo info = minecraft.getConnection().getPlayerInfo(uuid);
+            if (info != null) return info.getSkin().texture();
+        }
+        // Not in the tab list (offline player / history mention): route through the
+        // SkinManager with a GameProfile carrying the name. CSL keys off the name, so
+        // offline players with an imported skin resolve; otherwise vanilla (real skin
+        // for paid accounts carrying textures, Steve/Alex otherwise). The first result
+        // is final here, so cache it to avoid repeating the lookup every frame.
+        if (uuid != null && !uuid.equals(NIL_UUID)) {
+            ResourceLocation cached = skinCache.get(uuid);
+            if (cached != null) return cached;
+        }
+        ResourceLocation resolved = resolveSkin(uuid, name);
+        if (uuid != null && !uuid.equals(NIL_UUID)) skinCache.put(uuid, resolved);
+        return resolved;
+    }
+
+    private ResourceLocation resolveSkin(UUID uuid, String name) {
+        if (name == null || name.isEmpty())
+            return DefaultPlayerSkin.get(uuid != null ? uuid : NIL_UUID).texture();
+        try {
+            GameProfile profile = new GameProfile(
+                uuid != null && !uuid.equals(NIL_UUID) ? uuid : NIL_UUID, name);
+            return minecraft.getSkinManager().getInsecureSkin(profile).texture();
+        } catch (Exception e) {
+            return DefaultPlayerSkin.get(uuid != null ? uuid : NIL_UUID).texture();
+        }
     }
 
     private void jumpToMessage(int msgIndex) {
@@ -1867,9 +1942,74 @@ public class ChatBubbleScreen extends Screen {
         lastSeenMessageCount = msgs.size();
     }
 
+    // Parse legacy & color/format codes into a real styled Component for LOCAL display
+    // only — the raw text is what gets sent. '&'+code becomes formatting (not visible
+    // text), exactly like § renders; a bare & stays literal. Lets the player see their
+    // own colored bubble without ever putting § on the wire (which vanilla rejects).
+    private static Component parseColorCodes(String s) {
+        if (s.indexOf('&') < 0) return Component.literal(s);
+        MutableComponent out = Component.empty();
+        Style style = Style.EMPTY;
+        StringBuilder run = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '&' && i + 1 < s.length() && isFormatCode(s.charAt(i + 1))) {
+                if (run.length() > 0) {
+                    out.append(Component.literal(run.toString()).withStyle(style));
+                    run.setLength(0);
+                }
+                style = applyCode(style, s.charAt(i + 1));
+                i++;
+            } else {
+                run.append(c);
+            }
+        }
+        if (run.length() > 0) out.append(Component.literal(run.toString()).withStyle(style));
+        return out;
+    }
+
+    private static Style applyCode(Style st, char c) {
+        switch (Character.toLowerCase(c)) {
+            case '0': return st.withColor(TextColor.fromRgb(ChatFormatting.BLACK.getColor()));
+            case '1': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_BLUE.getColor()));
+            case '2': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_GREEN.getColor()));
+            case '3': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_AQUA.getColor()));
+            case '4': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_RED.getColor()));
+            case '5': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_PURPLE.getColor()));
+            case '6': return st.withColor(TextColor.fromRgb(ChatFormatting.GOLD.getColor()));
+            case '7': return st.withColor(TextColor.fromRgb(ChatFormatting.GRAY.getColor()));
+            case '8': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_GRAY.getColor()));
+            case '9': return st.withColor(TextColor.fromRgb(ChatFormatting.BLUE.getColor()));
+            case 'a': return st.withColor(TextColor.fromRgb(ChatFormatting.GREEN.getColor()));
+            case 'b': return st.withColor(TextColor.fromRgb(ChatFormatting.AQUA.getColor()));
+            case 'c': return st.withColor(TextColor.fromRgb(ChatFormatting.RED.getColor()));
+            case 'd': return st.withColor(TextColor.fromRgb(ChatFormatting.LIGHT_PURPLE.getColor()));
+            case 'e': return st.withColor(TextColor.fromRgb(ChatFormatting.YELLOW.getColor()));
+            case 'f': return st.withColor(TextColor.fromRgb(ChatFormatting.WHITE.getColor()));
+            case 'k': return st.withObfuscated(true);
+            case 'l': return st.withBold(true);
+            case 'm': return st.withStrikethrough(true);
+            case 'n': return st.withUnderlined(true);
+            case 'o': return st.withItalic(true);
+            case 'r': return Style.EMPTY;
+            default: return st;
+        }
+    }
+
+    private static boolean isFormatCode(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+            || (c >= 'k' && c <= 'o') || (c >= 'A' && c <= 'F')
+            || (c >= 'K' && c <= 'O');
+    }
+
     private void sendMessage() {
-        String text = input.getValue().trim();
-        if (text.isEmpty()) return;
+        String raw = input.getValue().trim();
+        if (raw.isEmpty()) return;
+        // Send the text UNCHANGED (raw '&', never '§'): vanilla servers reject '§' in
+        // player chat and kick, so converting client-side is a dead end. Server color
+        // plugins (Essentials etc.) translate '&' for everyone; on plain servers others
+        // see the literal '&'. Local coloring of our own bubble is done at addMessage.
+        String text = raw;
 
         // In whisper mode, auto-prepend /msg behind the scenes
         if (whisperPartner != null && !text.startsWith("/")) {
@@ -1895,8 +2035,9 @@ public class ChatBubbleScreen extends Screen {
                 if (target != null) {
                     String quoteSender = (target.rawPlayerName() != null && !target.rawPlayerName().isEmpty())
                         ? target.rawPlayerName() : target.senderName().getString();
-                    ChatMessageStore.setPendingReply(target.content().getString(), quoteSender);
-                    QuoteSyncPayload.send(quoteSender, target.content().getString(), displayText);
+                    String quoted = ChatMessageStore.singleLine(target.content().getString());
+                    ChatMessageStore.setPendingReply(quoted, quoteSender);
+                    QuoteSyncPayload.send(quoteSender, quoted, displayText);
                 }
             }
             replyTargetIndex = -1;
@@ -1910,7 +2051,7 @@ public class ChatBubbleScreen extends Screen {
 
         ChatMessageStore.debugLog("[e33chat] Send | cmd='" + text + "' | display='" + displayText + "' | whisperTarget=" + whisperTarget + " | localBubble=" + localBubble);
         if (localBubble) {
-            ChatMessageStore.addMessage(Component.literal(displayText),
+            ChatMessageStore.addMessage(ChatBubbleConfig.COLOR_CODES.get() ? parseColorCodes(displayText) : Component.literal(displayText),
                 minecraft.player.getUUID(),
                 Component.literal(minecraft.player.getName().getString()),
                 false,
@@ -1942,14 +2083,14 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public void removed() {
-        savedInput = input.getValue();
+        if (ChatBubbleConfig.PRESERVE_INPUT.get()) savedInput = input.getValue();
         ChatMessageStore.setScreenOpen(false);
         minecraft.gui.getChat().resetChatScroll();
     }
 
     @Override
     public void onClose() {
-        savedInput = input.getValue();
+        if (ChatBubbleConfig.PRESERVE_INPUT.get()) savedInput = input.getValue();
         if (!ChatBubbleConfig.ANIMATION_ENABLED.get()) {
             minecraft.setScreen(null);
             return;
