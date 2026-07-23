@@ -127,7 +127,7 @@ public class ChatBubbleConfig {
             .define("preserve_input", true);
 
         COLOR_CODES = builder
-            .comment("Convert legacy & color/format codes (&c, &l...) to § before sending. Off by default: many servers reject the § character and kick you")
+            .comment("Interpret & color/format codes as color in YOUR OWN outgoing bubble (local only). The raw & is sent unchanged (never §), so it never kicks; color plugins color it for everyone, plain servers show literal & to others. Off by default so normal text like 'B&B' isn't colored locally")
             .translation("e33chat.config.color_codes")
             .define("color_codes", false);
 

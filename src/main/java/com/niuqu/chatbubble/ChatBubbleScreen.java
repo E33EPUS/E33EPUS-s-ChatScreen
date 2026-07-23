@@ -2,6 +2,7 @@ package com.niuqu.chatbubble;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.CommandSuggestions;
@@ -15,6 +16,7 @@ import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
@@ -1919,23 +1921,58 @@ public class ChatBubbleScreen extends Screen {
         lastSeenMessageCount = msgs.size();
     }
 
-    // Translate legacy & color/format codes (&c, &l, &o...) into the § codes the
-    // game understands, so players can send colored text. Only & followed by a
-    // valid code char is converted — a bare & (e.g. "tom & jerry") is left alone.
-    // Whether the colored text survives is up to the server: many strip § codes
-    // or require a permission, and Essentials-style plugins may convert & themselves.
-    private static String translateColorCodes(String s) {
-        if (s.indexOf('&') < 0) return s;
-        StringBuilder out = new StringBuilder(s.length());
+    // Parse legacy & color/format codes into a real styled Component for LOCAL display
+    // only — the raw text is what gets sent. '&'+code becomes formatting (not visible
+    // text), exactly like § renders; a bare & stays literal. Lets the player see their
+    // own colored bubble without ever putting § on the wire (which vanilla rejects).
+    private static Component parseColorCodes(String s) {
+        if (s.indexOf('&') < 0) return Component.literal(s);
+        MutableComponent out = Component.empty();
+        Style style = Style.EMPTY;
+        StringBuilder run = new StringBuilder();
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             if (c == '&' && i + 1 < s.length() && isFormatCode(s.charAt(i + 1))) {
-                out.append('§');
+                if (run.length() > 0) {
+                    out.append(Component.literal(run.toString()).withStyle(style));
+                    run.setLength(0);
+                }
+                style = applyCode(style, s.charAt(i + 1));
+                i++;
             } else {
-                out.append(c);
+                run.append(c);
             }
         }
-        return out.toString();
+        if (run.length() > 0) out.append(Component.literal(run.toString()).withStyle(style));
+        return out;
+    }
+
+    private static Style applyCode(Style st, char c) {
+        switch (Character.toLowerCase(c)) {
+            case '0': return st.withColor(TextColor.fromRgb(ChatFormatting.BLACK.getColor()));
+            case '1': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_BLUE.getColor()));
+            case '2': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_GREEN.getColor()));
+            case '3': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_AQUA.getColor()));
+            case '4': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_RED.getColor()));
+            case '5': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_PURPLE.getColor()));
+            case '6': return st.withColor(TextColor.fromRgb(ChatFormatting.GOLD.getColor()));
+            case '7': return st.withColor(TextColor.fromRgb(ChatFormatting.GRAY.getColor()));
+            case '8': return st.withColor(TextColor.fromRgb(ChatFormatting.DARK_GRAY.getColor()));
+            case '9': return st.withColor(TextColor.fromRgb(ChatFormatting.BLUE.getColor()));
+            case 'a': return st.withColor(TextColor.fromRgb(ChatFormatting.GREEN.getColor()));
+            case 'b': return st.withColor(TextColor.fromRgb(ChatFormatting.AQUA.getColor()));
+            case 'c': return st.withColor(TextColor.fromRgb(ChatFormatting.RED.getColor()));
+            case 'd': return st.withColor(TextColor.fromRgb(ChatFormatting.LIGHT_PURPLE.getColor()));
+            case 'e': return st.withColor(TextColor.fromRgb(ChatFormatting.YELLOW.getColor()));
+            case 'f': return st.withColor(TextColor.fromRgb(ChatFormatting.WHITE.getColor()));
+            case 'k': return st.withObfuscated(true);
+            case 'l': return st.withBold(true);
+            case 'm': return st.withStrikethrough(true);
+            case 'n': return st.withUnderlined(true);
+            case 'o': return st.withItalic(true);
+            case 'r': return Style.EMPTY;
+            default: return st;
+        }
     }
 
     private static boolean isFormatCode(char c) {
@@ -1946,10 +1983,12 @@ public class ChatBubbleScreen extends Screen {
 
     private void sendMessage() {
         String raw = input.getValue().trim();
-        // & color-code conversion is opt-in: many servers reject the resulting § char
-        // and kick ("illegal characters"), so by default we send the text untouched.
-        String text = ChatBubbleConfig.COLOR_CODES.get() ? translateColorCodes(raw) : raw;
-        if (text.isEmpty()) return;
+        if (raw.isEmpty()) return;
+        // Send the text UNCHANGED (raw '&', never '§'): vanilla servers reject '§' in
+        // player chat and kick, so converting client-side is a dead end. Server color
+        // plugins (Essentials etc.) translate '&' for everyone; on plain servers others
+        // see the literal '&'. Local coloring of our own bubble is done at addMessage.
+        String text = raw;
 
         // In whisper mode, auto-prepend /msg behind the scenes
         if (whisperPartner != null && !text.startsWith("/")) {
@@ -1991,7 +2030,7 @@ public class ChatBubbleScreen extends Screen {
 
         ChatMessageStore.debugLog("[e33chat] Send | cmd='" + text + "' | display='" + displayText + "' | whisperTarget=" + whisperTarget + " | localBubble=" + localBubble);
         if (localBubble) {
-            ChatMessageStore.addMessage(Component.literal(displayText),
+            ChatMessageStore.addMessage(ChatBubbleConfig.COLOR_CODES.get() ? parseColorCodes(displayText) : Component.literal(displayText),
                 minecraft.player.getUUID(),
                 Component.literal(minecraft.player.getName().getString()),
                 false,
