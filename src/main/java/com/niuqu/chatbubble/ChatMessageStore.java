@@ -22,9 +22,15 @@ public class ChatMessageStore {
     private static boolean screenOpen = false;
     private static String pendingReplyContent;
     private static String pendingReplySender;
-    private static int previewTicks;
+    private static final List<PreviewEntry> previews = new ArrayList<>();
     private static final int PREVIEW_TICKS = 100;
     private record HintEntry(Component text, boolean isMention) {}
+
+    public static class PreviewEntry {
+        public final Component text;
+        public int ticks;
+        public PreviewEntry(Component text, int ticks) { this.text = text; this.ticks = ticks; }
+    }
     private static final java.util.LinkedList<HintEntry> strongHintQueue = new java.util.LinkedList<>();
     private static int strongHintTicks;
     public static final int STRONG_HINT_DURATION = 60;
@@ -257,12 +263,18 @@ public class ChatMessageStore {
 
         boolean systemToHint = isSystem && ChatBubbleConfig.STRONG_HINT_ENABLED.get();
         boolean mentionToHint = isMentionOrQuote && ChatBubbleConfig.MENTION_STRONG_HINT_ENABLED.get();
-        // Refresh the preview countdown on every stored message not routed to the strong
-        // hint (mutual exclusion, old behaviour). It ticks every game tick regardless of
-        // screen state, so it stays anchored to the last message like the vanilla chat
-        // log; own messages refresh it too.
-        if (ChatBubbleConfig.PREVIEW_ENABLED.get() && !systemToHint && !mentionToHint)
-            previewTicks = PREVIEW_TICKS;
+        // Enqueue a per-line preview entry on every stored message not routed to the
+        // strong hint (mutual exclusion). Top-level (not gated on !screenOpen) so messages
+        // arriving while chat is open — including your own sends — also get a line; each
+        // line then fades on its own, oldest first.
+        if (ChatBubbleConfig.PREVIEW_ENABLED.get() && !systemToHint && !mentionToHint) {
+            Component sName = senderName != null ? senderName : Component.literal("");
+            Component pt = buildPreviewText(content, sName, isSystem);
+            if (!pt.getString().isBlank()) {
+                previews.add(new PreviewEntry(pt, PREVIEW_TICKS));
+                while (previews.size() > ChatBubbleConfig.PREVIEW_LINES.get()) previews.remove(0);
+            }
+        }
 
         boolean playSound = false;
         if (!own && Minecraft.getInstance().player != null) {
@@ -441,32 +453,24 @@ public class ChatMessageStore {
         pendingReplySender = sender;
     }
 
-    // Recent messages for the HUD preview as STYLED components (single line: '\n' is
-    // flattened by singleLineComponent while keeping color/style), so the preview shows
-    // the same per-segment colors as the chat bubbles — nickname / title prefix / system
-    // color / player & mod colors all preserved. The HUD truncates on the Component, so
-    // colors survive truncation too. Includes own + whisper.
-    public static List<Component> getRecentPreviews(int n) {
-        List<Component> out = new ArrayList<>();
-        for (int i = messages.size() - 1; i >= 0 && out.size() < n; i--) {
-            ChatMessage m = messages.get(i);
-            Component body = singleLineComponent(m.content());
-            Component name = m.senderName();
-            Component text = name.getString().isEmpty()
-                ? (m.isSystem()
-                    ? Component.translatable("e33chat.sender.system").copy().append(Component.literal(": ")).append(body)
-                    : body)
-                : Component.empty().append(name).append(Component.literal(": ")).append(body);
-            if (text.getString().isBlank()) continue;
-            out.add(0, text);
-        }
-        return out;
+    public static List<PreviewEntry> getPreviews() { return previews; }
+
+    // Single-line styled preview text (nickname/prefix/content colors preserved, '\n'
+    // flattened). Built once at enqueue time so each line keeps the bubble's colors.
+    private static Component buildPreviewText(Component content, Component name, boolean isSystem) {
+        Component body = singleLineComponent(content);
+        return name.getString().isEmpty()
+            ? (isSystem
+                ? Component.translatable("e33chat.sender.system").copy().append(Component.literal(": ")).append(body)
+                : body)
+            : Component.empty().append(name).append(Component.literal(": ")).append(body);
     }
 
-    public static int getPreviewTicks() { return previewTicks; }
-
     public static void tickPreview() {
-        if (previewTicks > 0) previewTicks--; // tick always; HUD only draws while chat is closed
+        var it = previews.iterator();
+        while (it.hasNext()) {
+            if (--it.next().ticks <= 0) it.remove(); // per-line lifetime; ticks also while open
+        }
     }
 
     public static Component getStrongHintText() {
@@ -526,7 +530,7 @@ public class ChatMessageStore {
         }
         messages.clear();
         unreadCount = 0;
-        previewTicks = 0;
+        previews.clear();
         if (ChatBubbleConfig.CHAT_HISTORY_ENABLED.get() && isWorldSpecific(currentWorldKey))
             loadMessages(currentWorldKey);
     }
