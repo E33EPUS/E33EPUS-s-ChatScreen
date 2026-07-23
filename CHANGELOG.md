@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.4
+
+**新增**
+- 配置项"保留已输入文本"：控制关闭聊天框时是否保留输入框里未发送的文本（默认开启，与之前行为一致）
+
+**New**
+- "Preserve Typed Text" config option: controls whether unsent text in the input box is kept when chat closes (default on, matching prior behavior)
+
 ## v2.0.3
 
 **修复**

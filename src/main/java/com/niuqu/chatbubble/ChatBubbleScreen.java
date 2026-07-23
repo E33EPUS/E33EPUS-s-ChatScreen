@@ -217,7 +217,7 @@ public class ChatBubbleScreen extends Screen {
             ? c().textSecondary() : c().textPrimary();
         input.setTextColor(editColor);
         input.setTextColorUneditable(c().textMuted());
-        input.setValue(initialText.isEmpty() && !savedInput.isEmpty() ? savedInput : initialText);
+        input.setValue(initialText.isEmpty() && ChatBubbleConfig.PRESERVE_INPUT.get() && !savedInput.isEmpty() ? savedInput : initialText);
         input.setCanLoseFocus(false);
         input.setResponder(this::onEdited);
         addRenderableWidget(input);
@@ -1961,14 +1961,14 @@ public class ChatBubbleScreen extends Screen {
 
     @Override
     public void removed() {
-        savedInput = input.getValue();
+        if (ChatBubbleConfig.PRESERVE_INPUT.get()) savedInput = input.getValue();
         ChatMessageStore.setScreenOpen(false);
         minecraft.gui.getChat().resetChatScroll();
     }
 
     @Override
     public void onClose() {
-        savedInput = input.getValue();
+        if (ChatBubbleConfig.PRESERVE_INPUT.get()) savedInput = input.getValue();
         if (!ChatBubbleConfig.ANIMATION_ENABLED.get()) {
             minecraft.setScreen(null);
             return;

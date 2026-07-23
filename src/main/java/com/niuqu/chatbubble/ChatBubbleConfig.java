@@ -33,6 +33,7 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.BooleanValue SOUND_MENTION;
     public static final ForgeConfigSpec.BooleanValue SOUND_WHISPER;
     public static final ForgeConfigSpec.BooleanValue SOUND_PUBLIC;
+    public static final ForgeConfigSpec.BooleanValue PRESERVE_INPUT;
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -118,6 +119,11 @@ public class ChatBubbleConfig {
             .comment("Minutes between time separators in the chat list (0 = off, 1-60)")
             .translation("e33chat.config.time_separator")
             .defineInRange("time_separator_minutes", 5, 0, 60);
+
+        PRESERVE_INPUT = builder
+            .comment("Keep typed text in the input box when the chat closes, restoring it on reopen")
+            .translation("e33chat.config.preserve_input")
+            .define("preserve_input", true);
 
         builder.pop();
         builder.push("bubble");
