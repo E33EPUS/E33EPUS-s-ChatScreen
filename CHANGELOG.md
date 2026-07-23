@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.7
+
+**新增**
+- 服务端配置 `use_tpa`（`e33chat-server.toml`，默认 false）：开启后右键玩家头像菜单的传送改用 `/tpa`（请求式）而非 `/tp`。设置进服时同步给客户端，菜单标签随之显示"请求传送"；未收到同步（单人/服务器没装 mod）回退 `/tp`
+
+**New**
+- Server config `use_tpa` (`e33chat-server.toml`, default false): when enabled, the player-head menu teleports via `/tpa` (request) instead of `/tp`. The setting is synced to clients on join and the menu label switches to "Request TP"; without a sync (singleplayer / server without the mod) it falls back to `/tp`
+
 ## v2.0.6
 
 **优化**

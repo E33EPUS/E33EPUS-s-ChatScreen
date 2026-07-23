@@ -34,6 +34,11 @@ public class ChatMessageStore {
     private static boolean titlesLoaded;
     private static final Map<String, PendingMeta> pendingMetas = new HashMap<>();
 
+    // Server-synced setting: head-menu teleport uses /tpa instead of /tp (default false)
+    private static volatile boolean serverUseTpa = false;
+    public static void setServerUseTpa(boolean v) { serverUseTpa = v; }
+    public static boolean useTpa() { return serverUseTpa; }
+
     public record SenderMeta(UUID senderUUID, Component senderName,
                              Component rawContent, boolean isSystem,
                              String rawPlayerName,

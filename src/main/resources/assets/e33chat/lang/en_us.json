@@ -56,6 +56,7 @@
   "e33chat.context.copy": "Copy",
   "e33chat.context.quote": "Quote",
   "e33chat.context.tp": "Teleport",
+  "e33chat.context.tpa": "Request TP",
   "e33chat.context.whisper": "Whisper",
   "e33chat.toast.copied": "Copied",
 

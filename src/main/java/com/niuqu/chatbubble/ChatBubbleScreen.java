@@ -1005,7 +1005,7 @@ public class ChatBubbleScreen extends Screen {
             if (name == null || name.isEmpty()) { contextAvatarIndex = -1; return; }
 
             if (my >= menuY && my <= menuY + CTX_ITEM_H) {
-                minecraft.player.connection.sendCommand("tp " + name);
+                minecraft.player.connection.sendCommand((ChatMessageStore.useTpa() ? "tpa " : "tp ") + name);
             } else if (my >= menuY + CTX_ITEM_H + 2 && my <= menuY + CTX_ITEM_H * 2 + 2) {
                 whisperPartner = name;
                 ChatMessageStore.clearUnreadWhisper(name);
@@ -1569,7 +1569,7 @@ public class ChatBubbleScreen extends Screen {
         int tpBg = hoverTp ? c().contextHover() : c().sidebarItemSelected();
         g.fill(menuX + 1, menuY + 1, menuX + CTX_W - 1, menuY + CTX_ITEM_H, tpBg);
         drawTextureIcon(g, iconTex("tp"), menuX + 5, menuY + 3, 12);
-        g.drawString(font, Component.translatable("e33chat.context.tp"), menuX + 22, menuY + 4, c().textPrimary(), false);
+        g.drawString(font, Component.translatable(ChatMessageStore.useTpa() ? "e33chat.context.tpa" : "e33chat.context.tp"), menuX + 22, menuY + 4, c().textPrimary(), false);
 
         g.fill(menuX + 4, menuY + CTX_ITEM_H + 1, menuX + CTX_W - 4, menuY + CTX_ITEM_H + 2, c().closeHoverBg());
 

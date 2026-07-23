@@ -1,6 +1,7 @@
 package com.niuqu.chatbubble;
 
 import com.niuqu.chatbubble.packets.ChatMetaPacket;
+import com.niuqu.chatbubble.packets.ConfigSyncPacket;
 import com.niuqu.chatbubble.packets.HistoryPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.CommandEvent;
@@ -72,8 +73,14 @@ public class ChatServerListener {
 
     @SubscribeEvent
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (!ChatServerConfig.HISTORY_ENABLED.get()) return;
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
+
+        // Always sync server-side settings so the client head menu matches the server
+        NetworkHandler.CHANNEL.send(
+            PacketDistributor.PLAYER.with(() -> player),
+            new ConfigSyncPacket(ChatServerConfig.USE_TPA.get()));
+
+        if (!ChatServerConfig.HISTORY_ENABLED.get()) return;
         if (historyBuffer.isEmpty()) return;
         NetworkHandler.CHANNEL.send(
             PacketDistributor.PLAYER.with(() -> player),

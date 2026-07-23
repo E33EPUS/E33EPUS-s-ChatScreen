@@ -56,6 +56,7 @@
   "e33chat.context.copy": "复制",
   "e33chat.context.quote": "引用",
   "e33chat.context.tp": "传送",
+  "e33chat.context.tpa": "请求传送",
   "e33chat.context.whisper": "私聊",
   "e33chat.toast.copied": "已复制",
 
