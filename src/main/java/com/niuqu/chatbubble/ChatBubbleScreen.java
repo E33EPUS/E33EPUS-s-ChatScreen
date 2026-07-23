@@ -1886,8 +1886,33 @@ public class ChatBubbleScreen extends Screen {
         lastSeenMessageCount = msgs.size();
     }
 
+    // Translate legacy & color/format codes (&c, &l, &o...) into the § codes the
+    // game understands, so players can send colored text. Only & followed by a
+    // valid code char is converted — a bare & (e.g. "tom & jerry") is left alone.
+    // Whether the colored text survives is up to the server: many strip § codes
+    // or require a permission, and Essentials-style plugins may convert & themselves.
+    private static String translateColorCodes(String s) {
+        if (s.indexOf('&') < 0) return s;
+        StringBuilder out = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '&' && i + 1 < s.length() && isFormatCode(s.charAt(i + 1))) {
+                out.append('§');
+            } else {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
+
+    private static boolean isFormatCode(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+            || (c >= 'k' && c <= 'o') || (c >= 'A' && c <= 'F')
+            || (c >= 'K' && c <= 'O');
+    }
+
     private void sendMessage() {
-        String text = input.getValue().trim();
+        String text = translateColorCodes(input.getValue().trim());
         if (text.isEmpty()) return;
 
         // In whisper mode, auto-prepend /msg behind the scenes

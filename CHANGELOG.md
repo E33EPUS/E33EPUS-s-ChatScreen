@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.5
+
+**新增**
+- 发送消息支持 `&` 颜色/格式码：输入 `&c`、`&l`、`&o` 等（同 § 码表，0-9a-fk-or）发送时转成富文本。仅 `&` 后跟有效码字符才转换，单独的 `&`（如 `tom & jerry`）不受影响。注意：是否生效取决于服务器——很多服会剥掉 § 码或要求权限，Essentials 类插件可能自行转换 `&`
+
+**New**
+- Outgoing messages now support `&` color/format codes: typing `&c`, `&l`, `&o`, etc. (same code set as §, 0-9a-fk-or) is translated to rich text on send. Only `&` followed by a valid code char is converted; a bare `&` (e.g. `tom & jerry`) is left alone. Note: whether it takes effect is up to the server — many strip § codes or require permission, and Essentials-style plugins may convert `&` themselves
+
 ## v2.0.4
 
 **新增**
