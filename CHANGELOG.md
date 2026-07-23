@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.3
+
+**修复**
+- 恢复进度完成消息的悬浮描述：原版进度名带 HoverEvent（悬停显示进度详情），mod 之前只追踪带点击事件的文本段，进度名被漏掉导致悬浮窗失效。现在带悬浮事件的文本段也被追踪
+
+**Fix**
+- Restored hover descriptions on advancement messages: vanilla advancement names carry a HoverEvent (tooltip with advancement details), but the mod only tracked text segments with click events, so advancement names were skipped and the tooltip broke. Segments with hover events are now tracked too
+
 ## v2.0.2
 
 **修复**

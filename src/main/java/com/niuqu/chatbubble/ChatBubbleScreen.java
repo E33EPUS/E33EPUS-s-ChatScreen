@@ -1446,7 +1446,9 @@ public class ChatBubbleScreen extends Screen {
         net.minecraft.network.chat.Style runStyle = null;
         for (int idx = 0; idx <= styles.size(); idx++) {
             net.minecraft.network.chat.Style st = idx < styles.size() ? styles.get(idx) : null;
-            boolean clickable = st != null && st.getClickEvent() != null;
+            // Track segments with a click OR hover event so hover tooltips (e.g.
+            // advancement descriptions) work, not just clickable links
+            boolean clickable = st != null && (st.getClickEvent() != null || st.getHoverEvent() != null);
             if (runStyle == null) {
                 if (clickable) { runStart = idx; runStyle = st; }
             } else if (!clickable || !st.equals(runStyle)) {
