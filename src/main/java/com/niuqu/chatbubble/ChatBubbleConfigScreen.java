@@ -94,6 +94,7 @@ public class ChatBubbleConfigScreen extends Screen {
         behavior.add(new Opt("e33chat.config.anti_spam", y -> mkBoolButton(y, ChatBubbleConfig.ANTI_SPAM), null));
         behavior.add(new Opt("e33chat.config.chat_history", y -> mkBoolButton(y, ChatBubbleConfig.CHAT_HISTORY_ENABLED), null));
         behavior.add(new Opt("e33chat.config.preserve_input", y -> mkBoolButton(y, ChatBubbleConfig.PRESERVE_INPUT), null));
+        behavior.add(new Opt("e33chat.config.color_codes", y -> mkBoolButton(y, ChatBubbleConfig.COLOR_CODES), null));
         behavior.add(new Opt("e33chat.config.system_chat_as_bubble", y -> mkBoolButton(y, ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE), null));
         behavior.add(new Opt("e33chat.config.time_separator", this::mkTimeSepButton, null));
         cats.add(new Cat("e33chat.config.cat.behavior", behavior));

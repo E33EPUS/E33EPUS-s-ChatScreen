@@ -34,6 +34,7 @@ public class ChatBubbleConfig {
     public static final ForgeConfigSpec.BooleanValue SOUND_WHISPER;
     public static final ForgeConfigSpec.BooleanValue SOUND_PUBLIC;
     public static final ForgeConfigSpec.BooleanValue PRESERVE_INPUT;
+    public static final ForgeConfigSpec.BooleanValue COLOR_CODES;
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -124,6 +125,11 @@ public class ChatBubbleConfig {
             .comment("Keep typed text in the input box when the chat closes, restoring it on reopen")
             .translation("e33chat.config.preserve_input")
             .define("preserve_input", true);
+
+        COLOR_CODES = builder
+            .comment("Convert legacy & color/format codes (&c, &l...) to § before sending. Off by default: many servers reject the § character and kick you")
+            .translation("e33chat.config.color_codes")
+            .define("color_codes", false);
 
         builder.pop();
         builder.push("bubble");

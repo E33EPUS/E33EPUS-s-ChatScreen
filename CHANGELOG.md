@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.0.8
+
+**修复**
+- 头像加载：正版玩家自己的头像和在线玩家头像之前长时间卡在 Steve/Alex（身体皮肤却正常）。原因是首次查询拿到的默认皮肤被缓存后再也不刷新——`PlayerInfo.getSkinLocation()` 首次返回默认皮肤并异步下载，完成后才原地更新，但我们把首次的默认值缓存死了。现在在线玩家每帧读最新皮肤，下载完成后头像即跟上（CSL 皮肤同样走这条路）。离线/崩溃端玩家本就没有皮肤可取，仍为默认（属预期，除非 CSL 本地皮肤）
+- 菜单里「搜索」项的图标之前写死成齿轮（settings），是早期 search 图标没画好时的占位，从没改回来。现在正确显示 search 图标
+
+**新增**
+- 配置项「彩色文本 (& 颜色码)」（默认关闭）：控制发送时是否把 `&c`/`&l` 等转成 § 富文本。默认关闭，因为很多服务器会拒绝 § 字符并踢人——2.0.5 的转换由此改为可选，需要时在「行为」分类开启
+
+**Fix**
+- Head loading: a paid-account player's own head and other online players' heads used to stay stuck on Steve/Alex for a long time even though the body skin was correct. Cause: the first lookup returned the default skin, which got cached and never refreshed — `PlayerInfo.getSkinLocation()` returns the default and downloads asynchronously, only updating in place when done, but we cached that initial default. Online players' skins are now read fresh each frame, so the head catches up once the download finishes (CSL skins flow through the same path). Offline/cracked players have no skin to fetch and stay on the default (expected, unless CSL provides a local skin)
+- The "Search" item in the menu had its icon hardcoded to the gear (settings) — a leftover placeholder from when the search icon hadn't been drawn yet, never changed back. It now shows the search icon correctly
+
+**New**
+- "Color Codes (& codes)" config option (default off): controls whether `&c`/`&l` etc. are converted to § rich text on send. Off by default because many servers reject the § character and kick — the 2.0.5 conversion is now opt-in; enable it under the "Behavior" category when needed
+
 ## v2.0.7
 
 **新增**

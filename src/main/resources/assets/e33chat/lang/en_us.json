@@ -42,6 +42,8 @@
   "e33chat.config.chat_history.desc": "Save chat history per world/server and restore it on rejoin",
   "e33chat.config.preserve_input": "Preserve Typed Text",
   "e33chat.config.preserve_input.desc": "Keep unsent text in the input box when chat closes and restore it on reopen",
+  "e33chat.config.color_codes": "Color Codes (& codes)",
+  "e33chat.config.color_codes.desc": "Convert legacy & color/format codes (&c, &l...) to § before sending. Off by default: many servers reject the § character and kick you",
   "e33chat.config.preview_enabled": "Message Preview",
   "e33chat.config.preview_enabled.desc": "Show recent messages above the HUD icon while chat is closed",
   "e33chat.config.preview_lines": "Preview Lines",

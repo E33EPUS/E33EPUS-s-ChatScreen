@@ -1827,25 +1827,25 @@ public class ChatBubbleScreen extends Screen {
     }
 
     private ResourceLocation getSkin(UUID uuid, String name) {
+        // Online players: read PlayerInfo fresh every frame. getSkinLocation() returns
+        // the default skin and kicks off an async download on first call, then updates
+        // in place once done. Caching that first (default) result froze the head on
+        // Steve/Alex forever even after the real skin loaded — the entity model reads
+        // this fresh each frame, which is why the body showed the skin but the head didn't.
+        // CSL intercepts the underlying SkinManager lookup, so CSL skins flow through too.
+        if (minecraft.getConnection() != null && uuid != null && !uuid.equals(NIL_UUID)) {
+            PlayerInfo info = minecraft.getConnection().getPlayerInfo(uuid);
+            if (info != null) return info.getSkinLocation();
+        }
+        // Not in the tab list (offline player / history mention): route through the
+        // SkinManager with a GameProfile carrying the name. CSL keys off the name, so
+        // offline players with an imported skin resolve; otherwise vanilla (real skin
+        // for paid accounts carrying textures, Steve/Alex otherwise). The first result
+        // is final here, so cache it to avoid repeating the lookup every frame.
         if (uuid != null && !uuid.equals(NIL_UUID)) {
             ResourceLocation cached = skinCache.get(uuid);
             if (cached != null) return cached;
         }
-        // Online players: their skin was loaded through the SkinManager when the
-        // PlayerInfo was built (CSL intercepts that), so it's the real skin
-        if (minecraft.getConnection() != null && uuid != null && !uuid.equals(NIL_UUID)) {
-            PlayerInfo info = minecraft.getConnection().getPlayerInfo(uuid);
-            if (info != null) {
-                ResourceLocation skin = info.getSkinLocation();
-                skinCache.put(uuid, skin);
-                return skin;
-            }
-        }
-        // Not in the tab list (offline / NCR plain-text chat): route through the
-        // SkinManager with a GameProfile carrying the name. CustomSkinLoader keys
-        // off the name, so offline players with an imported skin resolve correctly;
-        // without CSL this falls back to vanilla (real skin for paid accounts that
-        // carry textures, Steve/Alex otherwise)
         ResourceLocation resolved = resolveSkin(uuid, name);
         if (uuid != null && !uuid.equals(NIL_UUID)) skinCache.put(uuid, resolved);
         return resolved;
@@ -1912,7 +1912,10 @@ public class ChatBubbleScreen extends Screen {
     }
 
     private void sendMessage() {
-        String text = translateColorCodes(input.getValue().trim());
+        String raw = input.getValue().trim();
+        // & color-code conversion is opt-in: many servers reject the resulting § char
+        // and kick ("illegal characters"), so by default we send the text untouched.
+        String text = ChatBubbleConfig.COLOR_CODES.get() ? translateColorCodes(raw) : raw;
         if (text.isEmpty()) return;
 
         // In whisper mode, auto-prepend /msg behind the scenes
