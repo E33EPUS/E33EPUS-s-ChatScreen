@@ -288,20 +288,24 @@ public class ChatMessageStore {
                 net.minecraft.sounds.SoundEvents.NOTE_BLOCK_CHIME.get(), 0.6F, 1.0F);
         }
 
+        // Strong hints enqueue at top level (not gated on !screenOpen) so a system /
+        // @mention arriving while chat is open also pops — the HUD already draws the
+        // hint above the open screen. Mutual exclusion with the preview is preserved by
+        // the systemToHint / mentionToHint guards (shared with the preview enqueue).
+        if (mentionToHint) {
+            strongHintQueue.add(new HintEntry(
+                Component.translatable("e33chat.notif.mention").withStyle(ChatFormatting.YELLOW), true));
+            if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
+        }
+
+        if (systemToHint && !mentionToHint) {
+            strongHintQueue.removeIf(e -> !e.isMention());
+            strongHintQueue.add(new HintEntry(singleLineComponent(content), false));
+            if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
+        }
+
         if (!screenOpen) {
             unreadCount++;
-
-            if (mentionToHint) {
-                strongHintQueue.add(new HintEntry(
-                    Component.translatable("e33chat.notif.mention").withStyle(ChatFormatting.YELLOW), true));
-                if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
-            }
-
-            if (systemToHint && !mentionToHint) {
-                strongHintQueue.removeIf(e -> !e.isMention());
-                strongHintQueue.add(new HintEntry(singleLineComponent(content), false));
-                if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
-            }
         }
 
         if (whisper && whisperPartner != null && !own) {
