@@ -2,6 +2,7 @@ package com.niuqu.chatbubble;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -279,7 +280,8 @@ public class ChatMessageStore {
             unreadCount++;
 
             if (mentionToHint) {
-                strongHintQueue.add(new HintEntry(Component.translatable("e33chat.notif.mention"), true));
+                strongHintQueue.add(new HintEntry(
+                    Component.translatable("e33chat.notif.mention").withStyle(ChatFormatting.YELLOW), true));
                 if (strongHintTicks <= 0) strongHintTicks = STRONG_HINT_DURATION;
             }
 
@@ -439,19 +441,24 @@ public class ChatMessageStore {
         pendingReplySender = sender;
     }
 
-    // Recent messages for the HUD preview, flattened to single lines (the HUD can't
-    // break on '\n'). Includes own + whisper, matching the old preview's collection.
+    // Recent messages for the HUD preview as STYLED components (single line: '\n' is
+    // flattened by singleLineComponent while keeping color/style), so the preview shows
+    // the same per-segment colors as the chat bubbles — nickname / title prefix / system
+    // color / player & mod colors all preserved. The HUD truncates on the Component, so
+    // colors survive truncation too. Includes own + whisper.
     public static List<Component> getRecentPreviews(int n) {
         List<Component> out = new ArrayList<>();
         for (int i = messages.size() - 1; i >= 0 && out.size() < n; i--) {
             ChatMessage m = messages.get(i);
-            String body = singleLine(m.content().getString());
-            String name = m.senderName().getString();
-            String line = name.isEmpty()
-                ? (m.isSystem() ? Component.translatable("e33chat.sender.system").getString() + ": " + body : body)
-                : name + ": " + body;
-            if (line.isBlank()) continue;
-            out.add(0, Component.literal(line));
+            Component body = singleLineComponent(m.content());
+            Component name = m.senderName();
+            Component text = name.getString().isEmpty()
+                ? (m.isSystem()
+                    ? Component.translatable("e33chat.sender.system").copy().append(Component.literal(": ")).append(body)
+                    : body)
+                : Component.empty().append(name).append(Component.literal(": ")).append(body);
+            if (text.getString().isBlank()) continue;
+            out.add(0, text);
         }
         return out;
     }
@@ -465,11 +472,6 @@ public class ChatMessageStore {
     public static Component getStrongHintText() {
         if (strongHintQueue.isEmpty()) return null;
         return strongHintTicks > 0 ? strongHintQueue.peek().text() : null;
-    }
-
-    public static boolean isStrongHintMention() {
-        if (strongHintQueue.isEmpty()) return false;
-        return strongHintQueue.peek().isMention();
     }
 
     public static int getStrongHintTicks() { return strongHintTicks; }

@@ -53,10 +53,10 @@ public class ChatBubbleHudOverlay {
                 int alpha = Animation.fadeInOut(ticks, 10, 40, 10);
                 int bgAlpha = alpha / 2;
                 int bgColor = (bgAlpha << 24) | 0x000000;
-                int baseColor = ChatMessageStore.isStrongHintMention() ? 0xFFFFFF55 : 0xFFFFFFFF;
-                int textColor = (alpha << 24) | baseColor;
                 g.fill(hintX - 6, hintY - 3, hintX + hintW + 6, hintY + mc.font.lineHeight + 3, bgColor);
-                g.drawString(mc.font, hint, hintX, hintY, textColor, false);
+                // Colors are baked into the hint Component (mention = yellow, system = its
+                // own colors); pass white only as a fallback so embedded colors always win.
+                g.drawString(mc.font, hint, hintX, hintY, (alpha << 24) | 0xFFFFFF, false);
             }
         }
 
