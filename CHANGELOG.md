@@ -1,5 +1,24 @@
 # Changelog
 
+## v2.1.0
+
+**消息预览 / 强提示 重做**
+- 预览与强提示**保留带样式文本的颜色**：玩家消息、系统消息、mod 内置文本、昵称、称号前缀等，进预览/强提示时与聊天气泡里看到的颜色一致（不再被碾成白字）
+- 预览**每行独立淡出**：最老的消息先消失、新的后消失（不再全部一起消失）；开框时预览隐藏但计时继续
+- 强提示弹窗**开聊天框时也显示**（联机时别人触发的系统 / 被@ 消息，开着框也会盖在框上弹出）
+
+**出站彩色文本（`&` 颜色码）改为安全实现**
+- 不再把 `&` 转成 `§` 发送（那是被踢的根因，连单人原版服都踢）；改为**只在自己气泡本地上色**，原文（含 `&`）原样发出，**永不踢人**
+- 装了颜色插件的服会把 `&` 转色给所有人；没插件的服别人看到原样 `&`
+- `彩色文本 (& 颜色码)` 配置语义改为"本地解释"，**默认关闭**（避免 `B&B` / `Q&A` 这类正常 `&` 被本地上色）
+
+**New**
+- **Message preview / strong-hint rework**
+- Preview and strong hint now **preserve styled text colors**: player messages, system messages, mod-built text, nicknames and title prefixes keep the same per-segment colors as in the chat bubbles (no longer flattened to white)
+- Preview lines **fade independently**: the oldest line disappears first, newer ones later (no longer all vanishing at once); the preview is hidden while chat is open but keeps counting down
+- The strong-hint popup **also shows while the chat screen is open** (online, a system / @mention triggered by others pops over the open screen)
+- **Outgoing colored text (`&` codes) reimplemented safely**: no longer converts `&` to `§` on send (the kick cause — kicks even on vanilla singleplayer); instead it **colors only your own bubble locally** and sends the raw text (with `&`) unchanged, so it **never kicks**. Servers with a color plugin translate `&` for everyone; plain servers show the literal `&` to others. The "Color Codes (& codes)" option now means "interpret locally" and is **off by default** (so normal `&` in text like `B&B` / `Q&A` isn't colored locally)
+
 ## v2.0.9
 
 **修复**
