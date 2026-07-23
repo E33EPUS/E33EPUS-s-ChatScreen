@@ -3,9 +3,9 @@
 
   "e33chat.config.title": "ChatBubble Settings",
   "e33chat.config.cat.appearance": "Appearance",
-  "e33chat.config.cat.notifications": "Notifications",
+  "e33chat.config.cat.notifications": "Notifications & Sound",
   "e33chat.config.cat.behavior": "Behavior",
-  "e33chat.config.cat.compat": "Compat",
+  "e33chat.config.cat.advanced": "Advanced",
   "e33chat.config.theme": "Color Theme (Beta)",
   "e33chat.config.theme.desc": "UI color scheme: dark or light",
   "e33chat.config.enabled": "Enable Mod",
@@ -79,7 +79,6 @@
   "e33chat.whisper.mode": "Whisper",
   "e33chat.quick_chat.placeholder": "Add phrase...",
 
-  "e33chat.config.cat.sound": "Sound",
   "e33chat.config.sound_system": "System Message Sound",
   "e33chat.config.sound_system.desc": "Play a notification sound for system messages",
   "e33chat.config.sound_mention": "@ / Quote Sound",

@@ -3,9 +3,9 @@
 
   "e33chat.config.title": "ChatBubble 设置",
   "e33chat.config.cat.appearance": "外观",
-  "e33chat.config.cat.notifications": "通知",
+  "e33chat.config.cat.notifications": "通知与音效",
   "e33chat.config.cat.behavior": "行为",
-  "e33chat.config.cat.compat": "兼容",
+  "e33chat.config.cat.advanced": "高级",
   "e33chat.config.theme": "颜色主题 (测试)",
   "e33chat.config.theme.desc": "界面配色：深色或浅色",
   "e33chat.config.enabled": "启用模组",
@@ -79,7 +79,6 @@
   "e33chat.whisper.mode": "私聊",
   "e33chat.quick_chat.placeholder": "添加常用语...",
 
-  "e33chat.config.cat.sound": "音效",
   "e33chat.config.sound_system": "系统消息音效",
   "e33chat.config.sound_system.desc": "收到系统消息时播放提示音",
   "e33chat.config.sound_mention": "@ / 引用消息音效",

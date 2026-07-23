@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.6
+
+**优化**
+- 配置界面排版重排：按功能聚合、开关在前细节在后。音效并入「通知与音效」分类，「兼容」分类撤销（仅剩的 debug_log 移入新「高级」分类）
+
+**Polish**
+- Config screen reordered: options grouped by function with toggles before their detail params. Sound merged into "Notifications & Sound"; the "Compat" category is retired (its only remaining item, debug_log, moves to a new "Advanced" category)
+
 ## v2.0.5
 
 **新增**
