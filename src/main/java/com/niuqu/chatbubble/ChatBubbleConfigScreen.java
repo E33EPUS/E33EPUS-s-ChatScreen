@@ -97,6 +97,11 @@ public class ChatBubbleConfigScreen extends Screen {
         behavior.add(new Opt("e33chat.config.color_codes", y -> mkBoolButton(y, ChatBubbleConfig.COLOR_CODES), null));
         behavior.add(new Opt("e33chat.config.system_chat_as_bubble", y -> mkBoolButton(y, ChatBubbleConfig.SYSTEM_CHAT_AS_BUBBLE), null));
         behavior.add(new Opt("e33chat.config.time_separator", this::mkTimeSepButton, null));
+        behavior.add(new Opt("e33chat.config.sidebar_hide_patterns",
+            y -> mkPatternBox(y,
+                new ArrayList<>(ChatBubbleConfig.SIDEBAR_HIDE_PATTERNS.get()),
+                parts -> ChatBubbleConfig.SIDEBAR_HIDE_PATTERNS.set(new ArrayList<>(parts))),
+            null));
         cats.add(new Cat("e33chat.config.cat.behavior", behavior));
 
         // Advanced: debug/dev-only options
@@ -224,6 +229,21 @@ public class ChatBubbleConfigScreen extends Screen {
                 int v = Integer.parseInt(s);
                 if (v >= min && v <= max) onChange.accept(v);
             } catch (NumberFormatException ignored) {}
+        });
+        return box;
+    }
+
+    private EditBox mkPatternBox(int y, List<String> initial, java.util.function.Consumer<List<String>> onChange) {
+        EditBox box = new EditBox(font, inputX, y, INPUT_W, 20, Component.literal(""));
+        box.setValue(String.join(", ", initial));
+        box.setMaxLength(200);
+        box.setResponder(s -> {
+            List<String> parts = new ArrayList<>();
+            for (String part : s.split(",")) {
+                String trimmed = part.trim();
+                if (!trimmed.isEmpty()) parts.add(trimmed);
+            }
+            onChange.accept(parts);
         });
         return box;
     }

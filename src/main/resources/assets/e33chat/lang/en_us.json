@@ -89,5 +89,7 @@
   "e33chat.config.sound_whisper": "Whisper Sound",
   "e33chat.config.sound_whisper.desc": "Play a notification sound for private / whisper messages",
   "e33chat.config.sound_public": "Public Chat Sound",
-  "e33chat.config.sound_public.desc": "Play a notification sound for public chat messages"
+  "e33chat.config.sound_public.desc": "Play a notification sound for public chat messages",
+  "e33chat.config.sidebar_hide_patterns": "Sidebar Hide Patterns",
+  "e33chat.config.sidebar_hide_patterns.desc": "Hide players matching these wildcard patterns from the sidebar (comma-separated, * = wildcard, e.g. Islot_*, *[NPC]*)"
 }

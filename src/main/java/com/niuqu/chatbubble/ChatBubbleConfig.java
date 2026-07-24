@@ -2,6 +2,7 @@ package com.niuqu.chatbubble;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public class ChatBubbleConfig {
@@ -35,6 +36,7 @@ public class ChatBubbleConfig {
     public static final ModConfigSpec.BooleanValue SOUND_PUBLIC;
     public static final ModConfigSpec.BooleanValue PRESERVE_INPUT;
     public static final ModConfigSpec.BooleanValue COLOR_CODES;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> SIDEBAR_HIDE_PATTERNS;
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -131,6 +133,11 @@ public class ChatBubbleConfig {
             .translation("e33chat.config.color_codes")
             .define("color_codes", false);
 
+        SIDEBAR_HIDE_PATTERNS = builder
+            .comment("Hide players matching these wildcard patterns from the sidebar whisper list (comma-separated, * = wildcard, e.g. Islot_*, *[NPC]*)")
+            .translation("e33chat.config.sidebar_hide_patterns")
+            .defineListAllowEmpty("sidebar_hide_patterns", ArrayList::new, () -> "", o -> o instanceof String);
+
         builder.pop();
         builder.push("bubble");
 
@@ -196,6 +203,18 @@ public class ChatBubbleConfig {
         builder.pop();
 
         CLIENT_CONFIG = builder.build();
+    }
+
+    public static boolean isSidebarHidden(String name) {
+        if (name == null || name.isEmpty()) return false;
+        String lower = name.toLowerCase();
+        for (String pattern : SIDEBAR_HIDE_PATTERNS.get()) {
+            if (pattern == null || pattern.isBlank()) continue;
+            String regex = Pattern.quote(pattern.trim())
+                .replace("\\*", ".*");
+            if (lower.matches(regex)) return true;
+        }
+        return false;
     }
 
     public static int parseHexColor(String hex, int defaultColor) {

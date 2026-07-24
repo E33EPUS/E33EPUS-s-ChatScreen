@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.2
+
+**侧边栏玩家名黑名单**
+- 新增设置项"侧边栏隐藏规则"：支持通配符模式（`*`），匹配的玩家名从侧边栏私聊列表隐藏，解决 TAB 等 NPC 填位插件创建假玩家（`Islot_*`）干扰私聊列表的问题
+- 逗号分隔多规则，空默认不隐藏
+
+**Sidebar player name blacklist**
+- New config option "Sidebar Hide Patterns": wildcard patterns (`*`) to hide matching player names from the sidebar whisper list, fixes fake NPC players (e.g. `Islot_*`) from TAB and similar tab-filler plugins cluttering the whisper list
+- Comma-separated patterns, empty by default (no hiding)
+
 ## v2.1.1
 
 **离线玩家消息识别 + 格式解析鲁棒性**

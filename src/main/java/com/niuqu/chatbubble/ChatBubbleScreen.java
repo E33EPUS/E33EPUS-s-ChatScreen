@@ -381,6 +381,7 @@ public class ChatBubbleScreen extends Screen {
             for (var info : players) {
                 String name = info.getProfile().getName();
                 if (name.equals(selfName)) continue;
+                if (ChatBubbleConfig.isSidebarHidden(name)) continue;
                 if (!filter.isEmpty() && !name.toLowerCase().contains(filter)) continue;
                 totalH += itemH + 2;
             }
@@ -402,6 +403,7 @@ public class ChatBubbleScreen extends Screen {
             for (var info : players) {
                 String name = info.getProfile().getName();
                 if (name.equals(selfName)) continue;
+                if (ChatBubbleConfig.isSidebarHidden(name)) continue;
                 if (!filter.isEmpty() && !name.toLowerCase().contains(filter)) continue;
 
                 if (scrollY + itemH > startY && scrollY < visibleBottom) {
@@ -703,6 +705,7 @@ public class ChatBubbleScreen extends Screen {
                 for (var info : players) {
                     String name = info.getProfile().getName();
                     if (name.equals(selfName)) continue;
+                    if (ChatBubbleConfig.isSidebarHidden(name)) continue;
                     if (!filter.isEmpty() && !name.toLowerCase().contains(filter)) continue;
                     if (mouseY >= scrollY && mouseY <= scrollY + SIDEBAR_ITEM_H) {
                         whisperPartner = name;
