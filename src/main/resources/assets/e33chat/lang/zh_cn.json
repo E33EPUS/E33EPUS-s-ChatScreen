@@ -89,5 +89,7 @@
   "e33chat.config.sound_whisper": "私聊消息音效",
   "e33chat.config.sound_whisper.desc": "收到私聊消息时播放提示音",
   "e33chat.config.sound_public": "公屏消息音效",
-  "e33chat.config.sound_public.desc": "收到公屏消息时播放提示音"
+  "e33chat.config.sound_public.desc": "收到公屏消息时播放提示音",
+  "e33chat.config.sidebar_hide_patterns": "侧边栏隐藏规则",
+  "e33chat.config.sidebar_hide_patterns.desc": "在侧边栏隐藏匹配这些通配符的玩家名（逗号分隔，* = 通配符，如 Islot_*、*[NPC]*）"
 }
