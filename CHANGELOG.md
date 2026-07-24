@@ -6,9 +6,17 @@
 - 新增设置项"侧边栏隐藏规则"：支持通配符模式（`*`），匹配的玩家名从侧边栏私聊列表隐藏，解决 TAB 等 NPC 填位插件创建假玩家（`Islot_*`）干扰私聊列表的问题
 - 逗号分隔多规则，空默认不隐藏
 
+**配置标题与 mod 描述修正**
+- 配置界面标题从 "ChatBubble" 更正为 "E33Chat"
+- mod 描述改为从语言文件加载，支持多语言（中文：以聊天APP风格重铸原版聊天框 / 英文：Rebuilds the vanilla chat HUD in chat-app style）
+
 **Sidebar player name blacklist**
 - New config option "Sidebar Hide Patterns": wildcard patterns (`*`) to hide matching player names from the sidebar whisper list, fixes fake NPC players (e.g. `Islot_*`) from TAB and similar tab-filler plugins cluttering the whisper list
 - Comma-separated patterns, empty by default (no hiding)
+
+**Config title & mod description fixes**
+- Config screen title corrected from "ChatBubble" to "E33Chat"
+- Mod description now loaded from lang files for proper localization (zh: 以聊天APP风格重铸原版聊天框 / en: Rebuilds the vanilla chat HUD in chat-app style)
 
 ## v2.1.1
 
