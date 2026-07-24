@@ -29,18 +29,22 @@
 - 🔊 **Notification sounds** — Per-type toggles for system, @ / quote, whisper, and public messages
 - 🎨 **Themes** — Dark/light theme with customizable bubble color, text color, and corner radius
 - 🕐 **Time separators** — Timestamp dividers at configurable intervals
-- 🌈 **Colored messages** — Use `&` color/format codes in your own messages (opt-in; previewed locally, and shown to everyone on servers with a color plugin)
+- 🌈 **Colored messages** — Supports `&` color/format codes (for servers with a color plugin installed)
 
 ## Compatibility
 
-- **NCR / FreedomChat** — Player chat that these mods convert into system messages is detected and restored into bubbles automatically — no setting needed.
-- **CustomSkinLoader** — Offline and imported skins are resolved by player name.
+- **No Chat Reports** and similar plugins — Automatically compatible since 2.1.0; no config option to enable.
+- **CustomSkinLoader** — Install this mod to show offline players' heads.
 
 ## FAQ
 
-**Server required?** No, but installing the server-side mod enables quote reply, @mention sync, chat history sync (new players receive recent messages), and the `use_tpa` option (player-head teleport uses `/tpa` request instead of `/tp`).
+**Server required?** No, but installing the server-side mod enables quote reply, @mention sync, chat history sync (new players receive recent messages), and the `use_tpa` option (player-head teleport uses `/tpa`).
 
-**How to configure?** Gear icon (bottom-left) → Menu → Settings, or edit `.minecraft\config\e33chat-client.toml`. The server config `e33chat-server.toml` is per-world — it lives in the world's `serverconfig` folder (singleplayer: `saves\<world>\serverconfig\`; dedicated server: `<world>\serverconfig\`), not the global `config` folder.
+**How to configure?** Gear icon (bottom-left) → Menu → Settings
+
+- Client config: `config\e33chat-client.toml`
+
+- Server config: `saves\<world>\serverconfig\e33chat-server.toml`
 
 **Where is chat history?** `.minecraft\e33chat\history`
 
