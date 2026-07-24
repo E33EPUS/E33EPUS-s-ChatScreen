@@ -94,4 +94,49 @@ class MessagePresentationTest {
         assertTrue(MessagePresentation.parseDecoratedPlayerLine(null, List.of("Steve")).isEmpty());
         assertTrue(MessagePresentation.parseDecoratedPlayerLine("hi", null).isEmpty());
     }
+
+    @Test void parsesLongPrefixWithDecorativeBrackets() {
+        var prefix = "[" + "a".repeat(35) + "]";
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            prefix + "Steve >> hi", List.of("Steve"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Steve", parsed.orElseThrow().playerName());
+        assertEquals("hi", parsed.orElseThrow().content());
+    }
+
+    @Test void parsesAngleBracketShortName() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "<a> hi", List.of("a"));
+        assertTrue(parsed.isPresent());
+        assertEquals("a", parsed.orElseThrow().playerName());
+        assertEquals("hi", parsed.orElseThrow().content());
+    }
+
+    @Test void parsesBracketPrefixShortNameWithColon() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "[T]a: hi", List.of("a"));
+        assertTrue(parsed.isPresent());
+        assertEquals("a", parsed.orElseThrow().playerName());
+        assertEquals("hi", parsed.orElseThrow().content());
+    }
+
+    @Test void rejectsBareShortNameWithoutStructure() {
+        assertTrue(MessagePresentation.parseDecoratedPlayerLine(
+            "a: hi", List.of("a")).isEmpty());
+    }
+
+    @Test void parsesWithOfflineCachedNameInList() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "[VIP]Steve >> hi", List.of("OfflineGuy", "Steve"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Steve", parsed.orElseThrow().playerName());
+        assertEquals("hi", parsed.orElseThrow().content());
+    }
+
+    @Test void longNameOrdinaryFormatStillParses() {
+        var parsed = MessagePresentation.parseDecoratedPlayerLine(
+            "Steve: hello there", List.of("Steve"));
+        assertTrue(parsed.isPresent());
+        assertEquals("Steve", parsed.orElseThrow().playerName());
+    }
 }

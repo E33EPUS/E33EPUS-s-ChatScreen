@@ -43,9 +43,34 @@ public final class MessagePresentation {
      * is prefixed by a short bracket group.
      */
     static Optional<PlayerLine> parseGeneric(String text, String name) {
-        if (text == null || name == null || name.length() < 3) return Optional.empty();
+        if (text == null || name == null) return Optional.empty();
         int idx = text.indexOf(name);
-        if (idx < 0 || idx >= 30) return Optional.empty();
+        if (idx < 0) return Optional.empty();
+
+        int minLen = 3;
+        // angle-bracket wrapped short name: <a> hi
+        if (idx > 0 && text.charAt(idx - 1) == '<') {
+            int closeAngle = text.indexOf('>', idx + name.length());
+            if (closeAngle >= 0 && closeAngle - (idx - 1) <= 64) minLen = 1;
+        }
+        // bracket-prefix short name followed by colon: [T]a: hi
+        if (minLen == 3 && idx > 0) {
+            int bracketClose = text.lastIndexOf(']', idx);
+            if (bracketClose >= 0 && idx - bracketClose <= 2) {
+                int bracketOpen = text.lastIndexOf('[', bracketClose);
+                if (bracketOpen >= 0) {
+                    int after = idx + name.length();
+                    if (after < text.length()) {
+                        char next = text.charAt(after);
+                        if (next == ':' || next == '：') minLen = 1;
+                    }
+                }
+            }
+        }
+        if (name.length() < minLen) return Optional.empty();
+
+        int decorativeLen = countDecorativePrefix(text, idx);
+        if (idx - decorativeLen >= 30) return Optional.empty();
 
         if (idx > 0) {
             char prev = text.charAt(idx - 1);
@@ -83,5 +108,24 @@ public final class MessagePresentation {
 
         String displayLabel = text.substring(0, idx + name.length());
         return Optional.of(new PlayerLine(name, displayLabel, text.substring(sep).strip()));
+    }
+
+    private static int countDecorativePrefix(String text, int upTo) {
+        int i = 0;
+        while (i < upTo) {
+            char c = text.charAt(i);
+            if (c == '[') {
+                int close = text.indexOf(']', i + 1);
+                if (close >= 0 && close < upTo) { i = close + 1; continue; }
+            }
+            if (c == '<') {
+                int close = text.indexOf('>', i + 1);
+                if (close >= 0 && close < upTo) { i = close + 1; continue; }
+            }
+            if (c == '§' && i + 1 < upTo) { i += 2; continue; }
+            if (Character.isWhitespace(c) || !Character.isLetterOrDigit(c)) { i++; continue; }
+            break;
+        }
+        return i;
     }
 }
