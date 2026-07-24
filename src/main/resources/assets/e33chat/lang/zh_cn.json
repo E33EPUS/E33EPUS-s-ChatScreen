@@ -1,7 +1,8 @@
 {
   "e33chat.screen.title": "聊天",
+  "e33chat.description": "以聊天APP风格重铸原版聊天框",
 
-  "e33chat.config.title": "ChatBubble 设置",
+  "e33chat.config.title": "E33Chat 设置",
   "e33chat.config.cat.appearance": "外观",
   "e33chat.config.cat.notifications": "通知与音效",
   "e33chat.config.cat.behavior": "行为",
