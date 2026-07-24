@@ -195,7 +195,8 @@ idea {
     }
 }
 
+def runTests = project.hasProperty('runTests')
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
-    onlyIf { project.hasProperty('runTests') }
+    onlyIf { runTests }
 }
