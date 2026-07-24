@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.1.1
+
+**离线玩家消息识别 + 格式解析鲁棒性**
+- 新增"见过玩家"缓存：所有实时识别/聊天历史的玩家自动记录（UUID + profile 名 + 显示名），在线名单查不到时用缓存回退。掉线/隐身/Tab 截断的玩家消息现在也能正确识别出气泡和真 UUID
+- 格式解析器放宽阈值：超长称号前缀（`[超级至尊VIP]Steve`）不再因长度被拒；短名（1-2 字符）在 `<a>` 角括号或 `[T]a:` 方括号+冒号结构下可靠识别，裸短名（无括号）仍保守拒绝
+- 不碰广播判定（join/death/advancement 仍是系统消息）、不碰去重层（自己回声消除不受影响）
+
+**Offline player message recognition + parser robustness**
+- New "seen player" cache: every player seen in real-time chat and chat history is automatically recorded (UUID + profile name + display name). When the online player list misses (offline/vanished/Tab-truncated), the cache provides fallback identification — offline player messages now render as bubbles with real UUIDs
+- Format parser thresholds relaxed: long decorative title prefixes (`[SuperVIP]Steve`) no longer block recognition by length; short names (1-2 chars) are now reliably detected when wrapped in angle brackets (`<a>`) or bracket+colon structure (`[T]a:`). Bare short names without structure remain conservatively rejected
+- Broadcast classification untouched (join/death/advancement stay as system messages); dedup layer untouched (self-echo elimination unaffected)
+
 ## v2.1.0
 
 **消息预览 / 强提示 重做**
