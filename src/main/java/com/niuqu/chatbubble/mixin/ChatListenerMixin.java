@@ -185,8 +185,21 @@ public class ChatListenerMixin {
             }
             String displayName = name.getString().replaceAll("§.", "").trim();
             var info = findOnlinePlayer(displayName);
-            String profile = info != null ? info.getProfile().getName() : displayName;
-            UUID uuid = info != null ? info.getProfile().getId() : new UUID(0, 0);
+            String profile;
+            UUID uuid;
+            if (info != null) {
+                profile = info.getProfile().getName();
+                uuid = info.getProfile().getId();
+            } else {
+                UUID su = ChatMessageStore.findSeenUuid(displayName);
+                if (su != null) {
+                    profile = displayName;
+                    uuid = su;
+                } else {
+                    profile = displayName;
+                    uuid = new UUID(0, 0);
+                }
+            }
             ChatMessageStore.debugLog("[e33chat] Key(chat) | name=" + profile + " | display='" + name.getString() + "' | content='" + content.getString() + "'");
             ChatMessageStore.setPendingMeta(new SenderMeta(uuid, name, content, false, profile, false, null));
             return true;
@@ -248,16 +261,22 @@ public class ChatListenerMixin {
                 break;
             }
         }
-        if (sender == null) return null;
-
-        // The clicked segment must actually be the sender's displayed name — feedback like
-        // "杀死了E33EPUS" carries a whole-line /tell click whose first segment is not a name
-        String clicked = clickedText[0].replaceAll("§.", "").trim();
-        boolean clickedIsName = false;
-        for (String cand : nameCandidates(sender)) {
-            if (!cand.isEmpty() && clicked.contains(cand)) { clickedIsName = true; break; }
+        UUID cachedId = null;
+        if (sender == null) {
+            cachedId = ChatMessageStore.findSeenUuid(tellName[0]);
+            if (cachedId == null) return null;
         }
-        if (!clickedIsName) return null;
+
+        if (sender != null) {
+            // The clicked segment must actually be the sender's displayed name — feedback like
+            // "杀死了E33EPUS" carries a whole-line /tell click whose first segment is not a name
+            String clicked = clickedText[0].replaceAll("§.", "").trim();
+            boolean clickedIsName = false;
+            for (String cand : nameCandidates(sender)) {
+                if (!cand.isEmpty() && clicked.contains(cand)) { clickedIsName = true; break; }
+            }
+            if (!clickedIsName) return null;
+        }
 
         int b = range[1];
         if (b < text.length() && text.charAt(b) == '>') b++;
@@ -269,12 +288,13 @@ public class ChatListenerMixin {
         }
         if (contentStart >= text.length()) return null;
 
-        String profile = sender.getProfile().getName();
+        String profile = sender != null ? sender.getProfile().getName() : tellName[0];
+        UUID id = sender != null ? sender.getProfile().getId() : cachedId;
         Component displayName = cleanNameArea(message, 0, b, tellName[0], Component.literal(profile));
         Component content = ChatMessageStore.sliceStyled(message, contentStart, text.length());
         ChatMessageStore.debugLog("[e33chat] System(tell click) | text='" + text + "' | name=" + profile + " | display='" + displayName.getString() + "' | content='" + content.getString() + "'");
         return new SenderMeta(
-            sender.getProfile().getId(),
+            id,
             displayName,
             content,
             false,
@@ -315,6 +335,28 @@ public class ChatListenerMixin {
                             false,
                             profile,
                             true, profile
+                        );
+                    }
+                }
+            }
+        }
+        // cache fallback: try seen (offline) players
+        for (var sp : ChatMessageStore.knownNameVariants()) {
+            int idx = text.indexOf(sp);
+            if (idx >= 0 && idx < 30) {
+                if (text.contains("悄悄") || text.contains("whisper") || text.contains("对你说") || text.contains("to you")
+                    || text.contains("私聊") || text.contains("密语") || text.contains("密聊")) {
+                    UUID su = ChatMessageStore.findSeenUuid(sp);
+                    if (su != null) {
+                        String content = extractWhisperContent(text, sp);
+                        ChatMessageStore.debugLog("[e33chat] System(" + logTag + "/cache) | text='" + text + "' | name=" + sp + " | content='" + content + "'");
+                        return new SenderMeta(
+                            su,
+                            Component.literal(sp),
+                            Component.literal(content),
+                            false,
+                            sp,
+                            true, sp
                         );
                     }
                 }
@@ -438,12 +480,12 @@ public class ChatListenerMixin {
         // disguised channel with no structured sender — try to parse the format
         var connection = Minecraft.getInstance().player.connection;
         if (connection != null && !isWhisper) {
-            var onlineNames = connection.getOnlinePlayers().stream()
-                .flatMap(info -> {
-                    var names = new java.util.ArrayList<String>();
-                    for (String cand : nameCandidates(info)) names.add(cand);
-                    return names.stream();
-                }).distinct().toList();
+            var namesSet = new java.util.LinkedHashSet<String>();
+            connection.getOnlinePlayers().forEach(info -> {
+                for (String cand : nameCandidates(info)) namesSet.add(cand);
+            });
+            namesSet.addAll(ChatMessageStore.knownNameVariants());
+            var onlineNames = new java.util.ArrayList<>(namesSet);
             var parsed = MessagePresentation.parseDecoratedPlayerLine(msgStr, onlineNames);
             if (parsed.isPresent()) {
                 var pl = parsed.orElseThrow();
@@ -453,7 +495,13 @@ public class ChatListenerMixin {
                             if (cand.equals(pl.playerName())) return true;
                         return false;
                     }).findFirst().orElse(null);
-                UUID uid = info != null ? info.getProfile().getId() : new UUID(0, 0);
+                UUID uid;
+                if (info != null) {
+                    uid = info.getProfile().getId();
+                } else {
+                    UUID su = ChatMessageStore.findSeenUuid(pl.playerName());
+                    uid = su != null ? su : new UUID(0, 0);
+                }
                 int nameIdx = msgStr.indexOf(pl.playerName());
                 int contentStart = nameIdx + pl.playerName().length();
                 while (contentStart < msgStr.length()) {
@@ -519,12 +567,12 @@ public class ChatListenerMixin {
 
         // Layer 2: parse decorated player line (NCR/plugin plain-text player chat)
         if (connection != null) {
-            var onlineNames = connection.getOnlinePlayers().stream()
-                .flatMap(info -> {
-                    var names = new java.util.ArrayList<String>();
-                    for (String cand : nameCandidates(info)) names.add(cand);
-                    return names.stream();
-                }).distinct().toList();
+            var namesSet = new java.util.LinkedHashSet<String>();
+            connection.getOnlinePlayers().forEach(info -> {
+                for (String cand : nameCandidates(info)) namesSet.add(cand);
+            });
+            namesSet.addAll(ChatMessageStore.knownNameVariants());
+            var onlineNames = new java.util.ArrayList<>(namesSet);
             var parsed = MessagePresentation.parseDecoratedPlayerLine(text, onlineNames);
             if (parsed.isPresent()) {
                 var pl = parsed.orElseThrow();
@@ -534,7 +582,13 @@ public class ChatListenerMixin {
                             if (cand.equals(pl.playerName())) return true;
                         return false;
                     }).findFirst().orElse(null);
-                UUID uid = info != null ? info.getProfile().getId() : new UUID(0, 0);
+                UUID uid;
+                if (info != null) {
+                    uid = info.getProfile().getId();
+                } else {
+                    UUID su = ChatMessageStore.findSeenUuid(pl.playerName());
+                    uid = su != null ? su : new UUID(0, 0);
+                }
                 int nameIdx = text.indexOf(pl.playerName());
                 int contentStart = nameIdx + pl.playerName().length();
                 while (contentStart < text.length()) {

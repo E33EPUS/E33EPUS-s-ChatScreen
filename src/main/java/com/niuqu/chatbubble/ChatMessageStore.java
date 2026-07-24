@@ -35,10 +35,56 @@ public class ChatMessageStore {
     private static boolean titlesLoaded;
     private static final Map<String, PendingMeta> pendingMetas = new HashMap<>();
 
+    public record SeenPlayer(UUID uuid, String profileName, String displayName) {}
+    private static final Map<UUID, SeenPlayer> seenPlayers = new LinkedHashMap<>();
+
     // Server-synced setting: head-menu teleport uses /tpa instead of /tp (default false)
     private static volatile boolean serverUseTpa = false;
     public static void setServerUseTpa(boolean v) { serverUseTpa = v; }
     public static boolean useTpa() { return serverUseTpa; }
+
+    public static void rememberPlayer(UUID uuid, String profileName, String displayName) {
+        if (uuid == null || uuid.equals(new UUID(0, 0)) || profileName == null || profileName.isEmpty()) return;
+        SeenPlayer existing = seenPlayers.get(uuid);
+        String newDisplay = (displayName != null && !displayName.isEmpty()) ? displayName
+            : (existing != null ? existing.displayName() : null);
+        seenPlayers.put(uuid, new SeenPlayer(uuid, profileName, newDisplay));
+    }
+
+    public static List<String> knownNameVariants() {
+        Set<String> out = new LinkedHashSet<>();
+        for (SeenPlayer sp : seenPlayers.values()) {
+            if (sp.profileName() != null && !sp.profileName().isEmpty()) {
+                out.add(sp.profileName());
+                String stripped = sp.profileName().replaceAll("§.", "");
+                if (!stripped.isEmpty()) out.add(stripped);
+            }
+            if (sp.displayName() != null && !sp.displayName().isEmpty()) {
+                out.add(sp.displayName());
+                String stripped = sp.displayName().replaceAll("§.", "");
+                if (!stripped.isEmpty()) out.add(stripped);
+            }
+        }
+        return new ArrayList<>(out);
+    }
+
+    public static UUID findSeenUuid(String name) {
+        if (name == null || name.isEmpty()) return null;
+        String stripped = name.replaceAll("§.", "");
+        for (SeenPlayer sp : seenPlayers.values()) {
+            if (matchesSeenName(name, stripped, sp.profileName())) return sp.uuid();
+            if (matchesSeenName(name, stripped, sp.displayName())) return sp.uuid();
+        }
+        return null;
+    }
+
+    private static boolean matchesSeenName(String raw, String stripped, String stored) {
+        if (stored == null || stored.isEmpty()) return false;
+        if (raw.equals(stored)) return true;
+        if (!stripped.isEmpty() && stripped.equals(stored)) return true;
+        String storedStripped = stored.replaceAll("§.", "");
+        return raw.equals(storedStripped) || (!stripped.isEmpty() && stripped.equals(storedStripped));
+    }
 
     public record SenderMeta(UUID senderUUID, Component senderName,
                              Component rawContent, boolean isSystem,
@@ -256,6 +302,9 @@ public class ChatMessageStore {
             whisper,
             whisperPartner
         ));
+
+        if (!isSystem && senderUUID != null && !senderUUID.equals(new UUID(0, 0)))
+            rememberPlayer(senderUUID, rawPlayerName, senderName.getString());
 
         while (messages.size() > MAX)
             messages.remove(0);
@@ -643,6 +692,8 @@ public class ChatMessageStore {
                     messages.add(new ChatMessage(uuid, senderName, content, time,
                         isOwn, isSystem, replyContent, replySender, "", 1, rawPlayerName,
                         whisper, whisperPartner));
+                    if (!isSystem && !uuid.equals(new UUID(0, 0)))
+                        rememberPlayer(uuid, rawPlayerName, senderName.getString());
                 } catch (Exception e) { com.mojang.logging.LogUtils.getLogger().warn("[e33chat] Failed to read/write chat history", e); }
             }
             while (messages.size() > MAX) messages.remove(0);
@@ -691,6 +742,8 @@ public class ChatMessageStore {
                 false,
                 null
             ));
+            if (!e.isSystem() && !e.senderUUID().equals(new UUID(0, 0)))
+                rememberPlayer(e.senderUUID(), e.senderName(), e.senderName());
         }
     }
 
