@@ -1,7 +1,8 @@
 {
   "e33chat.screen.title": "Chat",
+  "e33chat.description": "Rebuilds the vanilla chat HUD in chat-app style",
 
-  "e33chat.config.title": "ChatBubble Settings",
+  "e33chat.config.title": "E33Chat Settings",
   "e33chat.config.cat.appearance": "Appearance",
   "e33chat.config.cat.notifications": "Notifications & Sound",
   "e33chat.config.cat.behavior": "Behavior",
