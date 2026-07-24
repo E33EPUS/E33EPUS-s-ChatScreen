@@ -137,6 +137,10 @@ dependencies {
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -189,4 +193,9 @@ idea {
         downloadSources = true
         downloadJavadoc = true
     }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    onlyIf { project.hasProperty('runTests') }
 }
