@@ -44,7 +44,7 @@
 
 **Where is chat history?** `.minecraft\e33chat\history`
 
-**How to disable chat history sync?** Set `history_enabled = false` in the world's `serverconfig\e33chat-server.toml` and restart.
+**How to disable chat history sync?** Set `history_enabled = false` in the world's server config and restart.
 
 **Modpack?** Go ahead.
 
